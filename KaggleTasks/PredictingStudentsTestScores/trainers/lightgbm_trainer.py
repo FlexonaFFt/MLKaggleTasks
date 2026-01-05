@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold
 
 try:
     import lightgbm as lgb
@@ -52,6 +53,56 @@ class ModelTrainerLightGBM:
         assert self.model is not None
         self.model.fit(X_train, y_train)
         return self
+
+    def fit_cv(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        n_splits: int = 5,
+        early_stopping_rounds: int = 50,
+    ) -> Tuple[float, int]:
+        if lgb is None:
+            raise ImportError("lightgbm is not installed. Run: pip install lightgbm")
+
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=self.config.random_state)
+        rmses: list[float] = []
+        best_iters: list[int] = []
+
+        for train_idx, val_idx in kf.split(X):
+            X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+            model = lgb.LGBMRegressor(
+                n_estimators=self.config.n_estimators,
+                learning_rate=self.config.learning_rate,
+                max_depth=self.config.max_depth,
+                num_leaves=self.config.num_leaves,
+                subsample=self.config.subsample,
+                colsample_bytree=self.config.colsample_bytree,
+                random_state=self.config.random_state,
+            )
+            model.fit(
+                X_train,
+                y_train,
+                eval_set=[(X_val, y_val)],
+                eval_metric="rmse",
+                callbacks=[
+                    lgb.early_stopping(early_stopping_rounds),
+                    lgb.log_evaluation(period=0),
+                ],
+            )
+
+            preds = model.predict(X_val)
+            rmse = float(np.sqrt(mean_squared_error(y_val, preds)))
+            rmses.append(rmse)
+
+            best_iter = getattr(model, "best_iteration_", None)
+            if best_iter is not None:
+                best_iters.append(int(best_iter))
+
+        cv_rmse = float(np.mean(rmses))
+        best_n_estimators = int(np.mean(best_iters)) if best_iters else self.config.n_estimators
+        return cv_rmse, best_n_estimators
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         if self.model is None:

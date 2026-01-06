@@ -119,6 +119,86 @@ def _compute_num_medians(df: pd.DataFrame, num_cols: list[str]) -> pd.Series:
     return cast(pd.Series, medians)
 
 
+def _compute_te_stats(
+    X: pd.DataFrame,
+    y: pd.Series,
+    cat_cols: list[str],
+    smoothing: float,
+) -> Tuple[dict[str, pd.Series], dict[str, pd.Series], float]:
+    global_mean = float(y.mean())
+    encodings: dict[str, pd.Series] = {}
+    counts: dict[str, pd.Series] = {}
+
+    for col in cat_cols:
+        grp = y.groupby(X[col])
+        means = grp.mean()
+        cnts = grp.count()
+        enc = (cnts * means + smoothing * global_mean) / (cnts + smoothing)
+        encodings[col] = enc
+        counts[col] = cnts
+
+    return encodings, counts, global_mean
+
+
+def _apply_te(
+    X: pd.DataFrame,
+    cat_cols: list[str],
+    encodings: dict[str, pd.Series],
+    counts: dict[str, pd.Series],
+    global_mean: float,
+) -> pd.DataFrame:
+    data: dict[str, pd.Series] = {}
+    for col in cat_cols:
+        enc = encodings[col]
+        cnts = counts[col]
+        series = cast(pd.Series, X[col])
+        enc_map = enc.to_dict()
+        cnts_map = cnts.to_dict()
+        data[f"{col}_te"] = series.map(enc_map).fillna(global_mean).astype(float)
+        data[f"{col}_count"] = series.map(cnts_map).fillna(0).astype(float)
+    return pd.DataFrame(data, index=X.index)
+
+
+def _build_te_features(
+    X: pd.DataFrame,
+    y: pd.Series,
+    cat_cols: list[str],
+    num_cols: list[str],
+    smoothing: float,
+) -> Tuple[pd.DataFrame, dict[str, pd.Series], dict[str, pd.Series], float]:
+    encodings, counts, global_mean = _compute_te_stats(
+        X, y, cat_cols=cat_cols, smoothing=smoothing
+    )
+    te = _apply_te(
+        X,
+        cat_cols=cat_cols,
+        encodings=encodings,
+        counts=counts,
+        global_mean=global_mean,
+    )
+    num = X[num_cols].copy()
+    return pd.concat([num, te], axis=1), encodings, counts, global_mean
+
+
+def _transform_te_features(
+    X: pd.DataFrame,
+    cat_cols: list[str],
+    num_cols: list[str],
+    encodings: dict[str, pd.Series],
+    counts: dict[str, pd.Series],
+    global_mean: float,
+) -> pd.DataFrame:
+    te = _apply_te(
+        X,
+        cat_cols=cat_cols,
+        encodings=encodings,
+        counts=counts,
+        global_mean=global_mean,
+    )
+    num = X[num_cols].copy()
+    return pd.concat([num, te], axis=1)
+
+
 def prepare_data_catboost(
     data_dir: Path,
     test_size: float = 0.2,
@@ -277,8 +357,11 @@ def _oof_lightgbm(
     X: pd.DataFrame,
     y: pd.Series,
     X_test: pd.DataFrame,
+    cat_cols: list[str],
+    num_cols: list[str],
     n_splits: int = 5,
     random_state: int = 42,
+    smoothing: float = 10.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     oof = np.zeros(len(X), dtype=float)
@@ -287,10 +370,29 @@ def _oof_lightgbm(
     for train_idx, val_idx in kf.split(X):
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+        X_train_te, enc, cnts, global_mean = _build_te_features(
+            X_train, y_train, cat_cols=cat_cols, num_cols=num_cols, smoothing=smoothing
+        )
+        X_val_te = _transform_te_features(
+            X_val,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
+            encodings=enc,
+            counts=cnts,
+            global_mean=global_mean,
+        )
+        X_test_te = _transform_te_features(
+            X_test,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
+            encodings=enc,
+            counts=cnts,
+            global_mean=global_mean,
+        )
         trainer = ModelTrainerLightGBM()
-        trainer.fit(X_train, y_train)
-        oof[val_idx] = trainer.predict(X_val)
-        test_preds += trainer.predict(X_test)
+        trainer.fit(X_train_te, y_train)
+        oof[val_idx] = trainer.predict(X_val_te)
+        test_preds += trainer.predict(X_test_te)
 
     test_preds /= n_splits
     return oof, test_preds
@@ -300,8 +402,11 @@ def _oof_xgboost(
     X: pd.DataFrame,
     y: pd.Series,
     X_test: pd.DataFrame,
+    cat_cols: list[str],
+    num_cols: list[str],
     n_splits: int = 5,
     random_state: int = 42,
+    smoothing: float = 10.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     try:
         import xgboost as xgb
@@ -315,6 +420,25 @@ def _oof_xgboost(
     for train_idx, val_idx in kf.split(X):
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+        X_train_te, enc, cnts, global_mean = _build_te_features(
+            X_train, y_train, cat_cols=cat_cols, num_cols=num_cols, smoothing=smoothing
+        )
+        X_val_te = _transform_te_features(
+            X_val,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
+            encodings=enc,
+            counts=cnts,
+            global_mean=global_mean,
+        )
+        X_test_te = _transform_te_features(
+            X_test,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
+            encodings=enc,
+            counts=cnts,
+            global_mean=global_mean,
+        )
         model = xgb.XGBRegressor(
             n_estimators=800,
             learning_rate=0.05,
@@ -325,33 +449,33 @@ def _oof_xgboost(
             n_jobs=-1,
         )
         model.fit(
-            X_train,
+            X_train_te,
             y_train,
-            eval_set=[(X_val, y_val)],
+            eval_set=[(X_val_te, y_val)],
             verbose=False,
         )
-        oof[val_idx] = model.predict(X_val)
-        test_preds += model.predict(X_test)
+        oof[val_idx] = model.predict(X_val_te)
+        test_preds += model.predict(X_test_te)
 
     test_preds /= n_splits
     return oof, test_preds
 
 
 def stacking_ensemble(
-    X_cat: pd.DataFrame,
+    X_raw: pd.DataFrame,
     y: pd.Series,
-    X_cat_test: pd.DataFrame,
+    X_raw_test: pd.DataFrame,
     cat_features: list[int],
-    X_lgb: pd.DataFrame,
-    X_lgb_test: pd.DataFrame,
+    cat_cols: list[str],
+    num_cols: list[str],
     config: CatBoostConfig,
     n_splits: int = 5,
     random_state: int = 42,
 ) -> pd.Series:
     cat_oof, cat_test = _oof_catboost(
-        X_cat,
+        X_raw,
         y,
-        X_cat_test,
+        X_raw_test,
         cat_features=cat_features,
         config=config,
         n_splits=n_splits,
@@ -362,9 +486,11 @@ def stacking_ensemble(
 
     try:
         lgb_oof, lgb_test = _oof_lightgbm(
-            X_lgb,
+            X_raw,
             y,
-            X_lgb_test,
+            X_raw_test,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
             n_splits=n_splits,
             random_state=random_state,
         )
@@ -375,9 +501,11 @@ def stacking_ensemble(
 
     try:
         xgb_oof, xgb_test = _oof_xgboost(
-            X_lgb,
+            X_raw,
             y,
-            X_lgb_test,
+            X_raw_test,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
             n_splits=n_splits,
             random_state=random_state,
         )
@@ -392,67 +520,6 @@ def stacking_ensemble(
     meta.fit(oof_stack, y)
     preds = meta.predict(test_stack)
     return pd.Series(preds)
-
-
-def stacking_ensemble_holdout(
-    X_cat: pd.DataFrame,
-    y: pd.Series,
-    X_cat_test: pd.DataFrame,
-    cat_features: list[int],
-    X_lgb: pd.DataFrame,
-    X_lgb_test: pd.DataFrame,
-    config: CatBoostConfig,
-    test_size: float = 0.2,
-    random_state: int = 42,
-) -> pd.Series:
-    X_train_idx, X_val_idx = train_test_split(
-        X_cat.index, test_size=test_size, random_state=random_state
-    )
-    X_cat_train = X_cat.loc[X_train_idx]
-    X_cat_val = X_cat.loc[X_val_idx]
-    y_train = y.loc[X_train_idx]
-    y_val = y.loc[X_val_idx]
-
-    oof_parts = []
-    test_parts = []
-
-    cat_trainer = ModelTrainerCatBoost(config=config)
-    cat_trainer.fit(X_cat_train, y_train, X_cat_val, y_val, cat_features=cat_features)
-    oof_parts.append(cat_trainer.predict(X_cat_val))
-    test_parts.append(cat_trainer.predict(X_cat_test))
-
-    try:
-        lgb_trainer = ModelTrainerLightGBM()
-        lgb_trainer.fit(X_lgb.loc[X_train_idx], y_train)
-        oof_parts.append(lgb_trainer.predict(X_lgb.loc[X_val_idx]))
-        test_parts.append(lgb_trainer.predict(X_lgb_test))
-    except ImportError:
-        pass
-
-    try:
-        import xgboost as xgb
-
-        xgb_model = xgb.XGBRegressor(
-            n_estimators=800,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.9,
-            colsample_bytree=0.9,
-            random_state=random_state,
-            n_jobs=-1,
-        )
-        xgb_model.fit(X_lgb.loc[X_train_idx], y_train, eval_set=[(X_lgb.loc[X_val_idx], y_val)], verbose=False)
-        oof_parts.append(xgb_model.predict(X_lgb.loc[X_val_idx]))
-        test_parts.append(xgb_model.predict(X_lgb_test))
-    except ImportError:
-        pass
-
-    oof_stack = np.column_stack(oof_parts)
-    test_stack = np.column_stack(test_parts)
-    meta = Ridge(alpha=1.0, random_state=random_state)
-    meta.fit(oof_stack, y_val)
-    preds = meta.predict(test_stack)
-    return pd.Series(preds, index=X_cat_test.index)
 
 
 def make_submission(
@@ -486,18 +553,18 @@ if __name__ == "__main__":
     X_test_cat = prepare_test_catboost(
         data_dir, train_columns=X_full.columns, num_medians=num_medians
     )
-    _, _, _, _, X_lgb, y_lgb, _, preproc = prepare_data(data_dir)
-    X_test_lgb = prepare_test(data_dir, preproc, X_lgb.columns)
+    cat_cols = X_full.select_dtypes(include=["object", "string"]).columns.tolist()
+    num_cols = [c for c in X_full.columns if c not in cat_cols]
 
-    preds = stacking_ensemble_holdout(
-        X_cat=X_full,
+    preds = stacking_ensemble(
+        X_raw=X_full,
         y=cast(pd.Series, full_df["exam_score"]),
-        X_cat_test=X_test_cat,
+        X_raw_test=X_test_cat,
         cat_features=cat_features,
-        X_lgb=X_lgb,
-        X_lgb_test=X_test_lgb,
+        cat_cols=cat_cols,
+        num_cols=num_cols,
         config=cat_config,
-        test_size=0.2,
+        n_splits=5,
         random_state=42,
     )
     test_ids = OwnDataLoader(

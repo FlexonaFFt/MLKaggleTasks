@@ -15,6 +15,12 @@ class CatBoostConfig:
     iterations: int = 2000
     learning_rate: float = 0.05
     depth: int = 8
+    l2_leaf_reg: float = 3.0
+    bagging_temperature: float = 1.0
+    random_strength: float = 1.0
+    border_count: int = 128
+    od_type: str = "Iter"
+    od_wait: int = 200
     loss_function: str = "RMSE"
     eval_metric: str = "RMSE"
     random_seed: int = 42
@@ -38,6 +44,12 @@ class ModelTrainerCatBoost:
             iterations=self.config.iterations,
             learning_rate=self.config.learning_rate,
             depth=self.config.depth,
+            l2_leaf_reg=self.config.l2_leaf_reg,
+            bagging_temperature=self.config.bagging_temperature,
+            random_strength=self.config.random_strength,
+            border_count=self.config.border_count,
+            od_type=self.config.od_type,
+            od_wait=self.config.od_wait,
             loss_function=self.config.loss_function,
             eval_metric=self.config.eval_metric,
             random_seed=self.config.random_seed,
@@ -56,6 +68,11 @@ class ModelTrainerCatBoost:
             use_best_model=eval_set is not None,
         )
         return self
+
+    def best_iteration(self) -> Optional[int]:
+        if self.model is None:
+            return None
+        return self.model.get_best_iteration()
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         if self.model is None:

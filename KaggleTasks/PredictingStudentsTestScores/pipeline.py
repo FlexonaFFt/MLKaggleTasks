@@ -5,12 +5,12 @@ from typing import Optional, Tuple, cast
 
 import pandas as pd
 import numpy as np
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold, train_test_split
 
 from data import DatasetPaths, OwnDataLoader, PreprocessConfig, Preprocessor
 from trainers.lightgbm_trainer import ModelTrainerLightGBM
-from trainers.catboost_trainer import CatBoostConfig, ModelTrainerCatBoost
 
 
 def prepare_data(
@@ -280,79 +280,6 @@ def prepare_test_catboost(
     return X_test
 
 
-def catboost_cv_train(
-    X: pd.DataFrame,
-    y: pd.Series,
-    cat_features: list[int],
-    config: Optional[CatBoostConfig] = None,
-    n_splits: int = 5,
-    random_state: int = 42,
-) -> Tuple[list[ModelTrainerCatBoost], float, Optional[int]]:
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-    rmses: list[float] = []
-    best_iters: list[int] = []
-    models: list[ModelTrainerCatBoost] = []
-
-    for train_idx, val_idx in kf.split(X):
-        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
-        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-
-        trainer = ModelTrainerCatBoost(config=config)
-        trainer.fit(X_train, y_train, X_val, y_val, cat_features=cat_features)
-        rmses.append(trainer.rmse(X_val, y_val))
-        best_iter = trainer.best_iteration()
-        if best_iter is not None:
-            best_iters.append(best_iter)
-        models.append(trainer)
-
-    mean_rmse = float(np.mean(rmses))
-    mean_best_iter = int(np.mean(best_iters)) if best_iters else None
-    return models, mean_rmse, mean_best_iter
-
-
-def predict_ensemble(models: list[ModelTrainerCatBoost], X: pd.DataFrame) -> pd.Series:
-    preds = np.zeros(X.shape[0], dtype=float)
-    for model in models:
-        preds += np.asarray(model.predict(X), dtype=float)
-    preds /= max(len(models), 1)
-    return pd.Series(preds)
-
-
-def blend_predictions(
-    preds_cat: pd.Series, preds_lgb: Optional[pd.Series]
-) -> pd.Series:
-    if preds_lgb is None:
-        return preds_cat
-    cat_vals = preds_cat.to_numpy(dtype=float)
-    lgb_vals = preds_lgb.to_numpy(dtype=float)
-    return pd.Series((cat_vals + lgb_vals) / 2.0, index=preds_cat.index)
-
-
-def _oof_catboost(
-    X: pd.DataFrame,
-    y: pd.Series,
-    X_test: pd.DataFrame,
-    cat_features: list[int],
-    config: CatBoostConfig,
-    n_splits: int = 5,
-    random_state: int = 42,
-) -> Tuple[np.ndarray, np.ndarray]:
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-    oof = np.zeros(len(X), dtype=float)
-    test_preds = np.zeros(len(X_test), dtype=float)
-
-    for train_idx, val_idx in kf.split(X):
-        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
-        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-        trainer = ModelTrainerCatBoost(config=config)
-        trainer.fit(X_train, y_train, X_val, y_val, cat_features=cat_features)
-        oof[val_idx] = trainer.predict(X_val)
-        test_preds += trainer.predict(X_test)
-
-    test_preds /= n_splits
-    return oof, test_preds
-
-
 def _oof_lightgbm(
     X: pd.DataFrame,
     y: pd.Series,
@@ -367,7 +294,8 @@ def _oof_lightgbm(
     oof = np.zeros(len(X), dtype=float)
     test_preds = np.zeros(len(X_test), dtype=float)
 
-    for train_idx, val_idx in kf.split(X):
+    for fold, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
+        print(f"[LightGBM] Fold {fold}/{n_splits}")
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
         X_train_te, enc, cnts, global_mean = _build_te_features(
@@ -417,7 +345,8 @@ def _oof_xgboost(
     oof = np.zeros(len(X), dtype=float)
     test_preds = np.zeros(len(X_test), dtype=float)
 
-    for train_idx, val_idx in kf.split(X):
+    for fold, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
+        print(f"[XGBoost] Fold {fold}/{n_splits}")
         X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
         X_train_te, enc, cnts, global_mean = _build_te_features(
@@ -461,30 +390,73 @@ def _oof_xgboost(
     return oof, test_preds
 
 
+def _oof_hist_gb(
+    X: pd.DataFrame,
+    y: pd.Series,
+    X_test: pd.DataFrame,
+    cat_cols: list[str],
+    num_cols: list[str],
+    n_splits: int = 5,
+    random_state: int = 42,
+    smoothing: float = 10.0,
+) -> Tuple[np.ndarray, np.ndarray]:
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    oof = np.zeros(len(X), dtype=float)
+    test_preds = np.zeros(len(X_test), dtype=float)
+
+    for fold, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
+        print(f"[HistGB] Fold {fold}/{n_splits}")
+        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+        X_train_te, enc, cnts, global_mean = _build_te_features(
+            X_train, y_train, cat_cols=cat_cols, num_cols=num_cols, smoothing=smoothing
+        )
+        X_val_te = _transform_te_features(
+            X_val,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
+            encodings=enc,
+            counts=cnts,
+            global_mean=global_mean,
+        )
+        X_test_te = _transform_te_features(
+            X_test,
+            cat_cols=cat_cols,
+            num_cols=num_cols,
+            encodings=enc,
+            counts=cnts,
+            global_mean=global_mean,
+        )
+        model = HistGradientBoostingRegressor(
+            max_iter=300,
+            learning_rate=0.05,
+            max_depth=5,
+            l2_regularization=0.0,
+            early_stopping=True,
+            random_state=random_state,
+        )
+        model.fit(X_train_te, y_train)
+        oof[val_idx] = model.predict(X_val_te)
+        test_preds += model.predict(X_test_te)
+
+    test_preds /= n_splits
+    return oof, test_preds
+
+
 def stacking_ensemble(
     X_raw: pd.DataFrame,
     y: pd.Series,
     X_raw_test: pd.DataFrame,
-    cat_features: list[int],
     cat_cols: list[str],
     num_cols: list[str],
-    config: CatBoostConfig,
     n_splits: int = 5,
     random_state: int = 42,
 ) -> pd.Series:
-    cat_oof, cat_test = _oof_catboost(
-        X_raw,
-        y,
-        X_raw_test,
-        cat_features=cat_features,
-        config=config,
-        n_splits=n_splits,
-        random_state=random_state,
-    )
-    oof_parts = [cat_oof]
-    test_parts = [cat_test]
+    oof_parts: list[np.ndarray] = []
+    test_parts: list[np.ndarray] = []
 
     try:
+        print("[LightGBM] Starting OOF")
         lgb_oof, lgb_test = _oof_lightgbm(
             X_raw,
             y,
@@ -500,6 +472,7 @@ def stacking_ensemble(
         pass
 
     try:
+        print("[XGBoost] Starting OOF")
         xgb_oof, xgb_test = _oof_xgboost(
             X_raw,
             y,
@@ -514,8 +487,25 @@ def stacking_ensemble(
     except ImportError:
         pass
 
+    print("[HistGB] Starting OOF")
+    hgb_oof, hgb_test = _oof_hist_gb(
+        X_raw,
+        y,
+        X_raw_test,
+        cat_cols=cat_cols,
+        num_cols=num_cols,
+        n_splits=n_splits,
+        random_state=random_state,
+    )
+    oof_parts.append(hgb_oof)
+    test_parts.append(hgb_test)
+
+    if not oof_parts:
+        raise RuntimeError("No base models available for stacking.")
+
     oof_stack = np.column_stack(oof_parts)
     test_stack = np.column_stack(test_parts)
+
     meta = Ridge(alpha=1.0, random_state=random_state)
     meta.fit(oof_stack, y)
     preds = meta.predict(test_stack)
@@ -537,19 +527,6 @@ if __name__ == "__main__":
     print("Train:", X_train.shape, y_train.shape)
     print("Val:", X_val.shape, y_val.shape)
 
-    cat_config = CatBoostConfig(
-        iterations=4000,
-        learning_rate=0.05,
-        depth=8,
-        l2_leaf_reg=6.0,
-        bagging_temperature=1.0,
-        random_strength=1.0,
-        border_count=128,
-        od_type="Iter",
-        od_wait=200,
-        verbose=200,
-    )
-
     X_test_cat = prepare_test_catboost(
         data_dir, train_columns=X_full.columns, num_medians=num_medians
     )
@@ -560,10 +537,8 @@ if __name__ == "__main__":
         X_raw=X_full,
         y=cast(pd.Series, full_df["exam_score"]),
         X_raw_test=X_test_cat,
-        cat_features=cat_features,
         cat_cols=cat_cols,
         num_cols=num_cols,
-        config=cat_config,
         n_splits=5,
         random_state=42,
     )

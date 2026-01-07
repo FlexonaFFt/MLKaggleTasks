@@ -90,6 +90,12 @@ class TextVectorizer:
     def fit_transform(self, df: pd.DataFrame):
         mats = []
         for col, vec in self.vectorizer.items():
+            mats.append(vec.fit_transform(df[col]))
+        return hstack(mats)
+
+    def transform(self, df: pd.DataFrame):
+        mats = []
+        for col, vec in self.vectorizer.items():
             mats.append(vec.transform(df[col]))
         return hstack(mats)
 
@@ -103,7 +109,7 @@ class DatasetBuilder:
         X_text = self.vectorizer.fit_transform(df)
         X_num = csr_matrix(df[self.feature_cols].values)
         X = hstack([X_text, X_num])
-        y = df[["winner_model_a", "winner_model_b", "winner_tie"]].values()
+        y = df[["winner_model_a", "winner_model_b", "winner_tie"]].values
         return X, y 
 
     def build_test(self, df: pd.DataFrame):

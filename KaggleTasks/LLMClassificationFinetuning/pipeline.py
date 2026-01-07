@@ -1,8 +1,6 @@
 from OwnDataLoader import DataPaths, DataLoader, DatasetBuilder, FeatureBuilder
 from mlcore.LogReg_model import LogRegModel, LogRegConfig
-
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import log_loss
+from makesub import SubmissionBuilder
 
 class Solution:
     def preprocess_data(self, train_path: str, test_path: str):
@@ -32,17 +30,14 @@ class Solution:
         X_test = dataset.build_test(test_df)
         return X_train, y_train, X_test 
 
-    def train_and_validate(self, X, y):
-        X_tr, X_val, y_tr, y_val = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y.argmax(axis=1)
-        )
+    def train_eval_and_submit(self, X_train, y_train, X_test, test_df):
+        model = LogRegModel(LogRegConfig(verbose=1))
+        loss, test_proba = model.train_eval_predict(X_train, y_train, X_test)
+        print("val log loss:", loss)
 
-        model = LogRegModel(LogRegConfig)
-        model.fit(X_tr, y_tr)
-
-        val_proba = model.predict_proba(X_val)
-        loss = log_loss(y_val, val_proba)
-        print("val log loss: ", loss)
+        sub_builder = SubmissionBuilder()
+        sub_builder.build(test_df, test_proba, path="submission.csv")
+        print("submission saved")
         return model
 
     def main(self):
@@ -56,7 +51,7 @@ class Solution:
         print("")
 
         X_train, y_train, X_test = self.build_features(train_df, test_df)
-        _ = self.train_and_validate(X_train, y_train)
+        _ = self.train_eval_and_submit(X_train, y_train, X_test, test_df)
         print("pipeline finished")
 
 

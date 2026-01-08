@@ -16,6 +16,8 @@ class DataConfig:
     missing_strategy: str = 'zero' # "zero" или "median"
     log_features: bool = True
     log_target: bool = True
+    rdkit_radius: int = 2
+    rdkit_nbits: int = 2048
 
 
 class DataLoader:
@@ -128,6 +130,8 @@ class DataPreprocessor:
         try:
             from rdkit import Chem
             from rdkit.Chem import Descriptors
+            from rdkit.Chem import rdMolDescriptors
+            from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
         except ImportError as exc:
             raise ImportError("RDKit is required for smiles_mode='rdkit'.") from exc
 
@@ -161,4 +165,22 @@ class DataPreprocessor:
                 "rdkit_fr_csp3": Descriptors.FractionCSP3(mol),
             })
 
-        return pd.DataFrame(feats, index=s.index)
+        desc_df = pd.DataFrame(feats, index=s.index)
+
+        fp_rows = []
+        morgan_gen = GetMorganGenerator(
+            radius=self.config.rdkit_radius,
+            fpSize=self.config.rdkit_nbits,
+        )
+        for smi in s:
+            mol = Chem.MolFromSmiles(smi)
+            if mol is None:
+                fp_rows.append([0] * self.config.rdkit_nbits)
+                continue
+            fp = morgan_gen.GetFingerprint(mol)
+            fp_rows.append(list(fp))
+
+        fp_cols = [f"mfp_{i}" for i in range(self.config.rdkit_nbits)]
+        fp_df = pd.DataFrame(fp_rows, columns=fp_cols, index=s.index)
+
+        return pd.concat([desc_df, fp_df], axis=1)

@@ -6,27 +6,19 @@ from typing import Tuple
 
 from mlcore.datafunc import DataConfig, DataLoader, DataPreprocessor
 from mlcore.makesubmiss import SubmissionMaker, SubmissionConfig
+from mlcore.algoml.xgb_model import XGBModel, XGBConfig
+from mlcore.algoml.lgbm_model import LGBMModel, LGBMConfig
+from mlcore.algoml.cat_model import CatModel, CatConfig
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_absolute_error
 
 
 @dataclass
-class XGBConfig:
-    n_estimators: int = 800
-    learning_rate: float = 0.05
-    max_depth: int = 6
-    subsample: float = 0.8
-    colsample_bytree: float = 0.8
-    reg_alpha: float = 0.0
-    reg_lambda: float = 1.0
-    random_state: int = 42
-    n_jobs: int = -1
-
-
-@dataclass
 class PipelineConfig:
     data: DataConfig
-    model: XGBConfig
+    xgb: XGBConfig
+    lgbm: LGBMConfig
+    cat: CatConfig
     submission: SubmissionConfig
     n_splits: int = 5
     random_state: int = 42
@@ -38,7 +30,7 @@ class MySolution:
         self.cfg = cfg
         self.loader = DataLoader(cfg.data)
         self.prep = DataPreprocessor(cfg.data)
-        self.model = self._build_model()
+        self.models = self._build_models()
         self.submission = SubmissionMaker(cfg.submission)
 
     def load_data(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -58,23 +50,12 @@ class MySolution:
         train_df, test_df = self.load_data()
         return self.preprocess(train_df, test_df)
 
-    def _build_model(self):
-        try:
-            from xgboost import XGBRegressor
-        except ImportError as exc:
-            raise ImportError("XGBoost is required. Install with: pip install xgboost") from exc
-
-        return XGBRegressor(
-            n_estimators=self.cfg.model.n_estimators,
-            learning_rate=self.cfg.model.learning_rate,
-            max_depth=self.cfg.model.max_depth,
-            subsample=self.cfg.model.subsample,
-            colsample_bytree=self.cfg.model.colsample_bytree,
-            reg_alpha=self.cfg.model.reg_alpha,
-            reg_lambda=self.cfg.model.reg_lambda,
-            random_state=self.cfg.model.random_state,
-            n_jobs=self.cfg.model.n_jobs,
-        )
+    def _build_models(self):
+        return {
+            "xgb": XGBModel(self.cfg.xgb),
+            "lgbm": LGBMModel(self.cfg.lgbm),
+            "cat": CatModel(self.cfg.cat),
+        }
 
     def cross_validate(self, X: pd.DataFrame, y: pd.Series) -> float:
         kf = KFold(
@@ -83,16 +64,20 @@ class MySolution:
             random_state=self.cfg.random_state,
         )
         maes = []
-        for train_idx, val_idx in kf.split(X):
+        for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
             X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_tr, y_val = y.iloc[train_idx], y.iloc[val_idx]
             if self.cfg.data.log_target:
                 y_tr_fit = np.log1p(y_tr)
             else:
                 y_tr_fit = y_tr
-            model = self._build_model()
-            model.fit(X_tr, y_tr_fit)
-            preds = model.predict(X_val)
+            print(f"Fold {fold_idx}/{self.cfg.n_splits}")
+            fold_preds = []
+            for name, model in self._build_models().items():
+                print(f"  Training {name}...")
+                model.fit(X_tr, y_tr_fit, verbose=True)
+                fold_preds.append(model.predict(X_val))
+            preds = np.mean(np.column_stack(fold_preds), axis=1)
             if self.cfg.data.log_target:
                 preds = np.expm1(preds)
             mae = mean_absolute_error(y_val, preds)
@@ -100,16 +85,21 @@ class MySolution:
         return float(np.mean(maes))
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
-        self.model = self._build_model()
         if self.cfg.data.log_target:
             y_fit = np.log1p(y)
         else:
             y_fit = y
-        self.model.fit(X, y_fit)
-        return self.model
+        self.models = self._build_models()
+        for name, model in self.models.items():
+            print(f"Training full model: {name}")
+            model.fit(X, y_fit, verbose=True)
+        return self.models
 
     def predict(self, X: pd.DataFrame):
-        preds = self.model.predict(X)
+        preds_list = []
+        for model in self.models.values():
+            preds_list.append(model.predict(X))
+        preds = np.mean(np.column_stack(preds_list), axis=1)
         if self.cfg.data.log_target:
             preds = np.expm1(preds)
         return preds
@@ -144,7 +134,9 @@ if __name__ == "__main__":
         smiles_mode="rdkit",
         missing_strategy="median",
     )
-    model_cfg = XGBConfig()
+    xgb_cfg = XGBConfig()
+    lgbm_cfg = LGBMConfig()
+    cat_cfg = CatConfig()
     sub_cfg = SubmissionConfig(output_path="submission.csv")
-    cfg = PipelineConfig(data=data_cfg, model=model_cfg, submission=sub_cfg)
+    cfg = PipelineConfig(data=data_cfg, xgb=xgb_cfg, lgbm=lgbm_cfg, cat=cat_cfg, submission=sub_cfg)
     MySolution(cfg).run()

@@ -12,8 +12,10 @@ class DataConfig:
     id_col: str = 'id'
 
     smiles_col: str = "SMILES"
-    smiles_mode: str = 'ignore' # "ignore", "simple", "char_counts"
+    smiles_mode: str = 'ignore' # "ignore", "simple", "char_counts", "rdkit"
     missing_strategy: str = 'zero' # "zero" или "median"
+    log_features: bool = True
+    log_target: bool = True
 
 
 class DataLoader:
@@ -92,6 +94,8 @@ class DataPreprocessor:
             return self._simple_smiles_features(smiles_series)
         if self.config.smiles_mode == "char_counts":
             return self._char_count_features(smiles_series)
+        if self.config.smiles_mode == "rdkit":
+            return self._rdkit_features(smiles_series)
         return pd.DataFrame(index=smiles_series.index)
 
     def _simple_smiles_features(self, smiles_series: pd.Series) -> pd.DataFrame:
@@ -119,3 +123,42 @@ class DataPreprocessor:
             col = f"smiles_{ch}"
             feats[col] = s.str.count(repr(ch).strip("'"))
         return feats
+
+    def _rdkit_features(self, smiles_series: pd.Series) -> pd.DataFrame:
+        try:
+            from rdkit import Chem
+            from rdkit.Chem import Descriptors
+        except ImportError as exc:
+            raise ImportError("RDKit is required for smiles_mode='rdkit'.") from exc
+
+        s = smiles_series.fillna("")
+        feats = []
+        for smi in s:
+            mol = Chem.MolFromSmiles(smi)
+            if mol is None:
+                feats.append({
+                    "rdkit_mol_wt": np.nan,
+                    "rdkit_logp": np.nan,
+                    "rdkit_tpsa": np.nan,
+                    "rdkit_hbd": np.nan,
+                    "rdkit_hba": np.nan,
+                    "rdkit_rings": np.nan,
+                    "rdkit_rot_bonds": np.nan,
+                    "rdkit_heavy_atoms": np.nan,
+                    "rdkit_fr_csp3": np.nan,
+                })
+                continue
+
+            feats.append({
+                "rdkit_mol_wt": Descriptors.MolWt(mol),
+                "rdkit_logp": Descriptors.MolLogP(mol),
+                "rdkit_tpsa": Descriptors.TPSA(mol),
+                "rdkit_hbd": Descriptors.NumHDonors(mol),
+                "rdkit_hba": Descriptors.NumHAcceptors(mol),
+                "rdkit_rings": Descriptors.RingCount(mol),
+                "rdkit_rot_bonds": Descriptors.NumRotatableBonds(mol),
+                "rdkit_heavy_atoms": Descriptors.HeavyAtomCount(mol),
+                "rdkit_fr_csp3": Descriptors.FractionCSP3(mol),
+            })
+
+        return pd.DataFrame(feats, index=s.index)

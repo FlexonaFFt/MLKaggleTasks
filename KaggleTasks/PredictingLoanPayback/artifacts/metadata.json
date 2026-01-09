@@ -1,0 +1,27 @@
+{
+  "model_type": "catboost",
+  "model_path": "artifacts/model.cbm",
+  "feature_cols": [
+    "id",
+    "annual_income",
+    "debt_to_income_ratio",
+    "credit_score",
+    "loan_amount",
+    "interest_rate",
+    "gender",
+    "marital_status",
+    "education_level",
+    "employment_status",
+    "loan_purpose",
+    "grade_subgrade"
+  ],
+  "categorical_cols": [
+    "gender",
+    "marital_status",
+    "education_level",
+    "employment_status",
+    "loan_purpose",
+    "grade_subgrade"
+  ],
+  "target_col": "loan_paid_back"
+}

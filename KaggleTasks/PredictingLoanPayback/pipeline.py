@@ -146,7 +146,7 @@ def run_predict():
 
 def main():
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command")
 
     train_parser = subparsers.add_parser("train")
     train_parser.add_argument("--train-path", default="datasets/train.csv")
@@ -163,9 +163,17 @@ def main():
         auc, model_path = train_model(args.train_path, args.out_dir, args.model)
         print(f"Validation ROC AUC: {auc:.6f}")
         print(f"Saved model to: {model_path}")
-    else:
+        return
+    if args.command == "predict":
         out_path = predict_model(args.test_path, args.metadata, args.out_path)
         print(f"Saved submission to: {out_path}")
+        return
+
+    auc, model_path = train_model("datasets/train.csv", "artifacts", None)
+    print(f"Validation ROC AUC: {auc:.6f}")
+    print(f"Saved model to: {model_path}")
+    out_path = predict_model("datasets/test.csv", "artifacts/metadata.json", "submission.csv")
+    print(f"Saved submission to: {out_path}")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ class XGBConfig:
     min_child_weight: float = 1.0
     random_state: int = 42
     n_jobs: int = -1
+    eval_metric: str = "mae"
+    early_stopping_rounds: int = 100
 
 
 class XGBModel:
@@ -39,11 +41,20 @@ class XGBModel:
             random_state=self.cfg.random_state,
             n_jobs=self.cfg.n_jobs,
             tree_method="hist",
+            eval_metric=self.cfg.eval_metric,
         )
 
-    def fit(self, X, y, verbose: bool = True):
+    def fit(self, X, y, eval_set=None, verbose: bool = True):
         self.model = self._build()
-        self.model.fit(X, y, verbose=verbose)
+        fit_kwargs = {"verbose": verbose}
+        if eval_set is not None:
+            fit_kwargs["eval_set"] = [eval_set]
+            fit_kwargs["early_stopping_rounds"] = self.cfg.early_stopping_rounds
+        try:
+            self.model.fit(X, y, **fit_kwargs)
+        except TypeError:
+            fit_kwargs.pop("early_stopping_rounds", None)
+            self.model.fit(X, y, **fit_kwargs)
         return self
 
     def predict(self, X):

@@ -14,6 +14,8 @@ class LGBMConfig:
     min_child_samples: int = 20
     random_state: int = 42
     n_jobs: int = -1
+    eval_metric: str = "mae"
+    early_stopping_rounds: int = 100
 
 
 class LGBMModel:
@@ -41,20 +43,28 @@ class LGBMModel:
             n_jobs=self.cfg.n_jobs,
         )
 
-    def fit(self, X, y, verbose: bool = True):
+    def fit(self, X, y, eval_set=None, verbose: bool = True):
         self.model = self._build()
+        callbacks = []
         if verbose:
             try:
                 import lightgbm as lgb
-                callbacks = [lgb.log_evaluation(period=200)]
+                callbacks.append(lgb.log_evaluation(period=200))
             except Exception:
-                callbacks = None
-        else:
-            callbacks = None
+                pass
+        if eval_set is not None:
+            try:
+                import lightgbm as lgb
+                callbacks.append(lgb.early_stopping(self.cfg.early_stopping_rounds))
+            except Exception:
+                pass
+        fit_kwargs = {}
+        if eval_set is not None:
+            fit_kwargs["eval_set"] = [eval_set]
+            fit_kwargs["eval_metric"] = self.cfg.eval_metric
         if callbacks:
-            self.model.fit(X, y, callbacks=callbacks)
-        else:
-            self.model.fit(X, y)
+            fit_kwargs["callbacks"] = callbacks
+        self.model.fit(X, y, **fit_kwargs)
         return self
 
     def predict(self, X):

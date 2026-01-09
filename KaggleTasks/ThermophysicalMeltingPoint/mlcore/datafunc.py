@@ -18,6 +18,10 @@ class DataConfig:
     log_target: bool = True
     rdkit_radius: int = 2
     rdkit_nbits: int = 2048
+    use_mordred: bool = False
+    use_3d: bool = False
+    rdkit_3d_max_iters: int = 200
+    rdkit_3d_seed: int = 0
 
 
 class DataLoader:
@@ -129,16 +133,32 @@ class DataPreprocessor:
     def _rdkit_features(self, smiles_series: pd.Series) -> pd.DataFrame:
         try:
             from rdkit import Chem
+            from rdkit import RDLogger
             from rdkit.Chem import Descriptors
             from rdkit.Chem import rdMolDescriptors
             from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator, GetAtomPairGenerator
+            from rdkit.Chem import AllChem
         except ImportError as exc:
             raise ImportError("RDKit is required for smiles_mode='rdkit'.") from exc
+        RDLogger.DisableLog("rdApp.*")
 
         s = smiles_series.fillna("")
         feats = []
+        mols = []
+        mols_3d = []
         for smi in s:
             mol = Chem.MolFromSmiles(smi)
+            mols.append(mol)
+            mol_3d = None
+            if self.config.use_3d and mol is not None:
+                mol_h = Chem.AddHs(mol)
+                params = AllChem.ETKDGv3()
+                params.randomSeed = self.config.rdkit_3d_seed
+                res = AllChem.EmbedMolecule(mol_h, params)
+                if res == 0:
+                    AllChem.MMFFOptimizeMolecule(mol_h, maxIters=self.config.rdkit_3d_max_iters)
+                    mol_3d = mol_h
+            mols_3d.append(mol_3d)
             if mol is None:
                 feats.append({
                     "rdkit_mol_wt": np.nan,
@@ -150,8 +170,32 @@ class DataPreprocessor:
                     "rdkit_rot_bonds": np.nan,
                     "rdkit_heavy_atoms": np.nan,
                     "rdkit_fr_csp3": np.nan,
+                    "rdkit_asphericity": np.nan,
+                    "rdkit_eccentricity": np.nan,
+                    "rdkit_inertial_shape": np.nan,
+                    "rdkit_npr1": np.nan,
+                    "rdkit_npr2": np.nan,
+                    "rdkit_radius_gyr": np.nan,
+                    "rdkit_spherocity": np.nan,
                 })
                 continue
+
+            if self.config.use_3d and mol_3d is not None:
+                asphericity = rdMolDescriptors.CalcAsphericity(mol_3d)
+                eccentricity = rdMolDescriptors.CalcEccentricity(mol_3d)
+                inertial_shape = rdMolDescriptors.CalcInertialShapeFactor(mol_3d)
+                npr1 = rdMolDescriptors.CalcNPR1(mol_3d)
+                npr2 = rdMolDescriptors.CalcNPR2(mol_3d)
+                radius_gyr = rdMolDescriptors.CalcRadiusOfGyration(mol_3d)
+                spherocity = rdMolDescriptors.CalcSpherocityIndex(mol_3d)
+            else:
+                asphericity = np.nan
+                eccentricity = np.nan
+                inertial_shape = np.nan
+                npr1 = np.nan
+                npr2 = np.nan
+                radius_gyr = np.nan
+                spherocity = np.nan
 
             feats.append({
                 "rdkit_mol_wt": Descriptors.MolWt(mol),
@@ -163,6 +207,13 @@ class DataPreprocessor:
                 "rdkit_rot_bonds": Descriptors.NumRotatableBonds(mol),
                 "rdkit_heavy_atoms": Descriptors.HeavyAtomCount(mol),
                 "rdkit_fr_csp3": Descriptors.FractionCSP3(mol),
+                "rdkit_asphericity": asphericity,
+                "rdkit_eccentricity": eccentricity,
+                "rdkit_inertial_shape": inertial_shape,
+                "rdkit_npr1": npr1,
+                "rdkit_npr2": npr2,
+                "rdkit_radius_gyr": radius_gyr,
+                "rdkit_spherocity": spherocity,
             })
 
         desc_df = pd.DataFrame(feats, index=s.index)
@@ -215,4 +266,18 @@ class DataPreprocessor:
         atompair_cols = [f"ap_{i}" for i in range(self.config.rdkit_nbits)]
         atompair_df = pd.DataFrame(atompair_rows, columns=atompair_cols, index=s.index)
 
-        return pd.concat([desc_df, fp_df, morgan_count_df, maccs_df, atompair_df], axis=1)
+        feature_parts = [desc_df, fp_df, morgan_count_df, maccs_df, atompair_df]
+
+        if self.config.use_mordred:
+            try:
+                from mordred import Calculator, descriptors
+                calc = Calculator(descriptors, ignore_3D=not self.config.use_3d)
+                mordred_mols = [m3d if (self.config.use_3d and m3d is not None) else m for m, m3d in zip(mols, mols_3d)]
+                mordred_df = calc.pandas(mordred_mols)
+                mordred_df = mordred_df.apply(pd.to_numeric, errors="coerce")
+                mordred_df.index = s.index
+                feature_parts.append(mordred_df)
+            except ImportError as exc:
+                raise ImportError("Mordred is required for use_mordred=True.") from exc
+
+        return pd.concat(feature_parts, axis=1)

@@ -9,6 +9,7 @@ from mlcore.makesubmiss import SubmissionMaker, SubmissionConfig
 from mlcore.algoml.xgb_model import XGBModel, XGBConfig
 from mlcore.algoml.lgbm_model import LGBMModel, LGBMConfig
 from mlcore.algoml.cat_model import CatModel, CatConfig
+from mlcore.algoml.blender import RidgeBlender, BlenderConfig
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_absolute_error
 
@@ -19,6 +20,7 @@ class PipelineConfig:
     xgb: XGBConfig
     lgbm: LGBMConfig
     cat: CatConfig
+    blender: BlenderConfig
     submission: SubmissionConfig
     n_splits: int = 5
     random_state: int = 42
@@ -31,6 +33,8 @@ class MySolution:
         self.loader = DataLoader(cfg.data)
         self.prep = DataPreprocessor(cfg.data)
         self.models = self._build_models()
+        self.blender = RidgeBlender(cfg.blender)
+        self.oof_preds = None
         self.submission = SubmissionMaker(cfg.submission)
 
     def load_data(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -64,24 +68,31 @@ class MySolution:
             random_state=self.cfg.random_state,
         )
         maes = []
+        n_models = len(self.models)
+        oof_preds = np.zeros((len(y), n_models))
         for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
             X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_tr, y_val = y.iloc[train_idx], y.iloc[val_idx]
             if self.cfg.data.log_target:
                 y_tr_fit = np.log1p(y_tr)
+                y_val_fit = np.log1p(y_val)
             else:
                 y_tr_fit = y_tr
+                y_val_fit = y_val
             print(f"Fold {fold_idx}/{self.cfg.n_splits}")
             fold_preds = []
-            for name, model in self._build_models().items():
+            for m_idx, (name, model) in enumerate(self._build_models().items()):
                 print(f"  Training {name}...")
-                model.fit(X_tr, y_tr_fit, verbose=True)
-                fold_preds.append(model.predict(X_val))
+                model.fit(X_tr, y_tr_fit, eval_set=(X_val, y_val_fit), verbose=True)
+                preds = model.predict(X_val)
+                oof_preds[val_idx, m_idx] = preds
+                fold_preds.append(preds)
             preds = np.mean(np.column_stack(fold_preds), axis=1)
             if self.cfg.data.log_target:
                 preds = np.expm1(preds)
             mae = mean_absolute_error(y_val, preds)
             maes.append(mae)
+        self.oof_preds = oof_preds
         return float(np.mean(maes))
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
@@ -93,13 +104,19 @@ class MySolution:
         for name, model in self.models.items():
             print(f"Training full model: {name}")
             model.fit(X, y_fit, verbose=True)
+        if self.oof_preds is not None:
+            self.blender.fit(self.oof_preds, y_fit)
         return self.models
 
     def predict(self, X: pd.DataFrame):
         preds_list = []
         for model in self.models.values():
             preds_list.append(model.predict(X))
-        preds = np.mean(np.column_stack(preds_list), axis=1)
+        base_preds = np.column_stack(preds_list)
+        if self.oof_preds is not None:
+            preds = self.blender.predict(base_preds)
+        else:
+            preds = np.mean(base_preds, axis=1)
         if self.cfg.data.log_target:
             preds = np.expm1(preds)
         return preds
@@ -133,10 +150,20 @@ if __name__ == "__main__":
         test_path="datasets/test.csv",
         smiles_mode="rdkit",
         missing_strategy="median",
+        use_mordred=True,
+        use_3d=True,
     )
     xgb_cfg = XGBConfig()
     lgbm_cfg = LGBMConfig()
     cat_cfg = CatConfig()
+    blender_cfg = BlenderConfig(alpha=1.0)
     sub_cfg = SubmissionConfig(output_path="submission.csv")
-    cfg = PipelineConfig(data=data_cfg, xgb=xgb_cfg, lgbm=lgbm_cfg, cat=cat_cfg, submission=sub_cfg)
+    cfg = PipelineConfig(
+        data=data_cfg,
+        xgb=xgb_cfg,
+        lgbm=lgbm_cfg,
+        cat=cat_cfg,
+        blender=blender_cfg,
+        submission=sub_cfg,
+    )
     MySolution(cfg).run()

@@ -10,6 +10,9 @@ class CatConfig:
     subsample: float = 0.8
     random_state: int = 42
     verbose: int = 200
+    loss_function: str = "MAE"
+    eval_metric: str = "MAE"
+    early_stopping_rounds: int = 100
 
 
 class CatModel:
@@ -31,11 +34,18 @@ class CatModel:
             subsample=self.cfg.subsample,
             random_seed=self.cfg.random_state,
             verbose=self.cfg.verbose,
+            loss_function=self.cfg.loss_function,
+            eval_metric=self.cfg.eval_metric,
         )
 
-    def fit(self, X, y, verbose: bool = True):
+    def fit(self, X, y, eval_set=None, verbose: bool = True):
         self.model = self._build()
-        self.model.fit(X, y, verbose=verbose)
+        fit_kwargs = {"verbose": verbose}
+        if eval_set is not None:
+            fit_kwargs["eval_set"] = eval_set
+            fit_kwargs["use_best_model"] = True
+            fit_kwargs["early_stopping_rounds"] = self.cfg.early_stopping_rounds
+        self.model.fit(X, y, **fit_kwargs)
         return self
 
     def predict(self, X):

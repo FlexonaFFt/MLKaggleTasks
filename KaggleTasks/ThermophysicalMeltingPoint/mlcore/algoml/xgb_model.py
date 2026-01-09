@@ -4,7 +4,7 @@ from typing import Optional
 
 @dataclass
 class XGBConfig:
-    n_estimators: int = 1200
+    n_estimators: int = 600
     learning_rate: float = 0.03
     max_depth: int = 7
     subsample: float = 0.8

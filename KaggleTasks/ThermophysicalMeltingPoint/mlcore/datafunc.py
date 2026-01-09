@@ -22,6 +22,7 @@ class DataConfig:
     use_3d: bool = False
     rdkit_3d_max_iters: int = 200
     rdkit_3d_seed: int = 0
+    use_group_features: bool = True
 
 
 class DataLoader:
@@ -48,6 +49,8 @@ class DataPreprocessor:
             drop_cols.append(self.config.smiles_col)
 
         base_features = [c for c in train_df.columns if c not in drop_cols]
+        if not self.config.use_group_features:
+            base_features = [c for c in base_features if not c.startswith("Group ")]
         X = train_df[base_features].copy()
 
         if self.config.smiles_mode != "ignore" and self.config.smiles_col in train_df.columns:

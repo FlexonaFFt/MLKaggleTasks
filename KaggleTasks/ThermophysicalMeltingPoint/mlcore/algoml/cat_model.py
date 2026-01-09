@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CatConfig:
-    iterations: int = 2000
+    iterations: int = 1000
     learning_rate: float = 0.03
     depth: int = 8
     l2_leaf_reg: float = 3.0

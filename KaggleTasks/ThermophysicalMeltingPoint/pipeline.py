@@ -7,9 +7,9 @@ from typing import Tuple
 from mlcore.datafunc import DataConfig, DataLoader, DataPreprocessor
 from mlcore.makesubmiss import SubmissionMaker, SubmissionConfig
 from mlcore.algoml.xgb_model import XGBModel, XGBConfig
-from mlcore.algoml.lgbm_model import LGBMModel, LGBMConfig
 from mlcore.algoml.cat_model import CatModel, CatConfig
 from mlcore.algoml.blender import RidgeBlender, BlenderConfig
+from mlcore.algoml.ridge_model import RidgeBaseline, RidgeConfig
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_absolute_error
 
@@ -18,13 +18,14 @@ from sklearn.metrics import mean_absolute_error
 class PipelineConfig:
     data: DataConfig
     xgb: XGBConfig
-    lgbm: LGBMConfig
     cat: CatConfig
     blender: BlenderConfig
+    ridge: RidgeConfig
     submission: SubmissionConfig
     n_splits: int = 5
     random_state: int = 42
     do_validation: bool = True
+    use_fp_count_baseline: bool = True
 
 
 class MySolution:
@@ -34,6 +35,7 @@ class MySolution:
         self.prep = DataPreprocessor(cfg.data)
         self.models = self._build_models()
         self.blender = RidgeBlender(cfg.blender)
+        self.fp_baseline = RidgeBaseline(cfg.ridge)
         self.oof_preds = None
         self.submission = SubmissionMaker(cfg.submission)
 
@@ -57,7 +59,6 @@ class MySolution:
     def _build_models(self):
         return {
             "xgb": XGBModel(self.cfg.xgb),
-            "lgbm": LGBMModel(self.cfg.lgbm),
             "cat": CatModel(self.cfg.cat),
         }
 
@@ -68,7 +69,7 @@ class MySolution:
             random_state=self.cfg.random_state,
         )
         maes = []
-        n_models = len(self.models)
+        n_models = len(self.models) + (1 if self.cfg.use_fp_count_baseline else 0)
         oof_preds = np.zeros((len(y), n_models))
         for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
             X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
@@ -81,12 +82,21 @@ class MySolution:
                 y_val_fit = y_val
             print(f"Fold {fold_idx}/{self.cfg.n_splits}")
             fold_preds = []
-            for m_idx, (name, model) in enumerate(self._build_models().items()):
+            model_items = list(self._build_models().items())
+            for m_idx, (name, model) in enumerate(model_items):
                 print(f"  Training {name}...")
                 model.fit(X_tr, y_tr_fit, eval_set=(X_val, y_val_fit), verbose=True)
                 preds = model.predict(X_val)
                 oof_preds[val_idx, m_idx] = preds
                 fold_preds.append(preds)
+            if self.cfg.use_fp_count_baseline:
+                fp_cols = self._fp_count_cols(X_tr)
+                if fp_cols:
+                    print("  Training fp-count baseline...")
+                    self.fp_baseline.fit(X_tr[fp_cols], y_tr_fit)
+                    fp_preds = self.fp_baseline.predict(X_val[fp_cols])
+                    oof_preds[val_idx, len(model_items)] = fp_preds
+                    fold_preds.append(fp_preds)
             preds = np.mean(np.column_stack(fold_preds), axis=1)
             if self.cfg.data.log_target:
                 preds = np.expm1(preds)
@@ -104,6 +114,11 @@ class MySolution:
         for name, model in self.models.items():
             print(f"Training full model: {name}")
             model.fit(X, y_fit, verbose=True)
+        if self.cfg.use_fp_count_baseline:
+            fp_cols = self._fp_count_cols(X)
+            if fp_cols:
+                print("Training full fp-count baseline")
+                self.fp_baseline.fit(X[fp_cols], y_fit)
         if self.oof_preds is not None:
             self.blender.fit(self.oof_preds, y_fit)
         return self.models
@@ -112,6 +127,10 @@ class MySolution:
         preds_list = []
         for model in self.models.values():
             preds_list.append(model.predict(X))
+        if self.cfg.use_fp_count_baseline:
+            fp_cols = self._fp_count_cols(X)
+            if fp_cols:
+                preds_list.append(self.fp_baseline.predict(X[fp_cols]))
         base_preds = np.column_stack(preds_list)
         if self.oof_preds is not None:
             preds = self.blender.predict(base_preds)
@@ -126,6 +145,9 @@ class MySolution:
         nonneg_cols = X_out.columns[(X_out >= 0).all()]
         X_out[nonneg_cols] = np.log1p(X_out[nonneg_cols])
         return X_out
+
+    def _fp_count_cols(self, X: pd.DataFrame):
+        return [c for c in X.columns if c.startswith("mfp_count_")]
 
     def make_submission(self, test_ids: pd.Series, preds) -> pd.DataFrame:
         sub_df = self.submission.make(test_ids, preds)
@@ -151,19 +173,20 @@ if __name__ == "__main__":
         smiles_mode="rdkit",
         missing_strategy="median",
         use_mordred=True,
-        use_3d=True,
+        use_3d=False,
+        use_group_features=False,
     )
     xgb_cfg = XGBConfig()
-    lgbm_cfg = LGBMConfig()
     cat_cfg = CatConfig()
     blender_cfg = BlenderConfig(alpha=1.0)
+    ridge_cfg = RidgeConfig(alpha=1.0)
     sub_cfg = SubmissionConfig(output_path="submission.csv")
     cfg = PipelineConfig(
         data=data_cfg,
         xgb=xgb_cfg,
-        lgbm=lgbm_cfg,
         cat=cat_cfg,
         blender=blender_cfg,
+        ridge=ridge_cfg,
         submission=sub_cfg,
     )
     MySolution(cfg).run()

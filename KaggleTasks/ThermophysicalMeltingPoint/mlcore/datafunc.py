@@ -131,7 +131,7 @@ class DataPreprocessor:
             from rdkit import Chem
             from rdkit.Chem import Descriptors
             from rdkit.Chem import rdMolDescriptors
-            from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+            from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator, GetAtomPairGenerator
         except ImportError as exc:
             raise ImportError("RDKit is required for smiles_mode='rdkit'.") from exc
 
@@ -168,19 +168,51 @@ class DataPreprocessor:
         desc_df = pd.DataFrame(feats, index=s.index)
 
         fp_rows = []
-        morgan_gen = GetMorganGenerator(
+        morgan_count_rows = []
+        maccs_rows = []
+        atompair_rows = []
+        morgan_bit_gen = GetMorganGenerator(
             radius=self.config.rdkit_radius,
             fpSize=self.config.rdkit_nbits,
         )
+        morgan_count_gen = GetMorganGenerator(
+            radius=self.config.rdkit_radius,
+            fpSize=self.config.rdkit_nbits,
+            countSimulation=True,
+        )
+        atompair_gen = GetAtomPairGenerator(fpSize=self.config.rdkit_nbits)
         for smi in s:
             mol = Chem.MolFromSmiles(smi)
             if mol is None:
                 fp_rows.append([0] * self.config.rdkit_nbits)
+                morgan_count_rows.append([0] * self.config.rdkit_nbits)
+                maccs_rows.append([0] * 167)
+                atompair_rows.append([0] * self.config.rdkit_nbits)
                 continue
-            fp = morgan_gen.GetFingerprint(mol)
+            fp = morgan_bit_gen.GetFingerprint(mol)
             fp_rows.append(list(fp))
+            morgan_count = morgan_count_gen.GetFingerprint(mol)
+            count_vec = [0] * self.config.rdkit_nbits
+            if hasattr(morgan_count, "GetNonzeroElements"):
+                for idx, val in morgan_count.GetNonzeroElements().items():
+                    count_vec[idx] = val
+            else:
+                for idx, val in enumerate(list(morgan_count)):
+                    count_vec[idx] = val
+            morgan_count_rows.append(count_vec)
+            maccs = rdMolDescriptors.GetMACCSKeysFingerprint(mol)
+            maccs_rows.append(list(maccs))
+            atompair = atompair_gen.GetFingerprint(mol)
+            atompair_rows.append(list(atompair))
 
         fp_cols = [f"mfp_{i}" for i in range(self.config.rdkit_nbits)]
         fp_df = pd.DataFrame(fp_rows, columns=fp_cols, index=s.index)
 
-        return pd.concat([desc_df, fp_df], axis=1)
+        morgan_count_cols = [f"mfp_count_{i}" for i in range(self.config.rdkit_nbits)]
+        morgan_count_df = pd.DataFrame(morgan_count_rows, columns=morgan_count_cols, index=s.index)
+        maccs_cols = [f"maccs_{i}" for i in range(167)]
+        maccs_df = pd.DataFrame(maccs_rows, columns=maccs_cols, index=s.index)
+        atompair_cols = [f"ap_{i}" for i in range(self.config.rdkit_nbits)]
+        atompair_df = pd.DataFrame(atompair_rows, columns=atompair_cols, index=s.index)
+
+        return pd.concat([desc_df, fp_df, morgan_count_df, maccs_df, atompair_df], axis=1)

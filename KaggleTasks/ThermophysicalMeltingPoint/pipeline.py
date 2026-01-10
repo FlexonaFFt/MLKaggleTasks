@@ -170,11 +170,11 @@ if __name__ == "__main__":
     data_cfg = DataConfig(
         train_path="datasets/train.csv",
         test_path="datasets/test.csv",
-        smiles_mode="rdkit",
+        smiles_mode="chemberta",
         missing_strategy="median",
-        use_mordred=True,
+        use_mordred=False,
         use_3d=False,
-        use_group_features=False,
+        use_group_features=True,
     )
     xgb_cfg = XGBConfig()
     cat_cfg = CatConfig()

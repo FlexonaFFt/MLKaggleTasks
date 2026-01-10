@@ -23,6 +23,9 @@ class DataConfig:
     rdkit_3d_max_iters: int = 200
     rdkit_3d_seed: int = 0
     use_group_features: bool = True
+    chemberta_model: str = "seyonec/ChemBERTa-zinc-base-v1"
+    chemberta_max_length: int = 256
+    chemberta_batch_size: int = 32
 
 
 class DataLoader:
@@ -42,6 +45,8 @@ class DataPreprocessor:
         self.constant_cols: List[str] = []
         self.median_map: Optional[pd.Series] = None
         self.smiles_feature_cols: List[str] = []
+        self._chem_tokenizer = None
+        self._chem_model = None
 
     def fit(self, train_df: pd.DataFrame) -> "DataPreprocessor":
         drop_cols = [self.config.target_col, self.config.id_col]
@@ -105,6 +110,8 @@ class DataPreprocessor:
             return self._char_count_features(smiles_series)
         if self.config.smiles_mode == "rdkit":
             return self._rdkit_features(smiles_series)
+        if self.config.smiles_mode == "chemberta":
+            return self._chemberta_features(smiles_series)
         return pd.DataFrame(index=smiles_series.index)
 
     def _simple_smiles_features(self, smiles_series: pd.Series) -> pd.DataFrame:
@@ -284,3 +291,51 @@ class DataPreprocessor:
                 raise ImportError("Mordred is required for use_mordred=True.") from exc
 
         return pd.concat(feature_parts, axis=1)
+
+    def _chemberta_features(self, smiles_series: pd.Series) -> pd.DataFrame:
+        try:
+            import os
+            import torch
+            from transformers import AutoTokenizer, AutoModel
+        except ImportError as exc:
+            raise ImportError("Transformers and torch are required for smiles_mode='chemberta'.") from exc
+
+        os.environ.setdefault("OMP_NUM_THREADS", "1")
+        os.environ.setdefault("MKL_NUM_THREADS", "1")
+        os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+        torch.set_num_threads(1)
+
+        if self._chem_tokenizer is None or self._chem_model is None:
+            self._chem_tokenizer = AutoTokenizer.from_pretrained(self.config.chemberta_model)
+            self._chem_model = AutoModel.from_pretrained(self.config.chemberta_model)
+            self._chem_model.eval()
+
+        device = torch.device("cpu")
+        self._chem_model.to(device)
+
+        s = smiles_series.fillna("").tolist()
+        batch_size = self.config.chemberta_batch_size
+        embeddings = []
+
+        with torch.no_grad():
+            for i in range(0, len(s), batch_size):
+                batch = s[i : i + batch_size]
+                enc = self._chem_tokenizer(
+                    batch,
+                    padding=True,
+                    truncation=True,
+                    max_length=self.config.chemberta_max_length,
+                    return_tensors="pt",
+                )
+                enc = {k: v.to(device) for k, v in enc.items()}
+                out = self._chem_model(**enc)
+                last_hidden = out.last_hidden_state
+                mask = enc["attention_mask"].unsqueeze(-1).float()
+                summed = (last_hidden * mask).sum(dim=1)
+                counts = mask.sum(dim=1).clamp(min=1e-9)
+                pooled = (summed / counts).cpu().numpy()
+                embeddings.append(pooled)
+
+        emb = np.vstack(embeddings)
+        emb_cols = [f"chemberta_{i}" for i in range(emb.shape[1])]
+        return pd.DataFrame(emb, columns=emb_cols, index=smiles_series.index)

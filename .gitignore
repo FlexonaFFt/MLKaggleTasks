@@ -6,3 +6,7 @@ submission.csv
 datasets/
 __pycache__
 catboost_info
+
+# Cache files
+*.pkl
+features_cache/

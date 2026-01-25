@@ -1,4 +1,5 @@
 competition,rank,total
 Predicting Students Test Score,624,1741
 Thermophysical Property: Melting Point,309,903
-LLM Classification,141,238 
+LLM Classification,141,238
+AstronomicalClassification,282,810 

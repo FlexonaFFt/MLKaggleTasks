@@ -2,10 +2,14 @@
 .venv/
 
 submission.csv
+featured_*.csv
 
 datasets/
+dataset/
 __pycache__
 catboost_info
+
+.claude
 
 # Cache files
 *.pkl

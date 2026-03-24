@@ -1,0 +1,24 @@
+{
+  "baseline_lr": {
+    "cv_roc_auc_mean": 0.91121,
+    "cv_roc_auc_std": 0.00106
+  },
+  "xgboost": {
+    "cv_roc_auc_mean": 0.91611,
+    "cv_roc_auc_std": 0.00095
+  },
+  "lgbm": {
+    "cv_roc_auc_mean": 0.91583,
+    "cv_roc_auc_std": 0.00091
+  },
+  "catboost": {
+    "cv_roc_auc_mean": 0.91495,
+    "cv_roc_auc_std": 0.00098
+  },
+  "voting_ensemble": {
+    "cv_roc_auc_mean": 0.91591,
+    "cv_roc_auc_std": 0.00094
+  },
+  "best_model": "xgboost",
+  "best_cv_roc_auc": 0.91611
+}

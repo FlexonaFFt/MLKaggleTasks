@@ -10,6 +10,9 @@ __pycache__
 catboost_info
 
 .claude
+.codex
+.idea
+.DS_Store
 
 # Cache files
 *.pkl

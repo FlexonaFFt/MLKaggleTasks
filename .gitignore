@@ -6,6 +6,7 @@ featured_*.csv
 
 datasets/
 dataset/
+blend_dataset/
 __pycache__
 catboost_info
 

@@ -95,7 +95,7 @@ class PitStopSubmissionBlender:
             folder = self.dataset_dir / source
             if not folder.exists():
                 continue
-            for path in sorted(folder.glob("*.csv")):
+            for path in sorted(folder.rglob("*.csv")):
                 record = self._load_submission(path, source)
                 if record is not None:
                     records.append(record)
@@ -114,18 +114,24 @@ class PitStopSubmissionBlender:
         public_scored = self.meta[self.meta["source"].eq("public") & self.meta["public_score"].notna()].copy()
         public_scored = public_scored.sort_values("public_score", ascending=False)
 
-        core = public_scored[public_scored["public_score"].ge(self.cfg.public_core_min_score)].head(
+        top_external = self.meta[self.meta["group"].eq("top_external")]["name"].tolist()
+        core = self.meta[self.meta["group"].eq("core")].sort_values("public_score", ascending=False)["name"].head(
             self.cfg.public_core_count
-        )["name"].tolist()
-        if len(core) < min(self.cfg.public_core_count, len(public_scored)):
+        ).tolist()
+        if not core:
+            core = public_scored[public_scored["public_score"].ge(self.cfg.public_core_min_score)].head(
+                self.cfg.public_core_count
+            )["name"].tolist()
+        if len(core) < min(self.cfg.public_core_count, len(public_scored)) and not top_external:
             core = public_scored.head(self.cfg.public_core_count)["name"].tolist()
 
-        diverse = self._public_names_by_score(self.cfg.public_diverse_score)
-        support = self._public_names_by_score(self.cfg.support_score)
-        own_base = [name for name in ("ours_prob", "ours_base") if name in self.predictions]
-        own_variants = [f"ours_{name}" for name in self.cfg.own_variant_names if f"ours_{name}" in self.predictions]
+        diverse = self.meta[self.meta["group"].eq("diverse")]["name"].tolist() or self._public_names_by_score(self.cfg.public_diverse_score)
+        support = self.meta[self.meta["group"].eq("support")]["name"].tolist() or self._public_names_by_score(self.cfg.support_score)
+        own_base = self.meta[(self.meta["source"].eq("ours")) & (self.meta["group"].eq("main"))]["name"].tolist()
+        own_variants = self.meta[(self.meta["source"].eq("ours")) & (self.meta["group"].eq("variants"))]["name"].tolist()
 
         self.groups = {
+            "top_external": top_external,
             "public_core": core,
             "public_diverse": diverse,
             "public_support": support,
@@ -151,6 +157,7 @@ class PitStopSubmissionBlender:
         shallow = self.predictions.get("ours_shallow")
         reg = self.predictions.get("ours_reg")
 
+        top_external_pred = self._mean(self.groups["top_external"]) if self.groups.get("top_external") else None
         b10 = self._clip(0.95 * core + 0.05 * diverse)
         self.blends = {"b10": b10}
 
@@ -167,6 +174,35 @@ class PitStopSubmissionBlender:
         ]
 
         order = 2
+        if top_external_pred is not None:
+            self.blends["tx"] = top_external_pred
+            candidates.append(
+                BlendCandidate(
+                    key="tx",
+                    group="top_external",
+                    filename="tx.csv",
+                    recipe="mean(0.95409_a, 0.95409_b)",
+                    weights={"top_external": 1.0},
+                    try_order=order,
+                    note="Mean of new 0.95409 external submissions",
+                )
+            )
+            order += 1
+            pred = self._clip(0.90 * top_external_pred + 0.10 * b10)
+            self.blends["tb"] = pred
+            candidates.append(
+                BlendCandidate(
+                    key="tb",
+                    group="top_external",
+                    filename="tb.csv",
+                    recipe="0.900 top_external + 0.100 b10",
+                    weights={"top_external": 0.90, "b10": 0.10},
+                    try_order=order,
+                    note="Conservative blend of top external mean with b10",
+                )
+            )
+            order += 1
+
         for variant_name, variant_pred, label in [
             ("vs", shallow, "shallow"),
             ("vr", reg, "reg"),
@@ -294,6 +330,7 @@ class PitStopSubmissionBlender:
             "name": name,
             "source": source,
             "public_score": self._public_score(path) if source == "public" else np.nan,
+            "group": path.parent.name,
             "rows": len(df),
             "mean": pred.mean(),
             "std": pred.std(),

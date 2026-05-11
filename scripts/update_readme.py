@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 import csv
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
+
+_CACHE_DIR = Path(tempfile.gettempdir()) / "mlkaggle-cache"
+os.environ.setdefault("MPLCONFIGDIR", str(_CACHE_DIR / "matplotlib"))
+os.environ.setdefault("XDG_CACHE_HOME", str(_CACHE_DIR))
 
 try:
     import matplotlib

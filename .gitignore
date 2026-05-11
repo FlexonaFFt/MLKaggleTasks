@@ -1,20 +1,30 @@
+# OS and editor files
 .DS_Store
+.idea/
+.claude/
+.codex/
+
+# Python environments and caches
 .venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
 
-submission.csv
-featured_*.csv
-
+# Local Kaggle data and generated training outputs
 datasets/
 dataset/
+data/
 blend_dataset/
-__pycache__
-catboost_info
-
-.claude
-.codex
-.idea
-.DS_Store
-
-# Cache files
-*.pkl
+processed/
+catboost_info/
+artifacts/*.cbm
 features_cache/
+*.pkl
+*.cbm
+
+# Generated submissions and intermediate features
+submission.csv
+submission_*.csv
+sample_submission.csv
+**/submissions/*.csv
+featured_*.csv

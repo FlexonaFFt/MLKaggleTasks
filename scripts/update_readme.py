@@ -2,6 +2,7 @@
 import csv
 import os
 import tempfile
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -23,8 +24,34 @@ SVG_PATH = ROOT / "assets" / "progress.svg"
 README_PATH = ROOT / "README.md"
 
 
+@dataclass
+class CompetitionRow:
+    title: str
+    rank: int
+    total: int
+    percent: float
+    best_score: str = ""
+    metric: str = ""
+    source: str = ""
+    last_synced: str = ""
+
+
 def clamp(value, lo, hi):
     return max(lo, min(hi, value))
+
+
+def read_title(row):
+    return (row.get("title") or row.get("competition") or "").strip()
+
+
+def parse_int(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
 
 def load_rows():
@@ -34,19 +61,29 @@ def load_rows():
     with DATA_PATH.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            name = (row.get("competition") or "").strip()
-            if not name:
+            title = read_title(row)
+            if not title:
                 continue
-            try:
-                rank = int(row.get("rank", "").strip())
-                total = int(row.get("total", "").strip())
-            except ValueError:
+            rank = parse_int(row.get("rank"))
+            total = parse_int(row.get("total"))
+            if rank is None or total is None:
                 continue
             if total <= 0:
                 continue
             percent = (total - rank) / total * 100.0
             percent = clamp(percent, 0.0, 100.0)
-            rows.append((name, rank, total, percent))
+            rows.append(
+                CompetitionRow(
+                    title=title,
+                    rank=rank,
+                    total=total,
+                    percent=percent,
+                    best_score=(row.get("best_score") or "").strip(),
+                    metric=(row.get("metric") or "").strip(),
+                    source=(row.get("source") or "").strip(),
+                    last_synced=(row.get("last_synced") or "").strip(),
+                )
+            )
     return rows
 
 
@@ -63,10 +100,10 @@ def build_svg(rows):
     ax.set_facecolor("white")
 
     if rows:
-        names = [row[0] for row in rows]
-        ranks = [row[1] for row in rows]
-        totals = [row[2] for row in rows]
-        percents = [row[3] for row in rows]
+        names = [row.title for row in rows]
+        ranks = [row.rank for row in rows]
+        totals = [row.total for row in rows]
+        percents = [row.percent for row in rows]
         colors = [color_for(p) for p in percents]
 
         indices = list(range(1, len(rows) + 1))
@@ -102,10 +139,17 @@ def build_svg(rows):
 
 def build_table(rows):
     lines = []
-    lines.append("| # | Competition | Rank | Total | % beaten |")
-    lines.append("| - | - | - | - | - |")
-    for idx, (name, rank, total, percent) in enumerate(rows, start=1):
-        lines.append(f"| {idx} | {name} | {rank} | {total} | {percent:.1f}% |")
+    lines.append("| # | Competition | Rank | Total | % beaten | Best score | Source |")
+    lines.append("| - | - | - | - | - | - | - |")
+    for idx, row in enumerate(rows, start=1):
+        score = row.best_score or "-"
+        if score != "-" and row.metric:
+            score = f"{score} ({row.metric})"
+        source = row.source or "manual"
+        lines.append(
+            f"| {idx} | {row.title} | {row.rank} | {row.total} | "
+            f"{row.percent:.1f}% | {score} | {source} |"
+        )
     return "\n".join(lines)
 
 
@@ -140,7 +184,11 @@ def update_readme(rows):
             content += "\n"
         content += "\n" + chart_block + "\n"
 
-    table = build_table(rows) if rows else "| # | Competition | Rank | Total | % beaten |\n| - | - | - | - | - |"
+    table = (
+        build_table(rows)
+        if rows
+        else "| # | Competition | Rank | Total | % beaten | Best score | Source |\n| - | - | - | - | - | - | - |"
+    )
     table_block = table_block.format(table=table)
 
     if "<!-- COMPETITION-TABLE:START -->" in content:

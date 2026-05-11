@@ -56,6 +56,26 @@ The chart and table below are generated from `scripts/competitions.csv` with:
 python3 scripts/update_readme.py
 ```
 
+Kaggle stats can be synced automatically after configuring the official Kaggle
+CLI. The one-command sync reads competitions entered by the authenticated Kaggle
+account, adds missing rows to `scripts/competitions.csv`, updates scores/ranks,
+and regenerates the README chart.
+
+```bash
+python3 -m pip install kaggle
+python3 scripts/sync_kaggle_profile.py
+```
+
+For custom runs, use:
+
+```bash
+python3 scripts/fetch_kaggle_stats.py --profile https://www.kaggle.com/flexonafft --discover-entered --update-readme
+```
+
+If a title is ambiguous, fill the `slug` column manually with the Kaggle URL
+suffix and rerun the command. Kaggle API credentials must belong to the same
+account whose entered competitions should be synced.
+
 Formula:
 
 ```text
@@ -63,18 +83,23 @@ percent_beaten = (total - rank) / total * 100
 ```
 
 <!-- COMPETITION-TABLE:START -->
-| # | Competition | Rank | Total | % beaten |
-| - | - | - | - | - |
-| 1 | Predicting Students Test Score | 624 | 1741 | 64.2% |
-| 2 | Thermophysical Property: Melting Point | 309 | 903 | 65.8% |
-| 3 | LLM Classification | 141 | 238 | 40.8% |
-| 4 | Astronomical Classification | 282 | 810 | 65.2% |
-| 5 | Predicting Heart Disease | 70 | 536 | 86.9% |
+| # | Competition | Rank | Total | % beaten | Best score | Source |
+| - | - | - | - | - | - | - |
+| 1 | Predicting Students Test Score | 624 | 1741 | 64.2% | - | manual |
+| 2 | Thermophysical Property: Melting Point | 309 | 1177 | 73.7% | 35.59526 | kaggle |
+| 3 | LLM Classification | 153 | 256 | 40.2% | 1.07413 | kaggle |
+| 4 | Astronomical Classification | 285 | 894 | 68.1% | 0.5864 | kaggle |
+| 5 | Predicting Heart Disease | 70 | 536 | 86.9% | - | manual |
+| 6 | Playground Series S6E2 | 2407 | 4371 | 44.9% | 0.95323 | kaggle |
+| 7 | Playground Series S6E4 | 1602 | 4316 | 62.9% | 0.96735 | kaggle |
+| 8 | Playground Series S6E3 | 2485 | 4143 | 40.0% | 0.91338 | kaggle |
+| 9 | Playground Series S5E11 | 2010 | 3726 | 46.1% | 0.92150 | kaggle |
+| 10 | Playground Series S6E5 | 23 | 1256 | 98.2% | 0.95419 | kaggle |
 <!-- COMPETITION-TABLE:END -->
 
 <!-- PROGRESS-CHART:START -->
 <img src="assets/progress.svg" alt="Kaggle progress chart" width="100%" />
-<p><sub>Last updated: 2026-05-11 12:40</sub></p>
+<p><sub>Last updated: 2026-05-11 15:18</sub></p>
 <!-- PROGRESS-CHART:END -->
 
 ## Data Policy

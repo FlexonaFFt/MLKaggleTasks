@@ -4,6 +4,9 @@
 .claude/
 .codex/
 
+*CLAUDE.md
+*EXPERIMENTS.md
+
 # Python environments and caches
 .venv/
 __pycache__/

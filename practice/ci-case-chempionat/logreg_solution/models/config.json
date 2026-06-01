@@ -1,0 +1,25 @@
+{
+  "products": [
+    "credit_card",
+    "mortgage",
+    "deposit",
+    "investment",
+    "insurance",
+    "p2p_transfer",
+    "cashback",
+    "premium_account",
+    "business_loan"
+  ],
+  "features": [
+    "age",
+    "income_bucket",
+    "tenure_months",
+    "tx_count_30d",
+    "avg_tx_amount",
+    "digital_activity_score",
+    "has_child",
+    "is_salary_client"
+  ],
+  "macro_oof_auc": 0.6583903097677388,
+  "micro_oof_auc": 0.6703228867887956
+}

@@ -46,7 +46,8 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def new_model():
-    return LogisticRegression(C=C, max_iter=MAX_ITER)
+    # class_weight='balanced' дал лучший OOF macro (0.65845 против 0.65841)
+    return LogisticRegression(C=C, max_iter=MAX_ITER, class_weight="balanced")
 
 
 def main():

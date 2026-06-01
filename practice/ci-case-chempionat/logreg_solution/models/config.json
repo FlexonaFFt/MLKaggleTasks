@@ -20,6 +20,6 @@
     "has_child",
     "is_salary_client"
   ],
-  "macro_oof_auc": 0.6583903097677388,
-  "micro_oof_auc": 0.6703228867887956
+  "macro_oof_auc": 0.6583904676384214,
+  "micro_oof_auc": 0.6702790934641921
 }

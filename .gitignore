@@ -17,6 +17,7 @@ __pycache__/
 datasets/
 dataset/
 data/
+data_processed/
 blend_dataset/
 processed/
 catboost_info/

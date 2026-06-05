@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!requirements.txt
+!run.py
+!models/
+!models/model.joblib
+!models/config.json

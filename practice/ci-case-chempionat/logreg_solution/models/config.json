@@ -20,6 +20,19 @@
     "has_child",
     "is_salary_client"
   ],
-  "macro_oof_auc": 0.6583904676384214,
-  "micro_oof_auc": 0.6702790934641921
+  "model_spec": {
+    "family": "LogisticRegression",
+    "penalty": "l2",
+    "C": 0.03,
+    "class_weight": null,
+    "max_iter": 2000
+  },
+  "cv": {
+    "type": "KFold",
+    "n_splits": 5,
+    "seed": 42
+  },
+  "macro_oof_auc": 0.6582870310676909,
+  "micro_oof_auc": 0.6702530621341654,
+  "sklearn_version": "1.7.2"
 }

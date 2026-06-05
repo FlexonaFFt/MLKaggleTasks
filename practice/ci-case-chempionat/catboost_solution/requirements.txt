@@ -1,4 +1,0 @@
-numpy==1.26.4
-pandas==2.2.3
-scipy==1.13.1
-catboost==1.2.8

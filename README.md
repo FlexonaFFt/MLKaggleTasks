@@ -24,7 +24,7 @@ solution is structured.
 | - | - | - | - |
 | [Predicting Students Test Scores](competitions/predicting-students-test-scores/) | Regression | `pipeline.py` | Full Python pipeline with LightGBM/CatBoost trainers |
 | [Thermophysical Melting Point](competitions/thermophysical-melting-point/) | Regression | `pipeline.py` | Modular feature engineering and CatBoost pipeline |
-| [Customer Churn](competitions/customer-churn/) | Binary classification | `train_models.py` | Research report, EDA report, model results |
+| [Customer Churn](competitions/predicting-customer-churn/) | Binary classification | `train_models.py` | Research report, EDA report, model results |
 | [Predicting Loan Payback](competitions/predicting-loan-payback/) | Binary classification | `pipeline.py` | CLI-style train/predict workflow |
 | [Astronomical Classification](competitions/astronomical-classification/) | Time-series classification | `pipeline.ipynb` | Multiple notebook experiments including transformer baseline |
 
@@ -35,7 +35,7 @@ solution is structured.
 | [Astronomical Classification](competitions/astronomical-classification/) | Experiments + notebook solution | `pipeline.ipynb`, `optimal/transformer.ipynb` |
 | [Christmas Tree Packing Challenge](competitions/christmas-tree-packing-challenge/) | Starter notebook | `getting-started.ipynb` |
 | [Credit Card Fraud Detection](competitions/credit-card-fraud-detection/) | Notebook solution | `fraud-detection.ipynb` |
-| [Customer Churn](competitions/customer-churn/) | Pipeline + reports | `train_models.py`, `pipeline.ipynb` |
+| [Customer Churn](competitions/predicting-customer-churn/) | Pipeline + reports | `train_models.py`, `pipeline.ipynb` |
 | [LLM Classification Finetuning](competitions/llm-classification-finetuning/) | Baseline pipeline | `pipeline.py`, `notebooks/solution.ipynb` |
 | [Predicting Heart Disease](competitions/predicting-heart-disease/) | Baseline notebooks | `mybaseline.ipynb`, `cvbaseline.ipynb` |
 | [Predicting Irrigation Need](competitions/predicting-irrigation-need/) | EDA + notebook solution | `irrigation_need_solution.ipynb` |

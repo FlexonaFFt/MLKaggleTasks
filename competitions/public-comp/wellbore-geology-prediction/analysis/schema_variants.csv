@@ -1,0 +1,5 @@
+split,file_type,columns,files,rows
+test,horizontal,"MD, X, Y, Z, GR, TVT_input",3,19221
+test,typewell,"TVT, GR",3,5798
+train,horizontal,"MD, X, Y, Z, ANCC, ASTNU, ASTNL, EGFDU, EGFDL, BUDA, TVT, GR, TVT_input",773,5092255
+train,typewell,"TVT, GR, Geology",773,1567045

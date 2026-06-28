@@ -1,0 +1,808 @@
+{
+  "generated_at": "2026-06-28T16:20:17",
+  "summary_rows": [
+    {
+      "metric": "Horizontal wells",
+      "train": 773,
+      "test": 3,
+      "all": 776
+    },
+    {
+      "metric": "Typewell files",
+      "train": 773,
+      "test": 3,
+      "all": 776
+    },
+    {
+      "metric": "Horizontal rows",
+      "train": 5092255,
+      "test": 19221,
+      "all": 5111476
+    },
+    {
+      "metric": "Typewell rows",
+      "train": 1567045,
+      "test": 5798,
+      "all": 1572843
+    },
+    {
+      "metric": "Submission rows",
+      "train": null,
+      "test": 14151,
+      "all": 14151
+    }
+  ],
+  "schema_variants": [
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "columns": "MD, X, Y, Z, GR, TVT_input",
+      "files": 3,
+      "rows": 19221
+    },
+    {
+      "split": "test",
+      "file_type": "typewell",
+      "columns": "TVT, GR",
+      "files": 3,
+      "rows": 5798
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "columns": "MD, X, Y, Z, ANCC, ASTNU, ASTNL, EGFDU, EGFDL, BUDA, TVT, GR, TVT_input",
+      "files": 773,
+      "rows": 5092255
+    },
+    {
+      "split": "train",
+      "file_type": "typewell",
+      "columns": "TVT, GR, Geology",
+      "files": 773,
+      "rows": 1567045
+    }
+  ],
+  "missing_summary": [
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "column": "TVT_input",
+      "missing_rows": 14151,
+      "total_rows": 19221,
+      "missing_rate": 0.7362260028094272
+    },
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "column": "GR",
+      "missing_rows": 3784,
+      "total_rows": 19221,
+      "missing_rate": 0.19686800894854586
+    },
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "column": "MD",
+      "missing_rows": 0,
+      "total_rows": 19221,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "column": "X",
+      "missing_rows": 0,
+      "total_rows": 19221,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "column": "Y",
+      "missing_rows": 0,
+      "total_rows": 19221,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "test",
+      "file_type": "horizontal",
+      "column": "Z",
+      "missing_rows": 0,
+      "total_rows": 19221,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "test",
+      "file_type": "typewell",
+      "column": "GR",
+      "missing_rows": 0,
+      "total_rows": 5798,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "test",
+      "file_type": "typewell",
+      "column": "TVT",
+      "missing_rows": 0,
+      "total_rows": 5798,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "TVT_input",
+      "missing_rows": 3783989,
+      "total_rows": 5092255,
+      "missing_rate": 0.7430870999193874
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "GR",
+      "missing_rows": 1507972,
+      "total_rows": 5092255,
+      "missing_rate": 0.29613049621434906
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "ANCC",
+      "missing_rows": 45634,
+      "total_rows": 5092255,
+      "missing_rate": 0.008961452244634254
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "EGFDL",
+      "missing_rows": 6067,
+      "total_rows": 5092255,
+      "missing_rate": 0.0011914171619449537
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "ASTNL",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "ASTNU",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "BUDA",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "EGFDU",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "MD",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "TVT",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "X",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "Y",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "horizontal",
+      "column": "Z",
+      "missing_rows": 0,
+      "total_rows": 5092255,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "typewell",
+      "column": "Geology",
+      "missing_rows": 523474,
+      "total_rows": 1567045,
+      "missing_rate": 0.3340516705008471
+    },
+    {
+      "split": "train",
+      "file_type": "typewell",
+      "column": "GR",
+      "missing_rows": 0,
+      "total_rows": 1567045,
+      "missing_rate": 0.0
+    },
+    {
+      "split": "train",
+      "file_type": "typewell",
+      "column": "TVT",
+      "missing_rows": 0,
+      "total_rows": 1567045,
+      "missing_rate": 0.0
+    }
+  ],
+  "well_summary": [
+    {
+      "min": 2058.0,
+      "p25": 5706.0,
+      "median": 6576.0,
+      "p75": 7388.0,
+      "max": 12141.0,
+      "mean": 6587.652005174644,
+      "split": "train",
+      "measure": "Rows per horizontal well"
+    },
+    {
+      "min": 407.0,
+      "p25": 4044.0,
+      "median": 4840.0,
+      "p75": 5694.0,
+      "max": 10052.0,
+      "mean": 4895.199223803364,
+      "split": "train",
+      "measure": "Rows needing TVT prediction"
+    },
+    {
+      "min": 42.0,
+      "p25": 767.0,
+      "median": 1754.0,
+      "p75": 2992.0,
+      "max": 7289.0,
+      "mean": 1950.8046571798188,
+      "split": "train",
+      "measure": "GR missing rows"
+    },
+    {
+      "min": 5278.0,
+      "p25": 5831.0,
+      "median": 6384.0,
+      "p75": 6971.5,
+      "max": 7559.0,
+      "mean": 6407.0,
+      "split": "test",
+      "measure": "Rows per horizontal well"
+    },
+    {
+      "min": 3836.0,
+      "p25": 4068.5,
+      "median": 4301.0,
+      "p75": 5157.5,
+      "max": 6014.0,
+      "mean": 4717.0,
+      "split": "test",
+      "measure": "Rows needing TVT prediction"
+    },
+    {
+      "min": 584.0,
+      "p25": 763.0,
+      "median": 942.0,
+      "p75": 1600.0,
+      "max": 2258.0,
+      "mean": 1261.3333333333333,
+      "split": "test",
+      "measure": "GR missing rows"
+    }
+  ],
+  "row_count_hist": [
+    {
+      "split": "train",
+      "row_count_bin": "[0, 1000)",
+      "wells": 0
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[1000, 2000)",
+      "wells": 0
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[2000, 3000)",
+      "wells": 3
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[3000, 4000)",
+      "wells": 9
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[4000, 5000)",
+      "wells": 67
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[5000, 6000)",
+      "wells": 171
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[6000, 8000)",
+      "wells": 436
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[8000, 10000)",
+      "wells": 76
+    },
+    {
+      "split": "train",
+      "row_count_bin": "[10000, 13000)",
+      "wells": 11
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[0, 1000)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[1000, 2000)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[2000, 3000)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[3000, 4000)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[4000, 5000)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[5000, 6000)",
+      "wells": 1
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[6000, 8000)",
+      "wells": 2
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[8000, 10000)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "row_count_bin": "[10000, 13000)",
+      "wells": 0
+    }
+  ],
+  "prediction_share_hist": [
+    {
+      "split": "train",
+      "prediction_share_bin": "[0.0, 0.25)",
+      "wells": 1
+    },
+    {
+      "split": "train",
+      "prediction_share_bin": "[0.25, 0.5)",
+      "wells": 2
+    },
+    {
+      "split": "train",
+      "prediction_share_bin": "[0.5, 0.75)",
+      "wells": 444
+    },
+    {
+      "split": "train",
+      "prediction_share_bin": "[0.75, 0.9)",
+      "wells": 326
+    },
+    {
+      "split": "train",
+      "prediction_share_bin": "[0.9, 1.01)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "prediction_share_bin": "[0.0, 0.25)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "prediction_share_bin": "[0.25, 0.5)",
+      "wells": 0
+    },
+    {
+      "split": "test",
+      "prediction_share_bin": "[0.5, 0.75)",
+      "wells": 2
+    },
+    {
+      "split": "test",
+      "prediction_share_bin": "[0.75, 0.9)",
+      "wells": 1
+    },
+    {
+      "split": "test",
+      "prediction_share_bin": "[0.9, 1.01)",
+      "wells": 0
+    }
+  ],
+  "test_prediction_zones": [
+    {
+      "well_id": "000d7d20",
+      "rows": 5278,
+      "known_tvt_input_rows": 1442,
+      "prediction_rows": 3836,
+      "prediction_share": 0.726790450928382,
+      "first_prediction_idx": 1442,
+      "md_min": 11467.0,
+      "md_max": 16744.0,
+      "known_tvt_min": 11236.02,
+      "known_tvt_max": 11756.12,
+      "gr_missing_rows": 2258,
+      "gr_missing_rate": 0.4278135657446002
+    },
+    {
+      "well_id": "00bbac68",
+      "rows": 7559,
+      "known_tvt_input_rows": 1545,
+      "prediction_rows": 6014,
+      "prediction_share": 0.7956078846408255,
+      "first_prediction_idx": 1545,
+      "md_min": 11578.0,
+      "md_max": 19136.0,
+      "known_tvt_min": 11406.63,
+      "known_tvt_max": 12225.05,
+      "gr_missing_rows": 942,
+      "gr_missing_rate": 0.12461965868501125
+    },
+    {
+      "well_id": "00e12e8b",
+      "rows": 6384,
+      "known_tvt_input_rows": 2083,
+      "prediction_rows": 4301,
+      "prediction_share": 0.6737155388471178,
+      "first_prediction_idx": 2083,
+      "md_min": 10456.0,
+      "md_max": 16839.0,
+      "known_tvt_min": 10606.18,
+      "known_tvt_max": 11604.820000000002,
+      "gr_missing_rows": 584,
+      "gr_missing_rate": 0.09147869674185463
+    }
+  ],
+  "geology_summary": [
+    {
+      "geology": "Unknown",
+      "rows": 523474,
+      "share": 0.3340516705008471
+    },
+    {
+      "geology": "ANCC",
+      "rows": 294268,
+      "share": 0.18778529014801745
+    },
+    {
+      "geology": "EGFDL",
+      "rows": 205397,
+      "share": 0.13107281539458024
+    },
+    {
+      "geology": "ASTNL",
+      "rows": 172223,
+      "share": 0.10990303405454215
+    },
+    {
+      "geology": "BUDA",
+      "rows": 140640,
+      "share": 0.08974853944845235
+    },
+    {
+      "geology": "ASTNU",
+      "rows": 118025,
+      "share": 0.07531691814848968
+    },
+    {
+      "geology": "EGFDU",
+      "rows": 70013,
+      "share": 0.0446783595876315
+    },
+    {
+      "geology": "OLMOS",
+      "rows": 23345,
+      "share": 0.014897466250171501
+    },
+    {
+      "geology": "MNSS",
+      "rows": 5026,
+      "share": 0.003207310574999442
+    },
+    {
+      "geology": "UPSN",
+      "rows": 2731,
+      "share": 0.0017427706287949612
+    },
+    {
+      "geology": "LBHL",
+      "rows": 1625,
+      "share": 0.0010369836220402095
+    },
+    {
+      "geology": "LTHL",
+      "rows": 1137,
+      "share": 0.0007255694635444419
+    },
+    {
+      "geology": "LTGT",
+      "rows": 981,
+      "share": 0.0006260190358285819
+    },
+    {
+      "geology": "Clay Rich Interval",
+      "rows": 868,
+      "share": 0.0005539087901113242
+    },
+    {
+      "geology": "AC_UEF_THL",
+      "rows": 840,
+      "share": 0.0005360407646238622
+    },
+    {
+      "geology": "AC_UEF_BHL",
+      "rows": 840,
+      "share": 0.0005360407646238622
+    },
+    {
+      "geology": "AC_UEF_TRGT",
+      "rows": 840,
+      "share": 0.0005360407646238622
+    },
+    {
+      "geology": "UTGT",
+      "rows": 760,
+      "share": 0.00048498926323111335
+    },
+    {
+      "geology": "UTHL",
+      "rows": 589,
+      "share": 0.00037586667900411285
+    },
+    {
+      "geology": "UEGFD THL",
+      "rows": 570,
+      "share": 0.000363741947423335
+    }
+  ],
+  "profile_sample": [
+    {
+      "split": "train",
+      "well_id": "ea3a0e38",
+      "rows": 11794,
+      "known_tvt_input_rows": 1742,
+      "prediction_rows": 10052,
+      "prediction_share": 0.8522977785314567,
+      "gr_missing_rows": 6390,
+      "md_min": 10309.0,
+      "md_max": 22102.0,
+      "tvt_min": 10236.11,
+      "tvt_max": 10981.35
+    },
+    {
+      "split": "train",
+      "well_id": "d90aa14c",
+      "rows": 12141,
+      "known_tvt_input_rows": 2123,
+      "prediction_rows": 10018,
+      "prediction_share": 0.8251379622765834,
+      "gr_missing_rows": 4898,
+      "md_min": 9999.0,
+      "md_max": 22139.0,
+      "tvt_min": 10112.570000000002,
+      "tvt_max": 10940.84
+    },
+    {
+      "split": "train",
+      "well_id": "374be387",
+      "rows": 11802,
+      "known_tvt_input_rows": 1837,
+      "prediction_rows": 9965,
+      "prediction_share": 0.8443484155227927,
+      "gr_missing_rows": 6974,
+      "md_min": 10080.0,
+      "md_max": 21881.0,
+      "tvt_min": 9880.94,
+      "tvt_max": 10721.320000000002
+    },
+    {
+      "split": "train",
+      "well_id": "96ae5806",
+      "rows": 11527,
+      "known_tvt_input_rows": 1688,
+      "prediction_rows": 9839,
+      "prediction_share": 0.8535612041294353,
+      "gr_missing_rows": 6365,
+      "md_min": 11438.0,
+      "md_max": 22964.0,
+      "tvt_min": 11339.42,
+      "tvt_max": 12125.4
+    },
+    {
+      "split": "train",
+      "well_id": "bd2c2f34",
+      "rows": 11621,
+      "known_tvt_input_rows": 1798,
+      "prediction_rows": 9823,
+      "prediction_share": 0.8452800963772481,
+      "gr_missing_rows": 7102,
+      "md_min": 10119.0,
+      "md_max": 21739.0,
+      "tvt_min": 9984.44,
+      "tvt_max": 10700.52
+    },
+    {
+      "split": "train",
+      "well_id": "684a6fc1",
+      "rows": 11449,
+      "known_tvt_input_rows": 1631,
+      "prediction_rows": 9818,
+      "prediction_share": 0.8575421434186392,
+      "gr_missing_rows": 5663,
+      "md_min": 10322.0,
+      "md_max": 21770.0,
+      "tvt_min": 10222.76,
+      "tvt_max": 10967.05
+    },
+    {
+      "split": "train",
+      "well_id": "35b30c7f",
+      "rows": 11270,
+      "known_tvt_input_rows": 1691,
+      "prediction_rows": 9579,
+      "prediction_share": 0.8499556344276841,
+      "gr_missing_rows": 4797,
+      "md_min": 10093.0,
+      "md_max": 21362.0,
+      "tvt_min": 10354.33,
+      "tvt_max": 11005.45
+    },
+    {
+      "split": "train",
+      "well_id": "70e1788b",
+      "rows": 11338,
+      "known_tvt_input_rows": 2053,
+      "prediction_rows": 9285,
+      "prediction_share": 0.8189275004409949,
+      "gr_missing_rows": 460,
+      "md_min": 9859.0,
+      "md_max": 21196.0,
+      "tvt_min": 9729.56,
+      "tvt_max": 10687.4
+    },
+    {
+      "split": "train",
+      "well_id": "ea0b99b7",
+      "rows": 10939,
+      "known_tvt_input_rows": 1700,
+      "prediction_rows": 9239,
+      "prediction_share": 0.8445927415668708,
+      "gr_missing_rows": 5604,
+      "md_min": 11396.0,
+      "md_max": 22334.0,
+      "tvt_min": 11851.88,
+      "tvt_max": 12542.96
+    },
+    {
+      "split": "train",
+      "well_id": "53f23031",
+      "rows": 10200,
+      "known_tvt_input_rows": 1650,
+      "prediction_rows": 8550,
+      "prediction_share": 0.8382352941176471,
+      "gr_missing_rows": 357,
+      "md_min": 10901.0,
+      "md_max": 21100.0,
+      "tvt_min": 10693.22,
+      "tvt_max": 11413.39
+    },
+    {
+      "split": "train",
+      "well_id": "c84c65be",
+      "rows": 10243,
+      "known_tvt_input_rows": 1747,
+      "prediction_rows": 8496,
+      "prediction_share": 0.8294444986820267,
+      "gr_missing_rows": 4430,
+      "md_min": 9630.0,
+      "md_max": 19872.0,
+      "tvt_min": 9282.34,
+      "tvt_max": 10076.05
+    },
+    {
+      "split": "train",
+      "well_id": "6e9ccd38",
+      "rows": 9619,
+      "known_tvt_input_rows": 1337,
+      "prediction_rows": 8282,
+      "prediction_share": 0.8610042623973386,
+      "gr_missing_rows": 378,
+      "md_min": 10466.0,
+      "md_max": 20084.0,
+      "tvt_min": 10372.05,
+      "tvt_max": 10714.42
+    },
+    {
+      "split": "test",
+      "well_id": "000d7d20",
+      "rows": 5278,
+      "known_tvt_input_rows": 1442,
+      "prediction_rows": 3836,
+      "prediction_share": 0.726790450928382,
+      "gr_missing_rows": 2258,
+      "md_min": 11467.0,
+      "md_max": 16744.0,
+      "tvt_min": NaN,
+      "tvt_max": NaN
+    },
+    {
+      "split": "test",
+      "well_id": "00bbac68",
+      "rows": 7559,
+      "known_tvt_input_rows": 1545,
+      "prediction_rows": 6014,
+      "prediction_share": 0.7956078846408255,
+      "gr_missing_rows": 942,
+      "md_min": 11578.0,
+      "md_max": 19136.0,
+      "tvt_min": NaN,
+      "tvt_max": NaN
+    },
+    {
+      "split": "test",
+      "well_id": "00e12e8b",
+      "rows": 6384,
+      "known_tvt_input_rows": 2083,
+      "prediction_rows": 4301,
+      "prediction_share": 0.6737155388471178,
+      "gr_missing_rows": 584,
+      "md_min": 10456.0,
+      "md_max": 16839.0,
+      "tvt_min": NaN,
+      "tvt_max": NaN
+    }
+  ]
+}

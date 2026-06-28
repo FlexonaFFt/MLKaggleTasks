@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wellbore Geology Dataset Readiness Report</title>
+  <style>
+    :root { --bg:#f7f8fa; --card:#ffffff; --ink:#1f2937; --muted:#667085; --line:#e5e7eb; --blue:#2563eb; --blue-soft:#dbeafe; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { max-width:1120px; margin:0 auto; padding:32px 20px 56px; }
+    h1 { font-size:30px; margin:0 0 10px; }
+    h2 { font-size:20px; margin:0 0 14px; }
+    p { color:var(--muted); }
+    section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px; margin:18px 0; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+    .summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:22px 0; }
+    .metric { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .metric .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    .metric .value { font-size:26px; font-weight:700; margin-top:6px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; vertical-align:top; }
+    th { color:#344054; background:#f9fafb; }
+    .bars { display:flex; flex-direction:column; gap:9px; }
+    .bar-row { display:grid; grid-template-columns:220px 1fr 80px; gap:10px; align-items:center; }
+    .bar-label { color:#344054; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bar-track { height:16px; background:var(--blue-soft); border-radius:4px; overflow:hidden; }
+    .bar-fill { height:100%; background:var(--blue); }
+    .bar-value { text-align:right; color:#344054; font-variant-numeric:tabular-nums; }
+    .note { color:var(--muted); font-size:13px; }
+    @media (max-width: 800px) { .summary { grid-template-columns:1fr 1fr; } .bar-row { grid-template-columns:1fr; } .bar-value { text-align:left; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Wellbore Geology Dataset Readiness Report</h1>
+  <p>Static HTML copy of the Data Analytics report. Source: local Kaggle dataset aggregates in <code>analysis/</code>.</p>
+
+  <div class="summary">
+    <div class="metric"><div class="label">Train wells</div><div class="value">773</div></div>
+    <div class="metric"><div class="label">Train horizontal rows</div><div class="value">5 092 255</div></div>
+    <div class="metric"><div class="label">Public test wells</div><div class="value">3</div></div>
+    <div class="metric"><div class="label">Rows to predict</div><div class="value">14 151</div></div>
+  </div>
+
+  <section>
+    <h2>Executive Summary</h2>
+    <ul>
+      <li><strong>The dataset is sequence-first, not row-first.</strong> Train contains 773 horizontal wells with 5 092 255 horizontal rows. Validation should be grouped by well_id.</li>
+      <li><strong>The target is TVT continuation.</strong> The submission rows are exactly the public test rows where <code>TVT_input</code> is missing.</li>
+      <li><strong>Train has extra geology surfaces that public test does not expose.</strong> Treat <code>ANCC</code>, <code>ASTNU</code>, <code>ASTNL</code>, <code>EGFDU</code>, <code>EGFDL</code>, and <code>BUDA</code> as diagnostic context unless they are reconstructed for test.</li>
+      <li><strong>GR coverage is incomplete.</strong> Train horizontal <code>TVT_input</code> missingness is 74.3%, and <code>GR</code> also has material missingness.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Schema variants</h2>
+    <table><thead><tr><th>split</th><th>file_type</th><th>files</th><th>rows</th><th>columns</th></tr></thead><tbody><tr><td>test</td><td>horizontal</td><td>3</td><td>19 221</td><td>MD, X, Y, Z, GR, TVT_input</td></tr><tr><td>test</td><td>typewell</td><td>3</td><td>5 798</td><td>TVT, GR</td></tr><tr><td>train</td><td>horizontal</td><td>773</td><td>5 092 255</td><td>MD, X, Y, Z, ANCC, ASTNU, ASTNL, EGFDU, EGFDL, BUDA, TVT, GR, TVT_input</td></tr><tr><td>train</td><td>typewell</td><td>773</td><td>1 567 045</td><td>TVT, GR, Geology</td></tr></tbody></table>
+  </section>
+
+  <section><h2>Prediction-zone share distribution</h2><div class="bars">
+        <div class="bar-row">
+          <div class="bar-label">train · [0.0, 0.25)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">1</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [0.25, 0.5)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">2</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [0.5, 0.75)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
+          <div class="bar-value">444</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [0.75, 0.9)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:73.4%"></div></div>
+          <div class="bar-value">326</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">test · [0.5, 0.75)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">2</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">test · [0.75, 0.9)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">1</div>
+        </div></div></section>
+  <section><h2>Public test prediction workload</h2><div class="bars">
+        <div class="bar-row">
+          <div class="bar-label">000d7d20</div>
+          <div class="bar-track"><div class="bar-fill" style="width:63.8%"></div></div>
+          <div class="bar-value">3 836</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">00bbac68</div>
+          <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
+          <div class="bar-value">6 014</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">00e12e8b</div>
+          <div class="bar-track"><div class="bar-fill" style="width:71.5%"></div></div>
+          <div class="bar-value">4 301</div>
+        </div></div></section>
+
+  <section>
+    <h2>Public test prediction zones</h2>
+    <table><thead><tr><th>well_id</th><th>rows</th><th>known_tvt_input_rows</th><th>prediction_rows</th><th>prediction_share</th><th>first_prediction_idx</th><th>gr_missing_rate</th></tr></thead><tbody><tr><td>000d7d20</td><td>5 278</td><td>1 442</td><td>3 836</td><td>72.7%</td><td>1 442</td><td>42.8%</td></tr><tr><td>00bbac68</td><td>7 559</td><td>1 545</td><td>6 014</td><td>79.6%</td><td>1 545</td><td>12.5%</td></tr><tr><td>00e12e8b</td><td>6 384</td><td>2 083</td><td>4 301</td><td>67.4%</td><td>2 083</td><td>9.1%</td></tr></tbody></table>
+  </section>
+
+  <section><h2>Missingness by split and column</h2><div class="bars">
+        <div class="bar-row">
+          <div class="bar-label">test horizontal · TVT_input</div>
+          <div class="bar-track"><div class="bar-fill" style="width:99.1%"></div></div>
+          <div class="bar-value">73.6%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">test horizontal · GR</div>
+          <div class="bar-track"><div class="bar-fill" style="width:26.5%"></div></div>
+          <div class="bar-value">19.7%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train horizontal · TVT_input</div>
+          <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
+          <div class="bar-value">74.3%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train horizontal · GR</div>
+          <div class="bar-track"><div class="bar-fill" style="width:39.9%"></div></div>
+          <div class="bar-value">29.6%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train typewell · Geology</div>
+          <div class="bar-track"><div class="bar-fill" style="width:45.0%"></div></div>
+          <div class="bar-value">33.4%</div>
+        </div></div></section>
+  <section><h2>Horizontal well row-count distribution</h2><div class="bars">
+        <div class="bar-row">
+          <div class="bar-label">train · [2000, 3000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">3</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [3000, 4000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.1%"></div></div>
+          <div class="bar-value">9</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [4000, 5000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:15.4%"></div></div>
+          <div class="bar-value">67</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [5000, 6000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:39.2%"></div></div>
+          <div class="bar-value">171</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [6000, 8000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:100.0%"></div></div>
+          <div class="bar-value">436</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [8000, 10000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:17.4%"></div></div>
+          <div class="bar-value">76</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">train · [10000, 13000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.5%"></div></div>
+          <div class="bar-value">11</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">test · [5000, 6000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">1</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">test · [6000, 8000)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:2.0%"></div></div>
+          <div class="bar-value">2</div>
+        </div></div></section>
+
+  <section>
+    <h2>High-missing train wells and public test wells</h2>
+    <table><thead><tr><th>split</th><th>well_id</th><th>rows</th><th>known_tvt_input_rows</th><th>prediction_rows</th><th>prediction_share</th><th>gr_missing_rows</th></tr></thead><tbody><tr><td>train</td><td>ea3a0e38</td><td>11 794</td><td>1 742</td><td>10 052</td><td>85.2%</td><td>6 390</td></tr><tr><td>train</td><td>d90aa14c</td><td>12 141</td><td>2 123</td><td>10 018</td><td>82.5%</td><td>4 898</td></tr><tr><td>train</td><td>374be387</td><td>11 802</td><td>1 837</td><td>9 965</td><td>84.4%</td><td>6 974</td></tr><tr><td>train</td><td>96ae5806</td><td>11 527</td><td>1 688</td><td>9 839</td><td>85.4%</td><td>6 365</td></tr><tr><td>train</td><td>bd2c2f34</td><td>11 621</td><td>1 798</td><td>9 823</td><td>84.5%</td><td>7 102</td></tr><tr><td>train</td><td>684a6fc1</td><td>11 449</td><td>1 631</td><td>9 818</td><td>85.8%</td><td>5 663</td></tr><tr><td>train</td><td>35b30c7f</td><td>11 270</td><td>1 691</td><td>9 579</td><td>85.0%</td><td>4 797</td></tr><tr><td>train</td><td>70e1788b</td><td>11 338</td><td>2 053</td><td>9 285</td><td>81.9%</td><td>460</td></tr><tr><td>train</td><td>ea0b99b7</td><td>10 939</td><td>1 700</td><td>9 239</td><td>84.5%</td><td>5 604</td></tr><tr><td>train</td><td>53f23031</td><td>10 200</td><td>1 650</td><td>8 550</td><td>83.8%</td><td>357</td></tr><tr><td>train</td><td>c84c65be</td><td>10 243</td><td>1 747</td><td>8 496</td><td>82.9%</td><td>4 430</td></tr><tr><td>train</td><td>6e9ccd38</td><td>9 619</td><td>1 337</td><td>8 282</td><td>86.1%</td><td>378</td></tr></tbody></table>
+  </section>
+
+  <section>
+    <h2>Recommended next steps</h2>
+    <ol>
+      <li>Build a no-ML baseline that extends the last known <code>TVT_input</code> by local slope.</li>
+      <li>Build a tabular baseline using only test-available fields.</li>
+      <li>Validate by held-out wells, not random rows.</li>
+      <li>Add typewell alignment features after the baseline is stable.</li>
+    </ol>
+    <p class="note">Raw row-level data stays in <code>datasets/</code>; this report intentionally uses aggregate tables so it remains lightweight.</p>
+  </section>
+</main>
+</body>
+</html>

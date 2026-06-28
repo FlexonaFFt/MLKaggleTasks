@@ -1,0 +1,7 @@
+min,p25,median,p75,max,mean,split,measure
+2058.0,5706.0,6576.0,7388.0,12141.0,6587.652005174644,train,Rows per horizontal well
+407.0,4044.0,4840.0,5694.0,10052.0,4895.199223803364,train,Rows needing TVT prediction
+42.0,767.0,1754.0,2992.0,7289.0,1950.8046571798188,train,GR missing rows
+5278.0,5831.0,6384.0,6971.5,7559.0,6407.0,test,Rows per horizontal well
+3836.0,4068.5,4301.0,5157.5,6014.0,4717.0,test,Rows needing TVT prediction
+584.0,763.0,942.0,1600.0,2258.0,1261.3333333333333,test,GR missing rows

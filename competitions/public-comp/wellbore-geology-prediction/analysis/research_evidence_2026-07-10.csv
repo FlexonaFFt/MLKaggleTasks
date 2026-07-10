@@ -1,0 +1,7 @@
+approach,evidence,implication,confidence
+Version-level notebook audit,"Byte-identical public notebooks can vary about 0.1–0.4 RMSE; current 7.091 output equals the user's 7.201 file.",Do not tune from titles or one stochastic run; archive hashes and average seeds.,High
+Multi-cut HMM smoother,"Public research reports PF 4.90, HMM 5.18, and 50/50 blend 4.57 on five sample wells; uncertainty-error correlation up to 0.92.",Backtest on all wells; use posterior mean/std as candidate and gating features.,Medium
+Candidate-path oracle,"Discussion reports oracle over PF/beam/formation candidates around 4.5–6 RMSE, while selection remains difficult.",Invest in a cross-fitted path ranker or gating model; do not only add generators.,Medium
+Standard tabular ensembles,"A top participant reports LGBM/CatBoost/XGBoost without exotic feature engineering; input representation mattered most.",Rebuild clean test-available inputs and auxiliary targets before changing model class.,Medium
+Neural sequence models,"Community results range from CV 5s for strong non-tabular work to CV 8.9/LB 8.39 and unstable branch jumps.",Do not lead with a large U-Net; first prove a small ranker or smoother adds decorrelated OOF signal.,Medium
+Worst-well analysis,"Repeated hard wells show 20–50 RMSE from early drift and branch persistence.",Track worst-decile SSE and add uncertainty-based fallback to conservative anchors.,High

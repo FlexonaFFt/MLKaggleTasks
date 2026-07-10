@@ -1,0 +1,8 @@
+priority,experiment,success_gate,cost
+1,Multi-cut GroupKFold harness plus experiment ledger,"Reproduces baseline across 5 folds; reports pooled/worst-decile RMSE and seed std.",Medium
+2,Freeze and rerun core candidates deterministically,"OOF predictions saved for hold, PF scales, beam, NCC, projection, and tabular stack; error correlations computed.",Medium
+3,Cross-fitted candidate gate or path ranker,"Beats best fixed blend by at least 0.15 pooled RMSE across 3 seeds and does not worsen worst decile.",Medium
+4,Exact HMM forward-backward candidate,"Adds at least 0.05 blend gain or improves calibrated uncertainty after runtime-normalized comparison.",High
+5,Test-available GBDT with auxiliary future targets,"Improves pooled OOF at least 0.10 and remains stable on deep-tail and high-GR-missing segments.",Medium
+6,Hard-well fallback policy,"Cuts worst-decile SSE at least 10% with total pooled RMSE non-inferior.",Low
+7,Compact 1D CNN or cross-attention ranker,"Adds decorrelated OOF gain after ensembling with no confidence-jump failures.",High

@@ -3,3 +3,4 @@ exp_001,prefix_validation,completed,"Establish multi-cut prefix-to-tail validati
 exp_002,legal_schema_validation,completed,"Rebuild multi-cut validation using only deployable train/test schema",pooled_rmse,11.493684 last_value,"Use as legal anchor; add typewell/GR alignment in exp_003"
 exp_003,gr_alignment,completed,"Compare local GR matching beam PF and safe blends in one notebook",pooled_rmse,16.065684 last_beam_w25,"Promote bounded beam correction for low-prefix ablation; reject standalone PF"
 exp_004,kaggle_7148_audit,completed,"Audit hidden-rerun evidence from Working Note Try 7.100",public_rmse,7.148,"Use 7.148 notebook as submission anchor; run one-factor ablations"
+exp_005,7148_bounded_beam_v1,implemented,"Add guarded low-prefix beam residual to 7.148 anchor",public_rmse,,Run as next Kaggle code submission

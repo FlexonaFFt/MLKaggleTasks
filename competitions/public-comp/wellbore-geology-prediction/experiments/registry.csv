@@ -1,0 +1,5 @@
+experiment_id,name,status,purpose,primary_metric,headline_result,decision
+exp_001,prefix_validation,completed,"Establish multi-cut prefix-to-tail validation baselines",pooled_rmse,0.005370 formation_shape,"Retain harness; treat score as optimistic because formation surfaces encode the train TVT shape"
+exp_002,legal_schema_validation,completed,"Rebuild multi-cut validation using only deployable train/test schema",pooled_rmse,11.493684 last_value,"Use as legal anchor; add typewell/GR alignment in exp_003"
+exp_003,gr_alignment,completed,"Compare local GR matching beam PF and safe blends in one notebook",pooled_rmse,16.065684 last_beam_w25,"Promote bounded beam correction for low-prefix ablation; reject standalone PF"
+exp_004,kaggle_7148_audit,completed,"Audit hidden-rerun evidence from Working Note Try 7.100",public_rmse,7.148,"Use 7.148 notebook as submission anchor; run one-factor ablations"

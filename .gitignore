@@ -32,3 +32,18 @@ submission_*.csv
 sample_submission.csv
 **/submissions/*.csv
 featured_*.csv
+
+# Generated experiment and Kaggle run artifacts
+**/experiments/*/results/
+**/working/
+*.log
+
+# Large local archives and model binaries
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.joblib
+*.pt
+*.pth
+*.onnx

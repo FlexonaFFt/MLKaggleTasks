@@ -5,3 +5,6 @@ exp_003,gr_alignment,completed,"Compare local GR matching beam PF and safe blend
 exp_004,kaggle_7148_audit,completed,"Audit hidden-rerun evidence from Working Note Try 7.100",public_rmse,7.148,"Use 7.148 notebook as submission anchor; run one-factor ablations"
 exp_005,7148_bounded_beam_v1,completed,"Add guarded low-prefix beam residual to 7.148 anchor",public_rmse,7.110,"Promote beam_v1 as new anchor; test one-factor weight/gate refinements"
 exp_006,7110_bounded_beam_v2,implemented,"Increase bounded beam nominal weight from 0.15 to 0.20",public_rmse,,Run as next Kaggle code submission
+exp_007,beam_policy_compare,completed,"Compare gate clip and horizon policies on competition-like cuts",pooled_rmse,20.815831 v1_gate8_clip20,"Keep 7.110 v1 policy; reject gate6 clip15 and horizon-decay submissions"
+exp_008,binary_beam_gate,completed,"Train GroupKFold binary apply/skip gate",pooled_rmse,20.485260,"Selected for Kaggle notebook by OOF RMSE and p90 guardrail"
+exp_009,continuous_beam_weight,completed,"Train GroupKFold continuous bounded beam weight",pooled_rmse,20.542858,"Embedded for diagnostics; not selected because binary gate won OOF"

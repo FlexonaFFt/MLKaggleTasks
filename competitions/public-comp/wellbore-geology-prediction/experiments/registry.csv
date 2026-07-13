@@ -8,3 +8,6 @@ exp_006,7110_bounded_beam_v2,implemented,"Increase bounded beam nominal weight f
 exp_007,beam_policy_compare,completed,"Compare gate clip and horizon policies on competition-like cuts",pooled_rmse,20.815831 v1_gate8_clip20,"Keep 7.110 v1 policy; reject gate6 clip15 and horizon-decay submissions"
 exp_008,binary_beam_gate,completed,"Train GroupKFold binary apply/skip gate",pooled_rmse,20.485260,"Selected for Kaggle notebook by OOF RMSE and p90 guardrail"
 exp_009,continuous_beam_weight,completed,"Train GroupKFold continuous bounded beam weight",pooled_rmse,20.542858,"Embedded for diagnostics; not selected because binary gate won OOF"
+exp_010,veto_selector,completed,"Test learned selectors only as reducers of confirmed v1 correction",pooled_rmse,20.814866 continuous_cap,"Reject Kaggle submission; gain versus v1 is only 0.0046%"
+exp_011,full_stack_oof,running,"Run built-in ridge PF selector projection and visible-prefix CV on low-prefix distribution",pooled_rmse,,Run Kaggle research notebook and inspect reports before modifying submission pipeline
+exp_012,gold_7039_clean,implemented,"Reproduce reported 7.039 Gold visible-prefix pipeline with deterministic offline bootstrap",public_rmse,7.039 reported,"Run as clean confirmation; prediction logic unchanged from downloaded notebook"

@@ -11,3 +11,4 @@ exp_009,continuous_beam_weight,completed,"Train GroupKFold continuous bounded be
 exp_010,veto_selector,completed,"Test learned selectors only as reducers of confirmed v1 correction",pooled_rmse,20.814866 continuous_cap,"Reject Kaggle submission; gain versus v1 is only 0.0046%"
 exp_011,full_stack_oof,running,"Run built-in ridge PF selector projection and visible-prefix CV on low-prefix distribution",pooled_rmse,,Run Kaggle research notebook and inspect reports before modifying submission pipeline
 exp_012,gold_7039_clean,implemented,"Reproduce reported 7.039 Gold visible-prefix pipeline with deterministic offline bootstrap",public_rmse,7.039 reported,"Run as clean confirmation; prediction logic unchanged from downloaded notebook"
+exp_013,model_package_residual,implemented,"Apply a verified 1% disagreement-gated model-package residual to the confirmed anchor",public_rmse,,"Run on Kaggle; submit only when package execution check passes"

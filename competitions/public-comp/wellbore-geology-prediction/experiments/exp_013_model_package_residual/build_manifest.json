@@ -1,0 +1,12 @@
+{
+  "source": "iaztec/rogii-geosteering-with-a-tail-guarded-model-packag",
+  "source_notebook_sha256": "72dbab7a545ec6163fd1ed0fbf6e2c09f664d39121191e9bc269baa34a978240",
+  "changed_original_cells": [
+    48
+  ],
+  "inserted_check_before_original_cell": 52,
+  "submission_profile": "dual_track_prefix_modelpkg_010",
+  "max_package_weight": 0.01,
+  "package_scale": 6.0,
+  "global_p95_disable_ft": 25.0
+}

@@ -69,6 +69,7 @@ CALIBRATION_THRESHOLDS = tuple(
 CALIBRATION_PER_EMBRYO = int(os.environ.get("BIOHUB_CALIBRATION_PER_EMBRYO", "1"))
 CALIBRATION_RESULTS_PATH = WORKING_DIR / "calibration_results.csv"
 SELECTED_CONFIG_PATH = WORKING_DIR / "selected_config.json"
+FINAL_PREDICTION_USER = "biohub_submission"
 
 
 def choose_best_candidate(rows, anchor_threshold=0.97):
@@ -215,6 +216,38 @@ def inject_auto_selection(notebook: dict) -> None:
     raise RuntimeError("Could not find the pre-inference insertion point")
 
 
+def isolate_final_prediction_output(notebook: dict) -> None:
+    """Keep calibration graphs out of the final submission graph set."""
+    old_run = 'subprocess.run(predict_cmd, cwd=REPO_DIR, env={**os.environ, "PYTHONPATH": "src"}, check=True)'
+    new_run = '''final_prediction_env = {
+    **os.environ,
+    "USER": FINAL_PREDICTION_USER,
+    "USERNAME": FINAL_PREDICTION_USER,
+    "PYTHONPATH": "src",
+}
+subprocess.run(predict_cmd, cwd=REPO_DIR, env=final_prediction_env, check=True)'''
+    old_glob = 'geffs = sorted((REPO_DIR / "predictions").glob(f"*/{METHOD}/split_0/*.geff"))'
+    new_glob = '''final_predictions_dir = REPO_DIR / "predictions" / FINAL_PREDICTION_USER / METHOD / "split_0"
+geffs = sorted(final_predictions_dir.glob("*.geff"))'''
+
+    found_run = found_glob = False
+    for cell in notebook["cells"]:
+        source = "".join(cell.get("source", []))
+        if old_run in source:
+            source = source.replace(old_run, new_run, 1)
+            found_run = True
+        elif new_run in source:
+            found_run = True
+        if old_glob in source:
+            source = source.replace(old_glob, new_glob, 1)
+            found_glob = True
+        elif new_glob in source:
+            found_glob = True
+        cell["source"] = source.splitlines(keepends=True)
+    if not found_run or not found_glob:
+        raise RuntimeError("Could not isolate final prediction output")
+
+
 def fetch() -> tuple[dict, dict]:
     request = urllib.request.Request(API_URL, headers={"User-Agent": "biohub-anchor/1"})
     with urllib.request.urlopen(request, timeout=60) as response:
@@ -253,6 +286,7 @@ def main() -> None:
     # after it and before any imports/config values are consumed.
     notebook["cells"].insert(1, preset_cell(version))
     inject_auto_selection(notebook)
+    isolate_final_prediction_output(notebook)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(notebook, indent=1, ensure_ascii=False) + "\n")
     LOCK.write_text(json.dumps({"kernel": KERNEL, "version": version, "api_url": API_URL}, indent=2) + "\n")

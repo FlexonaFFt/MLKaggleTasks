@@ -28,13 +28,14 @@ The checked-in preset preserves the public high-scoring anchor:
 
 - detection threshold: `0.97`;
 - tracks shorter than 6 nodes are filtered;
-- high-confidence tracks of length 4-5 may be rescued;
+- adaptive short-track rescue is disabled;
+- learned-edge motion bonus is `1.0`;
 - gap repair and conservative division recovery remain enabled;
 - D4-style spatial TTA remains enabled.
 
-Do not tune these values against the public leaderboard alone. First build an
-embryo-level validation split. Record every submission in `experiments.csv` so
-that each run changes one hypothesis rather than a bundle of parameters.
+The notebook writes both `submission.csv` and `submission_global_shift.csv`
+from the same raw predictions. Only the second candidate compensates confident
+frame-level global motion during relinking.
 
 ## Files
 

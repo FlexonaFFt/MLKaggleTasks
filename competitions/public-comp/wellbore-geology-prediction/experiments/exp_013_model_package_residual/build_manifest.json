@@ -8,5 +8,6 @@
   "submission_profile": "dual_track_prefix_modelpkg_010",
   "max_package_weight": 0.01,
   "package_scale": 6.0,
-  "global_p95_disable_ft": 25.0
+  "global_p95_disable_ft": 25.0,
+  "inserted_preflight_after_original_cell": 4
 }

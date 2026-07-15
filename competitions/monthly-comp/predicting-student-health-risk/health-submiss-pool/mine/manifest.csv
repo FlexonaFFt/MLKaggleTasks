@@ -1,0 +1,17 @@
+ref,file_name,date,public_score,status
+54453506,0.9509.csv,2026-07-08 07:13:49.357000,0.95090,COMPLETE
+54326611,probations/hgbc/hgbc_balanced.csv,2026-07-04 09:59:51.033000,0.95006,COMPLETE
+54326598,blended/hgbc_xgboost_searched.csv,2026-07-04 09:59:09.987000,0.94991,COMPLETE
+54326559,blended/hgbc_catboost_xgboost_searched.csv,2026-07-04 09:57:06.013000,0.94974,COMPLETE
+54326525,blended/external_hygiene_weighted_vote.csv,2026-07-04 09:55:47.473000,0.95058,COMPLETE
+54326515,blended/external_lb_logit_multiplier_blend.csv,2026-07-04 09:55:08.400000,0.95088,COMPLETE
+54326415,submission.csv,2026-07-04 09:50:54.913000,0.94974,COMPLETE
+54275998,blended/hgbc_catboost_xgboost_searched.csv,2026-07-02 20:30:18.377000,0.94974,COMPLETE
+54275886,submission.csv,2026-07-02 20:22:58.233000,0.94974,COMPLETE
+54274570,blended/hgbc_catboost_xgboost_blend.csv,2026-07-02 19:05:07.827000,0.94994,COMPLETE
+54274558,submission.csv,2026-07-02 19:04:17.540000,0.94994,COMPLETE
+54273697,probations/hgbc_balanced.csv,2026-07-02 18:17:04.537000,0.95006,COMPLETE
+54273054,submission.csv,2026-07-02 17:46:39.793000,0.95006,COMPLETE
+54235046,submission.csv,2026-07-01 14:27:57.067000,0.94863,COMPLETE
+54225608,baseline_submission.csv,2026-07-01 08:17:46.617000,0.83510,COMPLETE
+54225366,baseline_submission.csv,2026-07-01 08:08:01.373000,0.78357,COMPLET

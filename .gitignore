@@ -30,7 +30,11 @@ features_cache/
 submission.csv
 submission_*.csv
 sample_submission.csv
-**/submissions/*.csv
+**/submissions/
+**/health-submiss-pool/public/*.csv
+**/health-submiss-pool/mine/*.csv
+!**/health-submiss-pool/mine/manifest.csv
+**/health-submiss-pool/blends/*.csv
 featured_*.csv
 
 # Generated experiment and Kaggle run artifacts

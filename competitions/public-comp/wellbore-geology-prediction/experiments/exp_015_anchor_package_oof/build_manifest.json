@@ -1,6 +1,0 @@
-{
-  "source": "competitions/public-comp/wellbore-geology-prediction/experiments/exp_013_model_package_residual/notebook.ipynb",
-  "source_sha256": "744fd84634bc065b97538fc59b564e12535be88fba16b96d9ab187c13659b79e",
-  "kept_source_range": "original cells 4:23 with research config/preflight replacements",
-  "writes_submission_csv": false
-}

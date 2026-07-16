@@ -1,0 +1,22 @@
+{
+  "id": "flexonafft/rogii-clean-oof-017",
+  "title": "ROGII Clean OOF Benchmark 017",
+  "code_file": "rogii_clean_oof_017.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "phongnguyn23021656/koolbox-offline",
+    "fleongg/rogii-claude-models-pub",
+    "ravaghi/wellbore-geology-prediction-artifacts",
+    "pilkwang/rogii-model-package"
+  ],
+  "competition_sources": [
+    "rogii-wellbore-geology-prediction"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

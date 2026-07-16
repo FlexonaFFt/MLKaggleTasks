@@ -70,6 +70,47 @@
 6. Selector обучать только cross-fitted OOF.
 7. Contact override использовать отдельно как known-overlap branch, не смешивать с hidden-test оценкой.
 
+## exp_017_clean_oof — Kaggle result
+
+Kernel `flexonafft/rogii-clean-oof-benchmark-017` завершился успешно. В clean-режиме:
+
+- contact override: `False`;
+- visible-prefix calibration: `False`;
+- model package correction: `False`;
+- kriging: отсутствует.
+
+На 250 train wells и `1 198 217` suffix rows:
+
+- selector CV pooled RMSE: **9.310996**;
+- per-well RMSE p50: `5.725292`;
+- per-well RMSE p90: `13.264390`;
+- per-well RMSE p99: `29.149480`;
+- worst-decile SSE share: `53.87495%`.
+
+Oracle diagnostics дают line `6.731998` и smooth `3.034980`, но используют известные suffix targets и являются верхней границей, не deployable score.
+
+Вывод: core stack работает без public overlap, но до public `7.043` не дотягивает. Следующий полезный шаг — анализ worst-decile wells и selector features, не новый blind Kaggle submission.
+
+## exp_018_hardwell_gate — Kaggle result
+
+Kernel завершился успешно. Исправлен скрытый leakage в `exp_017`: same-well physical candidate теперь обнуляется до формирования prediction rows.
+
+- contact override: `False`;
+- visible-prefix calibration: `False`;
+- model package correction: `False`;
+- hard-well gate: `True`;
+- gated wells: `1 / 3` public wells;
+- anchor fallback weight: `0.65`;
+- public score: не отправлялся.
+
+Gate report:
+
+- `000d7d20`: not gated;
+- `00bbac68`: gated;
+- `00e12e8b`: not gated.
+
+Это target-free smoke test, не доказательство улучшения: public test содержит только 3 wells, а gate threshold взят как test quantile `0.85`. Нужна cross-fitted OOF calibration на train wells перед blind submission.
+
 ## Сохранено вне этого архива
 
 `datasets/` не удалён. Он содержит локальный Kaggle dataset и нужен для дальнейшего обучения. Остальные старые experiment artifacts удалены после создания этого summary.

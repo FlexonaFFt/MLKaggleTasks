@@ -17,3 +17,5 @@ kaggle,54676031,public_submission,public_rmse,7.110,completed,public_lb_only,pre
 kaggle,54721441,rogii_experiments,public_rmse,7.113,completed,public_lb_only,previous_anchor
 kaggle,54530991,public_7100_pipeline,public_rmse,7.148,completed,public_lb_only,previous_anchor
 kaggle,54439017,public_notebook,public_rmse,7.201,completed,public_lb_only,previous_anchor
+kaggle,exp_017_clean_oof,clean_oof_benchmark,selector_cv_pooled_rmse,9.310996,completed,no_public_overlap,analyze_worst_decile
+kaggle,exp_018_hardwell_gate,hardwell_gate,public_rmse,,completed,no_public_overlap,no_public_submission_yet

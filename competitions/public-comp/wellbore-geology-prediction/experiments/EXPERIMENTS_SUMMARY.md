@@ -111,6 +111,38 @@ Gate report:
 
 Это target-free smoke test, не доказательство улучшения: public test содержит только 3 wells, а gate threshold взят как test quantile `0.85`. Нужна cross-fitted OOF calibration на train wells перед blind submission.
 
+## exp_019_hardwell_gate_oof — Kaggle result
+
+OOF calibration завершилась успешно и gate был выбран:
+
+- выбранный quantile: `0.70`;
+- anchor weight: `0.25`;
+- gated OOF wells: `232`;
+- pooled RMSE: `10.372253 -> 9.845537`;
+- worst-decile SSE share: `0.569541 -> 0.564714`;
+- RMSE gain: `0.526716`;
+- tail gain: `0.004827`.
+
+На public test gate применился к `1 / 3` wells. Submission audit прошёл, public score не отправлялся.
+
+Оговорка: OOF calibration fallback использует `last_known_tvt`, а test gate смешивает с projected SP45 anchor. Поэтому результат подтверждает направление uncertainty gate, но не является полностью aligned OOF оценкой. Следующий эксперимент должен калибровать именно тот же SP45 fallback.
+
+## exp_020_hardwell_gate_aligned — Kaggle result
+
+Выравнивание fallback с SP45 улучшило результат:
+
+- fallback: `aligned_sp45_proxy`;
+- quantile: `0.80`;
+- anchor weight: `0.35`;
+- pooled RMSE: `10.372253 -> 9.761387`;
+- RMSE gain: `0.610866`;
+- worst-decile SSE share: `0.569541 -> 0.563247`;
+- tail gain: `0.006294`.
+
+На public test gate применился к `1 / 3` wells. Submission audit прошёл. Public score ещё не отправлялся.
+
+Это первый gate-вариант, который можно отправить как controlled hidden-robust submission. Остаются две оговорки: fallback — proxy SP45, не полный train OOF selector; threshold/weight выбирались на том же OOF, без nested holdout.
+
 ## Сохранено вне этого архива
 
 `datasets/` не удалён. Он содержит локальный Kaggle dataset и нужен для дальнейшего обучения. Остальные старые experiment artifacts удалены после создания этого summary.

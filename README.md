@@ -59,47 +59,6 @@ Practice tasks are kept separately under [practice/](practice/).
 
 ## Results Tracker
 
-The chart and table below are generated from `scripts/competitions.csv` with:
-
-```bash
-python3 scripts/update_readme.py
-```
-
-Kaggle stats can be synced automatically after configuring the official Kaggle
-CLI. The one-command sync reads competitions entered by the authenticated Kaggle
-account, adds missing rows to `scripts/competitions.csv`, updates scores/ranks,
-and regenerates the README chart.
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install kaggle
-.venv/bin/python scripts/sync_kaggle_profile.py
-```
-
-To export every submission to one CSV and generate the interactive 3D chart:
-
-```bash
-.venv/bin/python scripts/export_kaggle_3d.py
-```
-
-Open `assets/kaggle_3d.html` in a browser. The axes show attempts used, competition time used, and leaderboard percentile (teams beaten); every axis is 0–100%. Use the Full/Focus buttons to zoom the Z axis without changing the data.
-
-For custom runs, use:
-
-```bash
-python3 scripts/fetch_kaggle_stats.py --profile https://www.kaggle.com/flexonafft --discover-entered --update-readme
-```
-
-If a title is ambiguous, fill the `slug` column manually with the Kaggle URL
-suffix and rerun the command. Kaggle API credentials must belong to the same
-account whose entered competitions should be synced.
-
-Formula:
-
-```text
-percent_beaten = (total - rank) / total * 100
-```
-
 <!-- COMPETITION-TABLE:START -->
 | # | Competition | Rank | Total | % beaten | Best score | Source |
 | - | - | - | - | - | - | - |
@@ -132,3 +91,8 @@ training logs, caches, and environment files are ignored via `.gitignore`.
 
 Run scripts from inside the project folder unless a project README states
 otherwise. This preserves the original Kaggle-style relative paths.
+
+## Contacts
+
+If you have any questions or suggestions for improving my configurations,
+please feel free to contact me by email or through GitHub.

@@ -143,6 +143,14 @@ OOF calibration завершилась успешно и gate был выбра�
 
 Это первый gate-вариант, который можно отправить как controlled hidden-robust submission. Остаются две оговорки: fallback — proxy SP45, не полный train OOF selector; threshold/weight выбирались на том же OOF, без nested holdout.
 
+## Public submission 54767301 — score 7.679
+
+`exp_020` был отправлен без same-well contact override и получил public RMSE `7.679`. Это на `0.636` хуже `7.043` из submission `54738967`.
+
+Причина ожидаема: public test состоит из 3 wells, все имеют train-копии. `7.043` заменял все public prediction rows contact path; `exp_020` этот источник отключил. OOF gain `10.372253 -> 9.761387` не переносится на public overlap distribution.
+
+Public leaderboard и hidden-robust validation нужно вести как две разные ветки. Для public score восстановить contact-gated anchor; gate разрешать только после contact override или на wells без overlap.
+
 ## Сохранено вне этого архива
 
 `datasets/` не удалён. Он содержит локальный Kaggle dataset и нужен для дальнейшего обучения. Остальные старые experiment artifacts удалены после создания этого summary.

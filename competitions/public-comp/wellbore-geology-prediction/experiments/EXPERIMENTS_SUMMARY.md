@@ -151,6 +151,32 @@ OOF calibration завершилась успешно и gate был выбра�
 
 Public leaderboard и hidden-robust validation нужно вести как две разные ветки. Для public score восстановить contact-gated anchor; gate разрешать только после contact override или на wells без overlap.
 
+## public_anchor_v2 — Kaggle output
+
+Notebook завершился корректно, но output оказался byte-identical с `7.043` anchor:
+
+- все 3 wells выбрали `EGFDU`;
+- contact override: `3 / 3`, все `14 151` rows;
+- submission SHA-256: `fdf4a8175b6ec6a70c9b78fd6916ac3c317e43f7e9c08bbca87cd02314801ca9`;
+- spatial kriging skipped: lookup не подключён.
+
+Новый formation selector не дал изменения. Повторно отправлять этот submission не нужно.
+
 ## Сохранено вне этого архива
 
 `datasets/` не удалён. Он содержит локальный Kaggle dataset и нужен для дальнейшего обучения. Остальные старые experiment artifacts удалены после создания этого summary.
+
+## Research hypotheses v1
+
+Diagnostic Kaggle kernel: [rogii-research-hypotheses-v1](https://www.kaggle.com/code/flexonafft/rogii-research-hypotheses-v1).
+
+OOF pseudo-test results on 773 train wells:
+
+- `recent_slope`: `84.415559` — reject;
+- `last_known`: `12.873392` — safer baseline;
+- `model_direction`: `12.491620` — small improvement;
+- `blend_guarded`: `12.425053` — best screened variant;
+- `neighbor_copy`: `18.319650` — reject in current geometry/transfer form;
+- `midpoint_gate`: `13.003186` — reject as currently implemented.
+
+This is not a Kaggle score. The notebook is a research screen and creates no submission. Exact formation-contact reconstruction and CNN/particle-filter were not tested because required artifacts are not mounted.

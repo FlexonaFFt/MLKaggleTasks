@@ -10,8 +10,8 @@
 #   3. REPLAY-SAFE SIZING (the Format-Error fix): cap the RETURNED set by its
 #      measured replay cost (sum of hops=8 trial latencies) at
 #      REPLAY_SAFE * REPLAY_BUDGET_S -- NOT the search deadline.
-# Conservative profile: REPLAY_SAFE = 0.90 (large replay margin, low Format-Error
-# risk), MIN_FIRE_RATE = 0.2, full 2/2 probe success not required.
+# Conservative profile: REPLAY_SAFE = 0.95 (moderate replay margin, higher candidate count),
+# MIN_FIRE_RATE = 0.6 (only stable templates), full 2/2 probe success not required.
 # ================================================================
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ MAX_MESSAGE_CHARS = 2000
 PROBE_REPS = 5
 # Require fire-rate >= MIN_FIRE_RATE to select a template. The reliable plain
 # fallback still floors the score if every injection form flakes.
-MIN_FIRE_RATE = 0.2
+MIN_FIRE_RATE = 0.6
 MARGIN_MULT = 1.35
 MARGIN_S = 60.0
 SLOWEST0 = 24.0
@@ -84,7 +84,7 @@ SLOWEST0 = 24.0
 # at replay time, stopping at REPLAY_SAFE * REPLAY_BUDGET_S so replay finishes
 # with a real margin.
 REPLAY_BUDGET_S = 9000.0
-REPLAY_SAFE = 0.90  # conservative: ~900s margin; lower = safer, higher = more candidates
+REPLAY_SAFE = 0.95  # moderate: ~450s margin; lower = safer, higher = more candidates
 
 # Proven templates. plain floors the score; bare variants are low-variance for
 # the non-reasoning model (gemma); inj_close collapses gpt_oss reasoning.

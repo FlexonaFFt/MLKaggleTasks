@@ -1,0 +1,76 @@
+{
+  "best_variant": "blend_guarded",
+  "best_pooled_rmse": 12.425052970982781,
+  "scores": [
+    {
+      "variant": "blend_guarded",
+      "pooled_rmse": 12.425052970982781,
+      "mean_well_rmse": 11.69871729966402,
+      "median_well_rmse": 9.347846089876043,
+      "worst_decile_rmse": 31.82140421042843,
+      "coverage": 1.0
+    },
+    {
+      "variant": "model_direction",
+      "pooled_rmse": 12.491620296757599,
+      "mean_well_rmse": 11.76696297638336,
+      "median_well_rmse": 9.573142082558576,
+      "worst_decile_rmse": 31.501822844383252,
+      "coverage": 1.0
+    },
+    {
+      "variant": "model_plain",
+      "pooled_rmse": 12.51728901757696,
+      "mean_well_rmse": 11.766714222595796,
+      "median_well_rmse": 9.509740325279699,
+      "worst_decile_rmse": 31.538748658886586,
+      "coverage": 1.0
+    },
+    {
+      "variant": "blend_direction_neighbor",
+      "pooled_rmse": 12.774243829925858,
+      "mean_well_rmse": 11.974854216852588,
+      "median_well_rmse": 9.761818193317419,
+      "worst_decile_rmse": 32.03781516361902,
+      "coverage": 1.0
+    },
+    {
+      "variant": "last_known",
+      "pooled_rmse": 12.873392363631657,
+      "mean_well_rmse": 12.123946923257568,
+      "median_well_rmse": 9.775210790487405,
+      "worst_decile_rmse": 33.165320505732154,
+      "coverage": 1.0
+    },
+    {
+      "variant": "midpoint_gate",
+      "pooled_rmse": 13.003185653082246,
+      "mean_well_rmse": 12.334865307074292,
+      "median_well_rmse": 9.89056232061445,
+      "worst_decile_rmse": 33.21790794086054,
+      "coverage": 1.0
+    },
+    {
+      "variant": "neighbor_copy",
+      "pooled_rmse": 18.31965001440165,
+      "mean_well_rmse": 16.296735092848603,
+      "median_well_rmse": 13.523791683895134,
+      "worst_decile_rmse": 41.87675231637437,
+      "coverage": 1.0
+    },
+    {
+      "variant": "recent_slope",
+      "pooled_rmse": 84.41555990151879,
+      "mean_well_rmse": 58.952623904519555,
+      "median_well_rmse": 37.4954193138425,
+      "worst_decile_rmse": 220.24510569366262,
+      "coverage": 1.0
+    }
+  ],
+  "notes": [
+    "OOF is pseudo-test suffix validation, not Kaggle LB.",
+    "Neighbor references stay in the training fold.",
+    "Midpoint is a bounded proxy, not an oracle.",
+    "Exact formation-contact reconstruction and CNN/particle-filter are not implemented because their artifacts are not mounted."
+  ]
+}

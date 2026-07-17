@@ -1,5 +1,7 @@
 # Kaggle ML Portfolio
 
+[![Kaggle submission trajectories](assets/kaggle_3d.png)](https://flexonafft.github.io/MLKaggleTasks/)
+
 This repository is a curated portfolio of Kaggle and ML competition solutions.
 Each competition lives in its own folder with the final pipeline, notebooks,
 reports, and submission artifacts kept close to the original solution.
@@ -62,9 +64,18 @@ account, adds missing rows to `scripts/competitions.csv`, updates scores/ranks,
 and regenerates the README chart.
 
 ```bash
-python3 -m pip install kaggle
-python3 scripts/sync_kaggle_profile.py
+python3 -m venv .venv
+.venv/bin/pip install kaggle
+.venv/bin/python scripts/sync_kaggle_profile.py
 ```
+
+To export every submission to one CSV and generate the interactive 3D chart:
+
+```bash
+.venv/bin/python scripts/export_kaggle_3d.py
+```
+
+Open `assets/kaggle_3d.html` in a browser. The axes show attempts used, competition time used, and leaderboard percentile (teams beaten); every axis is 0–100%. Use the Full/Focus buttons to zoom the Z axis without changing the data.
 
 For custom runs, use:
 

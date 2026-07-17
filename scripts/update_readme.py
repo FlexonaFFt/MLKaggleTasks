@@ -134,6 +134,10 @@ def build_svg(rows):
     fig.tight_layout()
     fig.savefig(SVG_PATH, format="svg", bbox_inches="tight")
     plt.close(fig)
+    SVG_PATH.write_text(
+        "\n".join(line.rstrip() for line in SVG_PATH.read_text(encoding="utf-8").splitlines()) + "\n",
+        encoding="utf-8",
+    )
     return SVG_PATH
 
 

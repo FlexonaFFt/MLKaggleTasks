@@ -1,7 +1,5 @@
 # Kaggle ML Portfolio
 
-[![Kaggle submission trajectories](assets/kaggle_3d.png)](https://flexonafft.github.io/MLKaggleTasks/)
-
 This repository is a curated portfolio of Kaggle and ML competition solutions.
 Each competition lives in its own folder with the final pipeline, notebooks,
 reports, and submission artifacts kept close to the original solution.
@@ -9,6 +7,15 @@ reports, and submission artifacts kept close to the original solution.
 The repository is organized for review: the top-level README gives a quick
 overview, while each project README explains what to inspect first and how the
 solution is structured.
+
+<p align="center">
+  <a href="https://flexonafft.github.io/MLKaggleTasks/">
+    <img src="assets/kaggle_3d.png" alt="Kaggle submission trajectories" width="78%" />
+  </a>
+</p>
+<p align="center">
+  <sub>3D submission history: X — attempts used, Y — competition time used, Z — teams beaten. <a href="https://flexonafft.github.io/MLKaggleTasks/">Open the interactive graph</a>.</sub>
+</p>
 
 ## Repository Structure
 
@@ -98,19 +105,23 @@ percent_beaten = (total - rank) / total * 100
 | - | - | - | - | - | - | - |
 | 1 | Predicting Students Test Score | 624 | 1741 | 64.2% | - | manual |
 | 2 | Thermophysical Property: Melting Point | 309 | 1177 | 73.7% | 35.59526 | kaggle |
-| 3 | LLM Classification | 153 | 256 | 40.2% | 1.07413 | kaggle |
+| 3 | LLM Classification | 153 | 247 | 38.1% | 1.07413 | kaggle |
 | 4 | Astronomical Classification | 285 | 894 | 68.1% | 0.5864 | kaggle |
 | 5 | Predicting Heart Disease | 70 | 536 | 86.9% | - | manual |
 | 6 | Playground Series S6E2 | 2407 | 4371 | 44.9% | 0.95323 | kaggle |
 | 7 | Playground Series S6E4 | 1602 | 4316 | 62.9% | 0.96735 | kaggle |
 | 8 | Playground Series S6E3 | 2485 | 4143 | 40.0% | 0.91338 | kaggle |
 | 9 | Playground Series S5E11 | 2010 | 3726 | 46.1% | 0.92150 | kaggle |
-| 10 | Playground Series S6E5 | 23 | 1256 | 98.2% | 0.95419 | kaggle |
+| 10 | Playground Series S6E5 | 303 | 3023 | 90.0% | 0.95453 | kaggle |
+| 11 | Biohub Cell Tracking During Development | 168 | 1324 | 87.3% | 0.902 | kaggle |
+| 12 | Ai Agent Security Multi Step Tool Attacks | 164 | 1998 | 91.8% | 76.230 | kaggle |
+| 13 | Playground Series S6E6 | 66 | 2817 | 97.7% | 0.97259 | kaggle |
+| 14 | Playground Series S6E7 | 13 | 2031 | 99.4% | 0.95238 | kaggle |
 <!-- COMPETITION-TABLE:END -->
 
 <!-- PROGRESS-CHART:START -->
 <img src="assets/progress.svg" alt="Kaggle progress chart" width="100%" />
-<p><sub>Last updated: 2026-05-11 15:18</sub></p>
+<p><sub>Last updated: 2026-07-17 16:12</sub></p>
 <!-- PROGRESS-CHART:END -->
 
 ## Data Policy

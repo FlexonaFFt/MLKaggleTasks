@@ -273,7 +273,7 @@ def write_readme_chart(rows: list[dict[str, str]]) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    figure = plt.figure(figsize=(11, 7), dpi=160)
+    figure = plt.figure(figsize=(12, 7), dpi=160)
     axis = figure.add_subplot(projection="3d")
     for points in chart_groups(rows).values():
         points.sort(key=lambda row: int(row["attempt"]))
@@ -291,7 +291,7 @@ def write_readme_chart(rows: list[dict[str, str]]) -> None:
     )
     axis.view_init(elev=24, azim=-62)
     figure.tight_layout()
-    figure.savefig(PNG_PATH, bbox_inches="tight")
+    figure.savefig(PNG_PATH, bbox_inches="tight", pad_inches=0.2)
     plt.close(figure)
 
 

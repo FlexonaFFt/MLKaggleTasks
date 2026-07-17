@@ -74,7 +74,7 @@ def read_rows() -> list[dict[str, str]]:
 
 def write_rows(rows: Iterable[dict[str, str]]) -> None:
     with DATA_PATH.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+        writer = csv.DictWriter(f, fieldnames=FIELDNAMES, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({name: row.get(name, "") for name in FIELDNAMES})

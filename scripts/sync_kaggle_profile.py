@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FETCH_SCRIPT = ROOT / "scripts" / "fetch_kaggle_stats.py"
+EXPORT_SCRIPT = ROOT / "scripts" / "export_kaggle_3d.py"
 PROFILE_URL = "https://www.kaggle.com/flexonafft"
 
 
@@ -20,9 +21,10 @@ def python_executable() -> str:
 
 
 def main() -> int:
-    return subprocess.run(
+    python = python_executable()
+    sync = subprocess.run(
         [
-            python_executable(),
+            python,
             str(FETCH_SCRIPT),
             "--profile",
             PROFILE_URL,
@@ -31,7 +33,9 @@ def main() -> int:
         ],
         cwd=ROOT,
         check=False,
-    ).returncode
+    )
+    export = subprocess.run([python, str(EXPORT_SCRIPT)], cwd=ROOT, check=False)
+    return sync.returncode or export.returncode
 
 
 if __name__ == "__main__":

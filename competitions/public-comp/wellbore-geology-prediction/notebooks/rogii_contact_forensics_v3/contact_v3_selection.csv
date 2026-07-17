@@ -1,0 +1,4 @@
+well_id,prefix_selected,prefix_visible_rmse,prefix_suffix_rmse,oracle_selected,oracle_suffix_rmse
+000d7d20,EGFDL|prefix_mean,0.009472913616295035,0.006962805152031067,ASTNU|oracle_mean,0.005271007956444557
+00bbac68,ASTNL|prefix_mean,0.007805234860414972,0.007265424142834915,EGFDL|oracle_mean,0.005145497093906069
+00e12e8b,EGFDL|prefix_mean,0.007416293349246308,0.006471828769735764,BUDA|oracle_mean,0.005357556343668753

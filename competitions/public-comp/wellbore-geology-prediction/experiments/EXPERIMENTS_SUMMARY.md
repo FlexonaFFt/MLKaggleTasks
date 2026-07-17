@@ -180,3 +180,26 @@ OOF pseudo-test results on 773 train wells:
 - `midpoint_gate`: `13.003186` — reject as currently implemented.
 
 This is not a Kaggle score. The notebook is a research screen and creates no submission. Exact formation-contact reconstruction and CNN/particle-filter were not tested because required artifacts are not mounted.
+
+## Research hypotheses v2 - faithful GR alignment
+
+Kaggle kernel: [rogii-research-hypotheses-v2-gr-alignment](https://www.kaggle.com/code/flexonafft/rogii-research-hypotheses-v2-gr-alignment).
+
+Implemented the core GR beam hypothesis with two candidate TVT paths, near-tie midpoint, and aligned neighbor transfer. Kaggle completed all 5 OOF folds and exact public forensic scoring.
+
+OOF results:
+
+- `last_known`: `15.596899`;
+- `beam_1`: `15.688177`;
+- `beam_midpoint`: `15.688251`;
+- `neighbor_guarded`: `16.725163`.
+
+Exact public train-copy forensic results (weighted pooled RMSE): beam `11.505831`; midpoint `11.505835`. This is materially worse than the known `7.043` contact anchor. The near-tie detector fired on `100%` of sampled rows, so its current cost-gap calibration is not informative. Do not submit this branch.
+
+## Contact forensics v3
+
+Kaggle kernel: [rogii-contact-forensics-v3](https://www.kaggle.com/code/flexonafft/rogii-contact-forensics-v3).
+
+This reproduced the original contact equation and screened all formations with prefix mean/median/trimmed/linear offsets plus an oracle full-train offset. Kaggle completed successfully.
+
+The train suffix OOF contact equation is extremely strong (`~0.006 ft`), and the exact train-copy forensic is also `~0.005 ft`. However, this does not match the real Kaggle public score `7.043`; therefore train `TVT` in the copied wells is not a valid proxy for hidden public suffix labels. Prefix-selected surfaces were `EGFDL`, `ASTNL`, `EGFDL`; oracle-selected surfaces differed again. No new submission is justified. Keep `7.043` anchor.

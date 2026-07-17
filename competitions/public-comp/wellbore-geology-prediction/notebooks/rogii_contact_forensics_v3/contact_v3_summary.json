@@ -1,0 +1,387 @@
+{
+  "best_public_variant": "ANCC|prefix_median",
+  "best_public_pooled_rmse": 0.0051106061799787725,
+  "public_scores": [
+    {
+      "variant": "ANCC|prefix_median",
+      "pooled_rmse": 0.0051106061799787725,
+      "mean_well_rmse": 0.005119776022192531,
+      "max_well_rmse": 0.005211187507466958
+    },
+    {
+      "variant": "ASTNU|prefix_median",
+      "pooled_rmse": 0.005110606179981791,
+      "mean_well_rmse": 0.005119776022195048,
+      "max_well_rmse": 0.005211187507489682
+    },
+    {
+      "variant": "ASTNL|prefix_median",
+      "pooled_rmse": 0.005110606179995876,
+      "mean_well_rmse": 0.00511977602221098,
+      "max_well_rmse": 0.005211187507516464
+    },
+    {
+      "variant": "EGFDL|prefix_median",
+      "pooled_rmse": 0.0051147527171707275,
+      "mean_well_rmse": 0.005123073749653072,
+      "max_well_rmse": 0.005211187507507536
+    },
+    {
+      "variant": "EGFDL|oracle_mean",
+      "pooled_rmse": 0.005244758233288222,
+      "mean_well_rmse": 0.005258020464896586,
+      "max_well_rmse": 0.005357556343972821
+    },
+    {
+      "variant": "ASTNU|oracle_mean",
+      "pooled_rmse": 0.005246491342224516,
+      "mean_well_rmse": 0.0052594056979555085,
+      "max_well_rmse": 0.005357556344051726
+    },
+    {
+      "variant": "ASTNL|oracle_mean",
+      "pooled_rmse": 0.005246491342246524,
+      "mean_well_rmse": 0.005259405697994633,
+      "max_well_rmse": 0.005357556343904887
+    },
+    {
+      "variant": "ANCC|oracle_mean",
+      "pooled_rmse": 0.005246491342274403,
+      "mean_well_rmse": 0.00525940569801315,
+      "max_well_rmse": 0.005357556343891401
+    },
+    {
+      "variant": "EGFDU|oracle_mean",
+      "pooled_rmse": 0.005251345382853745,
+      "mean_well_rmse": 0.005263281911164643,
+      "max_well_rmse": 0.005357556343803978
+    },
+    {
+      "variant": "BUDA|oracle_mean",
+      "pooled_rmse": 0.005280067490521571,
+      "mean_well_rmse": 0.005286113996612607,
+      "max_well_rmse": 0.005357556343668753
+    },
+    {
+      "variant": "BUDA|prefix_median",
+      "pooled_rmse": 0.006196212264291874,
+      "mean_well_rmse": 0.00589599045533007,
+      "max_well_rmse": 0.007365917069738125
+    },
+    {
+      "variant": "EGFDL|prefix_trimmed",
+      "pooled_rmse": 0.006644301333000743,
+      "mean_well_rmse": 0.006608843036363666,
+      "max_well_rmse": 0.006870916614882938
+    },
+    {
+      "variant": "BUDA|prefix_trimmed",
+      "pooled_rmse": 0.006696069341653807,
+      "mean_well_rmse": 0.006697233097360381,
+      "max_well_rmse": 0.00691322296328411
+    },
+    {
+      "variant": "ANCC|prefix_trimmed",
+      "pooled_rmse": 0.006762466967424554,
+      "mean_well_rmse": 0.006772083113678197,
+      "max_well_rmse": 0.007150428522535073
+    },
+    {
+      "variant": "EGFDU|prefix_trimmed",
+      "pooled_rmse": 0.006849918722203224,
+      "mean_well_rmse": 0.006834356372748946,
+      "max_well_rmse": 0.007099769340711068
+    },
+    {
+      "variant": "EGFDU|prefix_median",
+      "pooled_rmse": 0.006908550915121952,
+      "mean_well_rmse": 0.006350861321780921,
+      "max_well_rmse": 0.00873052966910876
+    },
+    {
+      "variant": "BUDA|prefix_mean",
+      "pooled_rmse": 0.006923436520801747,
+      "mean_well_rmse": 0.006879868038961461,
+      "max_well_rmse": 0.007204970194394203
+    },
+    {
+      "variant": "EGFDU|prefix_mean",
+      "pooled_rmse": 0.00693047742531022,
+      "mean_well_rmse": 0.006885171531496044,
+      "max_well_rmse": 0.007220880671254579
+    },
+    {
+      "variant": "ASTNU|prefix_trimmed",
+      "pooled_rmse": 0.0069401549767921285,
+      "mean_well_rmse": 0.006860079483445163,
+      "max_well_rmse": 0.00738978953341171
+    },
+    {
+      "variant": "ASTNL|prefix_mean",
+      "pooled_rmse": 0.006950233754071899,
+      "mean_well_rmse": 0.0069000193547438735,
+      "max_well_rmse": 0.007265424142834915
+    },
+    {
+      "variant": "ANCC|prefix_mean",
+      "pooled_rmse": 0.00695023375418778,
+      "mean_well_rmse": 0.006900019354819616,
+      "max_well_rmse": 0.007265424143151114
+    },
+    {
+      "variant": "ASTNU|prefix_mean",
+      "pooled_rmse": 0.006950233754346503,
+      "mean_well_rmse": 0.006900019355053307,
+      "max_well_rmse": 0.0072654241429397385
+    },
+    {
+      "variant": "EGFDL|prefix_mean",
+      "pooled_rmse": 0.006960353983798697,
+      "mean_well_rmse": 0.006907606311320521,
+      "max_well_rmse": 0.00728818501219473
+    },
+    {
+      "variant": "ASTNL|prefix_trimmed",
+      "pooled_rmse": 0.007002187362131253,
+      "mean_well_rmse": 0.0069573495005733664,
+      "max_well_rmse": 0.007295654271474942
+    },
+    {
+      "variant": "BUDA|prefix_linear",
+      "pooled_rmse": 0.09182563102487167,
+      "mean_well_rmse": 0.0527672686971517,
+      "max_well_rmse": 0.14046976294411692
+    },
+    {
+      "variant": "ASTNU|prefix_linear",
+      "pooled_rmse": 0.09197572764920833,
+      "mean_well_rmse": 0.05284422647118378,
+      "max_well_rmse": 0.1407006362662225
+    },
+    {
+      "variant": "ANCC|prefix_linear",
+      "pooled_rmse": 0.09197572764962227,
+      "mean_well_rmse": 0.052844226471588505,
+      "max_well_rmse": 0.1407006362668305
+    },
+    {
+      "variant": "ASTNL|prefix_linear",
+      "pooled_rmse": 0.09197572765052389,
+      "mean_well_rmse": 0.052844226472033656,
+      "max_well_rmse": 0.140700636268221
+    },
+    {
+      "variant": "EGFDL|prefix_linear",
+      "pooled_rmse": 0.09235354618552254,
+      "mean_well_rmse": 0.053037939132392985,
+      "max_well_rmse": 0.1412817742493563
+    },
+    {
+      "variant": "EGFDU|prefix_linear",
+      "pooled_rmse": 0.09349806797026172,
+      "mean_well_rmse": 0.05362472477264954,
+      "max_well_rmse": 0.14304213117047238
+    }
+  ],
+  "prefix_selected": [
+    {
+      "well_id": "000d7d20",
+      "prefix_selected": "EGFDL|prefix_mean",
+      "prefix_visible_rmse": 0.009472913616295035,
+      "prefix_suffix_rmse": 0.006962805152031067,
+      "oracle_selected": "ASTNU|oracle_mean",
+      "oracle_suffix_rmse": 0.005271007956444557
+    },
+    {
+      "well_id": "00bbac68",
+      "prefix_selected": "ASTNL|prefix_mean",
+      "prefix_visible_rmse": 0.007805234860414972,
+      "prefix_suffix_rmse": 0.007265424142834915,
+      "oracle_selected": "EGFDL|oracle_mean",
+      "oracle_suffix_rmse": 0.005145497093906069
+    },
+    {
+      "well_id": "00e12e8b",
+      "prefix_selected": "EGFDL|prefix_mean",
+      "prefix_visible_rmse": 0.007416293349246308,
+      "prefix_suffix_rmse": 0.006471828769735764,
+      "oracle_selected": "BUDA|oracle_mean",
+      "oracle_suffix_rmse": 0.005357556343668753
+    }
+  ],
+  "oof_scores": [
+    {
+      "variant": "ANCC|prefix_median",
+      "pooled_rmse": 0.006177905178584696,
+      "mean_well_rmse": 0.006087147979352844,
+      "median_well_rmse": 0.0054980864913735114,
+      "coverage": 3721855.0
+    },
+    {
+      "variant": "BUDA|prefix_median",
+      "pooled_rmse": 0.006205779407627341,
+      "mean_well_rmse": 0.006099480424203242,
+      "median_well_rmse": 0.005433452131796821,
+      "coverage": 3725148.0
+    },
+    {
+      "variant": "ASTNL|prefix_median",
+      "pooled_rmse": 0.006294925971880203,
+      "mean_well_rmse": 0.006190718572874058,
+      "median_well_rmse": 0.005551446571325895,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "ASTNU|prefix_median",
+      "pooled_rmse": 0.006326922800996341,
+      "mean_well_rmse": 0.006230659058942662,
+      "median_well_rmse": 0.005585426424282865,
+      "coverage": 3776025.0
+    },
+    {
+      "variant": "EGFDL|prefix_median",
+      "pooled_rmse": 0.006453243362957197,
+      "mean_well_rmse": 0.006381901069108867,
+      "median_well_rmse": 0.005849464895695875,
+      "coverage": 3779670.0
+    },
+    {
+      "variant": "EGFDU|prefix_trimmed",
+      "pooled_rmse": 0.0066013330268102615,
+      "mean_well_rmse": 0.006577067522821715,
+      "median_well_rmse": 0.006508075580593681,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "EGFDL|prefix_trimmed",
+      "pooled_rmse": 0.006605431799746632,
+      "mean_well_rmse": 0.0065802674333886434,
+      "median_well_rmse": 0.006515080895196136,
+      "coverage": 3779670.0
+    },
+    {
+      "variant": "ASTNU|prefix_trimmed",
+      "pooled_rmse": 0.006667510237484924,
+      "mean_well_rmse": 0.0066445174696408964,
+      "median_well_rmse": 0.00656978641814819,
+      "coverage": 3776025.0
+    },
+    {
+      "variant": "ANCC|prefix_trimmed",
+      "pooled_rmse": 0.0066678287673658364,
+      "mean_well_rmse": 0.0066435839884143285,
+      "median_well_rmse": 0.006550706328745864,
+      "coverage": 3721855.0
+    },
+    {
+      "variant": "ASTNL|prefix_trimmed",
+      "pooled_rmse": 0.006678374670994659,
+      "mean_well_rmse": 0.006660849691220484,
+      "median_well_rmse": 0.006610152785601928,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "BUDA|prefix_trimmed",
+      "pooled_rmse": 0.006717587942644546,
+      "mean_well_rmse": 0.006686623675822327,
+      "median_well_rmse": 0.00662270137639918,
+      "coverage": 3725148.0
+    },
+    {
+      "variant": "EGFDU|prefix_median",
+      "pooled_rmse": 0.0068347068105507735,
+      "mean_well_rmse": 0.0067188039656267485,
+      "median_well_rmse": 0.006336629837932189,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "EGFDU|prefix_mean",
+      "pooled_rmse": 0.006993902202953389,
+      "mean_well_rmse": 0.006980895312502134,
+      "median_well_rmse": 0.006939822666979503,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "EGFDL|prefix_mean",
+      "pooled_rmse": 0.006998749780438479,
+      "mean_well_rmse": 0.006986847706701805,
+      "median_well_rmse": 0.006937927979220559,
+      "coverage": 3779670.0
+    },
+    {
+      "variant": "ASTNU|prefix_mean",
+      "pooled_rmse": 0.006999264410211413,
+      "mean_well_rmse": 0.006987740663322023,
+      "median_well_rmse": 0.006941715160881887,
+      "coverage": 3776025.0
+    },
+    {
+      "variant": "ASTNL|prefix_mean",
+      "pooled_rmse": 0.006999877349065143,
+      "mean_well_rmse": 0.006987429826217527,
+      "median_well_rmse": 0.0069466223408444685,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "ANCC|prefix_mean",
+      "pooled_rmse": 0.00700036356110044,
+      "mean_well_rmse": 0.006987628690385397,
+      "median_well_rmse": 0.00693870940345308,
+      "coverage": 3721855.0
+    },
+    {
+      "variant": "BUDA|prefix_mean",
+      "pooled_rmse": 0.007000918861182541,
+      "mean_well_rmse": 0.006986926817561677,
+      "median_well_rmse": 0.0069511252462225726,
+      "coverage": 3725148.0
+    },
+    {
+      "variant": "EGFDL|prefix_linear",
+      "pooled_rmse": 0.029757480095958914,
+      "mean_well_rmse": 0.017550259912987597,
+      "median_well_rmse": 0.01086454655232565,
+      "coverage": 3779670.0
+    },
+    {
+      "variant": "ASTNL|prefix_linear",
+      "pooled_rmse": 0.029778006480432818,
+      "mean_well_rmse": 0.017593441850572808,
+      "median_well_rmse": 0.010743503143604827,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "ASTNU|prefix_linear",
+      "pooled_rmse": 0.02977919099720254,
+      "mean_well_rmse": 0.017527335363611722,
+      "median_well_rmse": 0.010728114206536094,
+      "coverage": 3776025.0
+    },
+    {
+      "variant": "BUDA|prefix_linear",
+      "pooled_rmse": 0.029859823847338735,
+      "mean_well_rmse": 0.017631438247958358,
+      "median_well_rmse": 0.010677293306103737,
+      "coverage": 3725148.0
+    },
+    {
+      "variant": "EGFDU|prefix_linear",
+      "pooled_rmse": 0.029867098011856465,
+      "mean_well_rmse": 0.01754230413601738,
+      "median_well_rmse": 0.010848804894377785,
+      "coverage": 3783989.0
+    },
+    {
+      "variant": "ANCC|prefix_linear",
+      "pooled_rmse": 0.02999676547291803,
+      "mean_well_rmse": 0.017614401930390176,
+      "median_well_rmse": 0.010495060693834797,
+      "coverage": 3721855.0
+    }
+  ],
+  "notes": [
+    "oracle_mean uses full train TVT only for forensic analysis of exact public copies.",
+    "prefix methods use only visible TVT_input.",
+    "No submission is created."
+  ]
+}

@@ -27,3 +27,10 @@ kaggle,rogii-research-hypotheses-v1,blend_guarded,pooled_rmse,12.425053,complete
 kaggle,rogii-research-hypotheses-v1,model_direction,pooled_rmse,12.491620,completed,5fold_well_grouped_oof,diagnostic_only_no_submission
 kaggle,rogii-research-hypotheses-v1,last_known,pooled_rmse,12.873392,completed,5fold_well_grouped_oof,diagnostic_only_no_submission
 kaggle,rogii-research-hypotheses-v1,neighbor_copy,pooled_rmse,18.319650,completed,5fold_well_grouped_oof,discard_current_transfer
+kaggle,rogii-research-hypotheses-v2-gr-alignment,last_known,pooled_rmse,15.596899,completed,5fold_oof,diagnostic_only_no_submission
+kaggle,rogii-research-hypotheses-v2-gr-alignment,beam_1,pooled_rmse,15.688177,completed,5fold_oof,discard_current_beam
+kaggle,rogii-research-hypotheses-v2-gr-alignment,beam_midpoint,pooled_rmse,15.688251,completed,5fold_oof,discard_current_midpoint
+kaggle,rogii-research-hypotheses-v2-gr-alignment,public_beam_1,public_exact_rmse,11.505831,completed,three_train_copies,do_not_submit
+kaggle,rogii-contact-forensics-v3,ANCC_prefix_median,public_train_copy_rmse,0.005111,completed,exact_train_copy_forensic,not_validated_by_lb
+kaggle,rogii-contact-forensics-v3,EGFDU_prefix_mean,pooled_oof_rmse,0.006994,completed,773_train_suffixes,diagnostic_only
+kaggle,rogii-contact-forensics-v3,EGFDL_prefix_median,public_train_copy_rmse,0.005115,completed,exact_train_copy_forensic,not_validated_by_lb

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "notebooks" / "biohub_0902_anchor_global_shift.ipynb"
 TARGET = ROOT / "notebooks" / "biohub_patched_three_candidate_selector.ipynb"
+EVALUATOR_TARGET = ROOT / "notebooks" / "biohub_patched_short_candidate_evaluator.ipynb"
 
 
 def source(cell: dict) -> str:
@@ -159,6 +161,35 @@ prediction = prediction[:start] + new_prediction + prediction[end:]
 set_source(cells[11], prediction)
 
 build = source(cells[13])
+build = replace_once(
+    build,
+    """    added: list[dict[str, object]] = []
+    used_targets: set[int] = set()
+""",
+    """    added: list[dict[str, object]] = []
+    used_targets: set[int] = set()
+    used_sources: set[int] = set()
+""",
+)
+build = replace_once(
+    build,
+    """            if candidate_id in used_targets or candidate_id in incoming:
+                continue
+""",
+    """            if source_id in used_sources or candidate_id in used_targets or candidate_id in incoming:
+                continue
+""",
+)
+build = replace_once(
+    build,
+    """            used_targets.add(candidate_id)
+            added_this_frame += 1
+""",
+    """            used_sources.add(source_id)
+            used_targets.add(candidate_id)
+            added_this_frame += 1
+""",
+)
 old_tail_start = build.index("final_predictions_dir =")
 new_tail = '''def prediction_geffs(run_name: str) -> list[Path]:
     prediction_dir = REPO_DIR / "predictions" / run_name / METHOD / "split_0"
@@ -265,6 +296,8 @@ def build_submission(
                 })
                 row_id += 1
                 division_sources[source_id] = division_sources.get(source_id, 0) + 1
+                if division_sources[source_id] > 2:
+                    raise AssertionError(f"{dataset}: node {source_id} has more than two children")
 
             node_count = len(nodes_by_id)
             edge_count = len(edges)
@@ -438,3 +471,175 @@ assert "highest patched holdout score" in source(cells[13])
 
 TARGET.write_text(json.dumps(notebook, ensure_ascii=False, indent=1) + "\n")
 print(TARGET)
+
+
+evaluator = deepcopy(notebook)
+evaluator_cells = evaluator["cells"]
+set_source(evaluator_cells[1], """# Biohub Patched Metric: Short 3-Way Evaluator
+
+Fast candidate comparison on one labeled training video. It runs the same D4 detector,
+two ILP configurations, and three graph post-processing branches as the production notebook,
+then scores every candidate with the official patched metric from commit `075fc5f`.
+
+**Caveat:** this is an operational short run, not an unbiased generalization estimate. The
+public checkpoint may have seen this video. Use its result to reject broken candidates and
+choose the next leaderboard probe, not as a final validation claim.
+""")
+
+evaluator_config = source(evaluator_cells[4])
+evaluator_config = replace_once(
+    evaluator_config,
+    "import os\n",
+    '''import os
+
+EVALUATION_DATASET = "44b6_0113de3b"
+os.environ["BIOHUB_TEST_DIR"] = "/kaggle/input/competitions/biohub-cell-tracking-during-development/train"
+os.environ["BIOHUB_EVALUATION_DATASET"] = EVALUATION_DATASET
+''',
+)
+set_source(evaluator_cells[4], evaluator_config)
+
+evaluator_prediction = source(evaluator_cells[11])
+evaluator_prediction = replace_once(
+    evaluator_prediction,
+    '''    stems = sorted(path.name[:-5] for path in TEST_DIR.iterdir() if path.name.endswith(".zarr"))
+    if not stems:
+        raise FileNotFoundError(f"No test .zarr files found in {TEST_DIR}")
+    return stems
+''',
+    '''    stems = sorted(path.name[:-5] for path in TEST_DIR.iterdir() if path.name.endswith(".zarr"))
+    selected = os.environ.get("BIOHUB_EVALUATION_DATASET", "").strip()
+    if selected:
+        stems = [stem for stem in stems if stem == selected]
+    if not stems:
+        raise FileNotFoundError(f"Evaluation dataset {selected!r} not found in {TEST_DIR}")
+    return stems
+''',
+)
+set_source(evaluator_cells[11], evaluator_prediction)
+
+evaluator_cells.extend([
+    {
+        "cell_type": "markdown",
+        "id": "patched-metric-evaluation",
+        "metadata": {},
+        "source": [
+            "## Patched holdout scores\n",
+            "\n",
+            "Each candidate CSV is converted back to GEFF and evaluated against the paired "
+            "training annotation. The resulting JSON is the selector input for the production notebook.\n",
+        ],
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "id": "score-clean-candidates",
+        "metadata": {},
+        "outputs": [],
+        "source": '''PATCH_COMMIT = "075fc5f5a52d11077f9dc2b074644618f26939e2"
+PATCH_METRIC_VERSION = "patched-2026-07-17"
+SCORES_PATH = WORKING_DIR / CANDIDATE_SCORE_FILENAME
+
+manifest_paths = sorted(Path("/kaggle/input").glob("**/PATCH_MANIFEST.json"))
+patch_root = None
+for manifest_path in manifest_paths:
+    manifest = json.loads(manifest_path.read_text())
+    if manifest.get("commit") == PATCH_COMMIT:
+        patch_root = manifest_path.parent
+        break
+if patch_root is None:
+    raise FileNotFoundError(
+        "Attach flexonafft/biohub-patched-metric-v1; matching PATCH_MANIFEST.json was not found"
+    )
+
+metric_package = REPO_DIR / "src" / "tracking_cellmot"
+for filename in ("metrics.py", "division_metrics.py"):
+    shutil.copy2(patch_root / filename, metric_package / filename)
+print("Patched metric source:", patch_root, PATCH_COMMIT)
+
+score_rows = []
+patched_scores = {}
+evaluation_env = {**os.environ, "PYTHONPATH": str(REPO_DIR / "src")}
+for variant, csv_path in candidate_paths.items():
+    geff_dir = WORKING_DIR / "patched_eval" / variant
+    subprocess.run(
+        [
+            sys.executable,
+            str(patch_root / "csv_to_geffs.py"),
+            "--csv", str(csv_path),
+            "--out-dir", str(geff_dir),
+        ],
+        cwd=REPO_DIR,
+        env=evaluation_env,
+        check=True,
+    )
+    evaluated = subprocess.run(
+        [
+            sys.executable,
+            "scripts/evaluate.py",
+            "--pred-dir", str(geff_dir),
+            "--gt-dir", str(TEST_DIR),
+        ],
+        cwd=REPO_DIR,
+        env=evaluation_env,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    print(evaluated.stdout[-4000:])
+    parsed = {}
+    for name in ("score", "edge_jaccard", "adj_edge_jaccard", "division_jaccard", "node_recall"):
+        match = re.search(rf"\\b{name}=([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+|nan))", evaluated.stdout)
+        if not match:
+            raise AssertionError(f"Missing {name} for {variant}:\\n{evaluated.stdout[-4000:]}")
+        parsed[name] = float(match.group(1))
+    if not math.isfinite(parsed["score"]):
+        raise AssertionError(f"Non-finite score for {variant}: {parsed}")
+    patched_scores[variant] = parsed["score"]
+    score_rows.append({"variant": variant, **parsed})
+
+selected_variant = max(patched_scores, key=patched_scores.get)
+selection_reason = "highest patched short-holdout score"
+shutil.copy2(candidate_paths[selected_variant], SUBMISSION_PATH)
+assert SUBMISSION_PATH.read_bytes() == candidate_paths[selected_variant].read_bytes()
+
+score_payload = {
+    "metric_version": PATCH_METRIC_VERSION,
+    "metric_commit": PATCH_COMMIT,
+    "evaluation_dataset": EVALUATION_DATASET,
+    "validation_scope": "single-video-short-run",
+    "scores": patched_scores,
+    "selected_variant": selected_variant,
+}
+SCORES_PATH.write_text(json.dumps(score_payload, indent=2, sort_keys=True))
+selection.update({
+    "selected_variant": selected_variant,
+    "selection_reason": selection_reason,
+    "metric_version": PATCH_METRIC_VERSION,
+    "score_source": str(SCORES_PATH),
+    "scores": patched_scores,
+})
+CANDIDATE_SELECTION_PATH.write_text(json.dumps(selection, indent=2, sort_keys=True))
+
+score_table = pd.DataFrame(score_rows).sort_values("score", ascending=False).reset_index(drop=True)
+display(score_table)
+print("Selected:", selected_variant)
+print("Saved selector scores:", SCORES_PATH)
+print(json.dumps(score_payload, indent=2, sort_keys=True))
+'''.splitlines(keepends=True),
+    },
+])
+
+for cell in evaluator_cells:
+    if cell["cell_type"] == "code":
+        cell["execution_count"] = None
+        cell["outputs"] = []
+
+evaluator_code = "\n".join(source(cell) for cell in evaluator_cells)
+assert "BIOHUB_EVALUATION_DATASET" in evaluator_code
+assert "PATCH_COMMIT" in evaluator_code
+assert "single-video-short-run" in evaluator_code
+
+EVALUATOR_TARGET.write_text(json.dumps(evaluator, ensure_ascii=False, indent=1) + "\n")
+print(EVALUATOR_TARGET)

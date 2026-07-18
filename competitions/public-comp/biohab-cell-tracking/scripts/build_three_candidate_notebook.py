@@ -552,20 +552,43 @@ if patch_root is None:
         "Attach flexonafft/biohub-patched-metric-v1; matching PATCH_MANIFEST.json was not found"
     )
 
-metric_package = REPO_DIR / "src" / "tracking_cellmot"
+metric_package = REPO_DIR / "src" / "biohub_tracking"
 for filename in ("metrics.py", "division_metrics.py"):
     shutil.copy2(patch_root / filename, metric_package / filename)
 print("Patched metric source:", patch_root, PATCH_COMMIT)
 
+csv_converter = WORKING_DIR / "csv_to_geffs_patched.py"
+csv_converter.write_text(
+    (patch_root / "csv_to_geffs.py").read_text().replace(
+        "from tracking_cellmot.io import save_graph",
+        "from biohub_tracking.io import save_graph",
+    )
+)
+
 score_rows = []
 patched_scores = {}
 evaluation_env = {**os.environ, "PYTHONPATH": str(REPO_DIR / "src")}
+if str(REPO_DIR / "src") not in sys.path:
+    sys.path.insert(0, str(REPO_DIR / "src"))
+from geff import GeffMetadata
+from biohub_tracking.io import open_dataset
+from biohub_tracking.metrics import (
+    evaluate as compute_metric,
+    node_recall,
+    per_sample_metrics,
+    summarise,
+)
+
+gt_path = TEST_DIR / f"{EVALUATION_DATASET}.geff"
+gt_metadata = GeffMetadata.read(gt_path)
+estimated_nodes = float((gt_metadata.extra or {}).get("estimated_number_of_nodes", float("nan")))
+
 for variant, csv_path in candidate_paths.items():
     geff_dir = WORKING_DIR / "patched_eval" / variant
     subprocess.run(
         [
             sys.executable,
-            str(patch_root / "csv_to_geffs.py"),
+            str(csv_converter),
             "--csv", str(csv_path),
             "--out-dir", str(geff_dir),
         ],
@@ -573,29 +596,18 @@ for variant, csv_path in candidate_paths.items():
         env=evaluation_env,
         check=True,
     )
-    evaluated = subprocess.run(
-        [
-            sys.executable,
-            "scripts/evaluate.py",
-            "--pred-dir", str(geff_dir),
-            "--gt-dir", str(TEST_DIR),
-        ],
-        cwd=REPO_DIR,
-        env=evaluation_env,
-        check=True,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    print(evaluated.stdout[-4000:])
-    parsed = {}
-    for name in ("score", "edge_jaccard", "adj_edge_jaccard", "division_jaccard", "node_recall"):
-        match = re.search(rf"\\b{name}=([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+|nan))", evaluated.stdout)
-        if not match:
-            raise AssertionError(f"Missing {name} for {variant}:\\n{evaluated.stdout[-4000:]}")
-        parsed[name] = float(match.group(1))
+    prediction = graph_from_geff(geff_dir / f"{EVALUATION_DATASET}.geff")
+    ground_truth = open_dataset(TEST_DIR / EVALUATION_DATASET, require_tracks=True)
+    result = compute_metric(prediction, ground_truth.tracks, scale=ground_truth.scale)
+    recall = node_recall(prediction, ground_truth.tracks)
+    summary = summarise([per_sample_metrics(result, estimated_nodes, recall)])
+    parsed = {
+        name: float(summary[name])
+        for name in ("score", "edge_jaccard", "adj_edge_jaccard", "division_jaccard", "node_recall")
+    }
     if not math.isfinite(parsed["score"]):
         raise AssertionError(f"Non-finite score for {variant}: {parsed}")
+    print(variant, parsed)
     patched_scores[variant] = parsed["score"]
     score_rows.append({"variant": variant, **parsed})
 

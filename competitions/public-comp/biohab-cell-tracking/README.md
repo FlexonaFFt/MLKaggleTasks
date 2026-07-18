@@ -33,16 +33,21 @@ The checked-in preset preserves the public high-scoring anchor:
 - gap repair and conservative division recovery remain enabled;
 - D4-style spatial TTA remains enabled.
 
-The notebook writes both `submission.csv` and `submission_global_shift.csv`
-from the same raw predictions. Only the second candidate compensates confident
-frame-level global motion during relinking.
+`biohub_patched_three_candidate_selector.ipynb` writes three clean candidates:
+V31 standard, global-shift relinking, and the ILP-1.4 continuity variant. It
+promotes the highest patched holdout score to `submission.csv`; without a
+`biohub_candidate_scores.json` artifact it safely falls back to V31 standard.
 
 ## Files
 
 - `scripts/sync_public_anchor.py`: downloads and pins the public notebook,
   then injects our explicit preset as the first cell.
 - `scripts/validate_submission.py`: validates schema and lineage invariants.
+- `scripts/build_three_candidate_notebook.py`: reproducibly builds the clean
+  three-candidate Kaggle notebook from the scored V31 anchor.
 - `notebooks/biohub_anchor.ipynb`: generated runnable Kaggle notebook.
+- `notebooks/biohub_patched_three_candidate_selector.ipynb`: patched-metric
+  production notebook and validated-candidate selector.
 - `experiments.csv`: experiment ledger.
 
 The original notebook and support artifact belong to their respective Kaggle

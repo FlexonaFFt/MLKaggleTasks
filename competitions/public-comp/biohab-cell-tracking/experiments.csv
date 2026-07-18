@@ -1,2 +1,3 @@
 run_id,upstream_version,preset,local_score,public_score,notes
 anchor-v1,7,adaptive-short-track-rescue,,,Public 400ep-style anchor; establish reproducibility before tuning
+patched-3way-v1,31,standard-global-shift-ilp14,,,Clean patched-metric candidates; selection requires patched holdout scores

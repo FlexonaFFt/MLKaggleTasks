@@ -1,13 +1,15 @@
 # ROGII Wellbore Geology Prediction — experiment archive
 
-Последнее обновление: 2026-07-16.
+Последнее обновление: 2026-07-20.
 
 ## Итог
 
-- Лучший подтверждённый Kaggle public score: **7.043**, submission `54738967`.
-- Notebook: `flexonafft/rogii-kim-om020`.
-- Предыдущие public scores: `7.099`, `7.110`, `7.113`, `7.148`, `7.201`.
-- `7.043` нельзя считать честной оценкой hidden-test: public test содержит 3 wells, все имеют train-копии.
+- Лучший подтверждённый Kaggle public score: **6.979**, submission `54824983` от 2026-07-19.
+- Предыдущие ближайшие public scores: `7.003`, `7.010`, `7.043`, `7.099`, `7.110`, `7.113`.
+- Submission `54853579` от 2026-07-20 остаётся в статусе `PENDING` и не считается подтверждённым результатом.
+- `6.979` нельзя считать честной оценкой unseen-well: public test содержит 3 wells, все имеют same-ID train-копии.
+- Сохранённый anchor-файл имеет SHA-256 `0c60510dc11f7750c493c29c75ac9383eb6ea331d976a0c7991a895c700e7cf8`.
+- Public leaderboard и исследовательский OOF отвечают на разные вопросы; их значения нельзя сравнивать напрямую.
 - В notebook `rogii-kim-om020` guarded contact override сработал для всех 3 wells и заменил все `14 151` prediction rows.
 - Model package correction был отключён diff-gate: `p95_abs_diff = 26.701 > 25.0`.
 - Visible-prefix calibration практически не изменила submission.
@@ -62,13 +64,13 @@
 
 ## Текущая стратегия
 
-1. Сохранить `7.043` как public anchor.
-2. Не тюнить по одному public score.
-3. Построить честный GroupKFold по well с несколькими synthetic prediction starts.
-4. Сравнивать baseline, beam, PF, Ridge, learned branch и contact-free варианты на одинаковых cuts.
-5. Сохранять OOF predictions, worst-decile RMSE и error correlations.
-6. Selector обучать только cross-fitted OOF.
-7. Contact override использовать отдельно как known-overlap branch, не смешивать с hidden-test оценкой.
+1. Заморозить `6.979` как public-overlap anchor и не смешивать его с unseen-well моделями без отдельного A/B обоснования.
+2. Не тюнить hidden-robust модель по трём public wells.
+3. Считать `13.351` лучшим результатом random-well neighbor OOF, но помнить, что эта проверка допускает близкие train references.
+4. Для заявлений о переносе на новый район использовать outer spatial holdout; его шкала существенно жёстче random-well OOF.
+5. Не развивать GR-DTW как основной decoder: использовать GR только как слабый признак режима или confidence.
+6. Следующую гипотезу проверять внутри локальных пространственно-формационных режимов: сначала recoverability коэффициентов, затем модель.
+7. Любой selector и gate обучать cross-fitted; oracle-результаты использовать только как потолок представления.
 
 ## exp_017_clean_oof — Kaggle result
 
@@ -202,4 +204,91 @@ Kaggle kernel: [rogii-contact-forensics-v3](https://www.kaggle.com/code/flexonaf
 
 This reproduced the original contact equation and screened all formations with prefix mean/median/trimmed/linear offsets plus an oracle full-train offset. Kaggle completed successfully.
 
-The train suffix OOF contact equation is extremely strong (`~0.006 ft`), and the exact train-copy forensic is also `~0.005 ft`. However, this does not match the real Kaggle public score `7.043`; therefore train `TVT` in the copied wells is not a valid proxy for hidden public suffix labels. Prefix-selected surfaces were `EGFDL`, `ASTNL`, `EGFDL`; oracle-selected surfaces differed again. No new submission is justified. Keep `7.043` anchor.
+The train suffix OOF contact equation is extremely strong (`~0.006 ft`), and the exact train-copy forensic is also `~0.005 ft`. However, this does not match the real Kaggle public score `7.043`; therefore train `TVT` in the copied wells is not a valid proxy for hidden public suffix labels. Prefix-selected surfaces were `EGFDL`, `ASTNL`, `EGFDL`; oracle-selected surfaces differed again. На момент эксперимента новая submission не была оправдана; позднее public anchor был улучшен до `6.979`.
+
+## Candidate/oracle audit v4
+
+Notebook: [`rogii_candidate_oracle_audit_v1`](rogii_candidate_oracle_audit_v1/rogii_candidate_oracle_audit_v1.ipynb).
+
+Проверена гипотеза, что основная проблема находится не в форме траектории, а в выборе её коэффициентов. Семейство кандидатов:
+
+`TVT_hat = TVT_PS - (Z - Z_PS) + c1*x + c2*x²`.
+
+Результаты random-well OOF на 773 wells:
+
+- continuous quadratic oracle: **4.279138**;
+- grid oracle: **5.811822**;
+- learned ranker selector: **14.366629**;
+- regularized selector: **14.660849**;
+- Ridge prior: **14.748959**.
+
+Multi-scale GR cost имеет сильную ordinal-связь с качеством кандидата: median Spearman `0.806735`. Однако learned selector улучшает Ridge лишь на `0.382 ft` и выигрывает только примерно на `19.4%` wells. Вывод: хорошая форма существует, но доступные признаки пока не позволяют надёжно выбрать её параметры.
+
+## Neighbor transfer research v3
+
+Kaggle kernel: [rogii-neighbor-transfer-research-v1](https://www.kaggle.com/code/flexonafft/rogii-neighbor-transfer-research-v1). Локальный notebook: [`rogii_neighbor_transfer_research_v1`](rogii_neighbor_transfer_research_v1/rogii_neighbor_transfer_research_v1.ipynb).
+
+Вместо копирования абсолютного TVT переносился residual относительно геометрического anchor. Random-well OOF:
+
+- `hybrid_md_600`: **13.351120**;
+- nested selector: **13.480106**;
+- normalized-coordinate hybrid: **13.941482**;
+- Ridge prior: **14.748959**.
+
+Это лучшее подтверждённое random-well OOF направление. Но spatial coverage неоднороден: только 10 wells имеют соседа ближе 150 ft, 79 — 150–300 ft, 309 — 300–600 ft, 375 — дальше 600 ft. Проверка допускает близкие reference wells из других random folds и поэтому не доказывает перенос на новый район.
+
+Все 3 public wells являются same-ID train-копиями с self-distance `0`. Ближайшие внешние соседи находятся примерно на `400`, `1112` и `440` ft. Отдельная submission не создавалась: для public ветки она дублировала бы уже известный overlap signal.
+
+## GR-DTW research v3
+
+Kaggle kernel: [rogii-gr-dtw-research-v2](https://www.kaggle.com/code/flexonafft/rogii-gr-dtw-research-v2). Локальный notebook: [`rogii_gr_dtw_research_v1`](rogii_gr_dtw_research_v1/rogii_gr_dtw_research_v1.ipynb).
+
+Исправленный fixed-grid GR-DTW с nested gain дал:
+
+- oracle configuration: **13.330366**;
+- nested gated raw: **14.555628** pooled и **14.545582** confirmatory;
+- Ridge prior: **14.748959** pooled и **14.723709** confirmatory;
+- standalone DTW-конфигурации: **15.091–15.961**.
+
+На exact train-copy pseudo-test frozen `6.979` anchor получил RMSE `0.433752`. Добавление даже 10% GR gate ухудшило его до `0.643558`; 25% — до `1.048057`; полный gate — до `3.276220`. GR несёт слабый дополнительный signal, но опасен как основной путь и не должен корректировать public anchor без well-specific доказательства.
+
+## Monotonic alignment lab v1
+
+Kaggle kernel: [rogii-alignment-lab-v1](https://www.kaggle.com/code/flexonafft/rogii-alignment-lab-v1). Локальный notebook: [`rogii_alignment_lab_v1`](rogii_alignment_lab_v1/rogii_alignment_lab_v1.ipynb).
+
+Проверен multi-scale slope-constrained monotonic DTW на абсолютной TVT-сетке с band `±120 ft`, шагом `2 ft` и ограничением перехода.
+
+- Ridge prior: **14.748959**;
+- oracle alignment configuration: **14.390800**;
+- self multi-scale: **21.438107**;
+- prefix-selected path: **22.625840**;
+- typewell/hybrid варианты: **25.832–26.606**.
+
+Prefix-selected path проиграл Ridge во всех spatial evaluation slices. Практический вывод: monotonic-path assumption слишком ограничивает реальную форму или GR cost неоднозначен; «ещё более правильный DTW» не является приоритетной веткой.
+
+## Curvature recoverability lab v1
+
+Kaggle kernel: [rogii-curvature-recoverability-v1](https://www.kaggle.com/code/flexonafft/rogii-curvature-recoverability-v1). Локальный notebook: [`rogii_curvature_recoverability_v1`](rogii_curvature_recoverability_v1/rogii_curvature_recoverability_v1.ipynb).
+
+Это первая полностью обучаемая проверка на outer spatial holdout. Residual относительно геометрического anchor представлен шестью anchored basis components: линейной компонентой и пятью синусами. Коэффициенты предсказывались из legal geometry, prefix/suffix GR landscape и fold-safe neighbor coefficients.
+
+- six-basis oracle: **1.474922**;
+- curvature geometry: **19.863795**;
+- curvature + neighbor: **20.281388**;
+- spatial Ridge: **20.317648**;
+- neighbor-вариант выиграл у spatial Ridge в `3/5` folds, но улучшил pooled RMSE только на `0.036260`.
+
+Заранее заданный критерий `RMSE <= 13.0` и победа минимум в `4/5` folds не выполнен. Значение `19–20` нельзя напрямую сравнивать с random-well `13–15`: spatial split исключает из обучения целые районы и является значительно более жёсткой задачей.
+
+Главный вывод: выбранный basis почти идеально описывает target shape, но коэффициенты не переносятся между пространственными областями по текущим признакам. Ограничение находится в определении геологического режима, а не в выразительности формы.
+
+## Консолидированные выводы на 2026-07-20
+
+1. Public leaderboard и unseen-well research — две разные задачи. `6.979` опирается на три same-ID overlaps; улучшение OOF само по себе не обязано улучшать public score.
+2. Форма не является главным ограничением: quadratic oracle даёт `4.279`, six-basis oracle — `1.475`.
+3. Главный bottleneck — выбор формы или её коэффициентов без suffix TVT.
+4. Neighbor residual transfer — самый сильный честный сигнал в random-well OOF (`13.351`), но его преимущество почти исчезает на outer spatial holdout.
+5. GR полезен как ranking/confidence feature, но standalone GR alignment и monotonic DTW нестабильны и часто дают cycle/offset errors.
+6. Prefix backtest не является надёжным selector для suffix GR path.
+7. Same-well formation reconstruction (`~0.005`) объясняет силу overlap-ветки, но не доказывает unseen-well generalization.
+8. Следующий эксперимент должен проверять локальную recoverability: пространственно-формационные кластеры, regime classification и только затем prediction коэффициентов внутри режима.

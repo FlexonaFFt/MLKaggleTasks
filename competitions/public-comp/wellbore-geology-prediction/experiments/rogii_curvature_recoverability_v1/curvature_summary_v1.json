@@ -1,0 +1,19 @@
+{
+  "version": "v1",
+  "wells": 773,
+  "rows": 3783989,
+  "ridge_rmse": 20.317647773042623,
+  "curvature_geometry_rmse": 19.863795144133686,
+  "curvature_neighbor_rmse": 20.281387562714293,
+  "oracle_6basis_rmse": 1.4749224684245459,
+  "improvement_ft": 0.03626021032832938,
+  "fold_wins": 3,
+  "viability_rule": "curvature_neighbor <= 13.0 and beats spatial_ridge in >=4/5 folds",
+  "viable": false,
+  "decision": "stop_or_revise_curvature_recovery",
+  "caveats": [
+    "Spatial clusters are harder than prior random-well folds.",
+    "Oracle uses validation TVT.",
+    "No submission is created."
+  ]
+}

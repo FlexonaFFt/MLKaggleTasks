@@ -1,0 +1,264 @@
+{
+  "version": "v1",
+  "wells": 773,
+  "rows": 3783989,
+  "stride": 10,
+  "tvt_step": 2.0,
+  "band_ft": 120.0,
+  "max_step": 4,
+  "scores": [
+    {
+      "candidate": "oracle_config",
+      "pooled_rmse": 14.390799822094014
+    },
+    {
+      "candidate": "ridge_prior",
+      "pooled_rmse": 14.748958761024927
+    },
+    {
+      "candidate": "self_multiscale",
+      "pooled_rmse": 21.4381069569277
+    },
+    {
+      "candidate": "prefix_selected",
+      "pooled_rmse": 22.62583956485423
+    },
+    {
+      "candidate": "type_raw",
+      "pooled_rmse": 25.83159987672731
+    },
+    {
+      "candidate": "type_multiscale",
+      "pooled_rmse": 26.480885232376185
+    },
+    {
+      "candidate": "hybrid_multiscale",
+      "pooled_rmse": 26.606406850601463
+    }
+  ],
+  "ridge_prior_rmse": 14.748958761024927,
+  "prefix_selected_rmse": 22.62583956485423,
+  "improvement_ft": -7.876880803829302,
+  "spatial_fold_scores": [
+    {
+      "spatial_fold": 0,
+      "candidate": "ridge_prior",
+      "rows": 347153,
+      "pooled_rmse": 16.191254516166058
+    },
+    {
+      "spatial_fold": 0,
+      "candidate": "type_raw",
+      "rows": 347153,
+      "pooled_rmse": 25.04338749904637
+    },
+    {
+      "spatial_fold": 0,
+      "candidate": "type_multiscale",
+      "rows": 347153,
+      "pooled_rmse": 26.19665486465752
+    },
+    {
+      "spatial_fold": 0,
+      "candidate": "self_multiscale",
+      "rows": 347153,
+      "pooled_rmse": 20.621442075772666
+    },
+    {
+      "spatial_fold": 0,
+      "candidate": "hybrid_multiscale",
+      "rows": 347153,
+      "pooled_rmse": 30.383774269865
+    },
+    {
+      "spatial_fold": 0,
+      "candidate": "prefix_selected",
+      "rows": 347153,
+      "pooled_rmse": 20.50430511141205
+    },
+    {
+      "spatial_fold": 0,
+      "candidate": "oracle_config",
+      "rows": 347153,
+      "pooled_rmse": 14.081154199091515
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "ridge_prior",
+      "rows": 831003,
+      "pooled_rmse": 15.267597387480569
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "type_raw",
+      "rows": 831003,
+      "pooled_rmse": 26.599059586002554
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "type_multiscale",
+      "rows": 831003,
+      "pooled_rmse": 29.00481068002603
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "self_multiscale",
+      "rows": 831003,
+      "pooled_rmse": 23.06670020261035
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "hybrid_multiscale",
+      "rows": 831003,
+      "pooled_rmse": 28.439589250921912
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "prefix_selected",
+      "rows": 831003,
+      "pooled_rmse": 24.51811530366303
+    },
+    {
+      "spatial_fold": 1,
+      "candidate": "oracle_config",
+      "rows": 831003,
+      "pooled_rmse": 14.823490843816328
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "ridge_prior",
+      "rows": 535050,
+      "pooled_rmse": 12.38128387709382
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "type_raw",
+      "rows": 535050,
+      "pooled_rmse": 25.40833184902506
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "type_multiscale",
+      "rows": 535050,
+      "pooled_rmse": 24.751838277237624
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "self_multiscale",
+      "rows": 535050,
+      "pooled_rmse": 24.20323737394399
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "hybrid_multiscale",
+      "rows": 535050,
+      "pooled_rmse": 24.071392066460817
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "prefix_selected",
+      "rows": 535050,
+      "pooled_rmse": 22.36722993537876
+    },
+    {
+      "spatial_fold": 2,
+      "candidate": "oracle_config",
+      "rows": 535050,
+      "pooled_rmse": 14.962064071981462
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "ridge_prior",
+      "rows": 1074665,
+      "pooled_rmse": 14.51856294581242
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "type_raw",
+      "rows": 1074665,
+      "pooled_rmse": 24.468421269699206
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "type_multiscale",
+      "rows": 1074665,
+      "pooled_rmse": 23.54401451027522
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "self_multiscale",
+      "rows": 1074665,
+      "pooled_rmse": 18.407666297153547
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "hybrid_multiscale",
+      "rows": 1074665,
+      "pooled_rmse": 23.380438270315917
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "prefix_selected",
+      "rows": 1074665,
+      "pooled_rmse": 19.275856319759214
+    },
+    {
+      "spatial_fold": 3,
+      "candidate": "oracle_config",
+      "rows": 1074665,
+      "pooled_rmse": 13.143083110788883
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "ridge_prior",
+      "rows": 996118,
+      "pooled_rmse": 15.191132170811187
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "type_raw",
+      "rows": 996118,
+      "pooled_rmse": 27.0795567835273
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "type_multiscale",
+      "rows": 996118,
+      "pooled_rmse": 28.208325361372356
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "self_multiscale",
+      "rows": 996118,
+      "pooled_rmse": 21.761896101251097
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "hybrid_multiscale",
+      "rows": 996118,
+      "pooled_rmse": 28.13664839773921
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "prefix_selected",
+      "rows": 996118,
+      "pooled_rmse": 25.041644901410624
+    },
+    {
+      "spatial_fold": 4,
+      "candidate": "oracle_config",
+      "rows": 996118,
+      "pooled_rmse": 15.08902934085502
+    }
+  ],
+  "viability_rule": "prefix_selected improves Ridge by >=1 ft and wins in every spatial fold",
+  "viable": false,
+  "decision": "stop_or_revise_alignment",
+  "prediction_artifact": "alignment_lab_oof_predictions_v1.parquet",
+  "caveats": [
+    "Spatial clusters are evaluation slices; this per-well decoder fits no cross-well model.",
+    "Oracle configuration uses suffix TVT and is diagnostic only.",
+    "Monotonic TVT cannot represent genuinely reversing local geology paths.",
+    "No submission is created."
+  ]
+}

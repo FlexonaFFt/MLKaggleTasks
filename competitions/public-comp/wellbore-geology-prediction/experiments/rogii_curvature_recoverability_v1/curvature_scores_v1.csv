@@ -1,0 +1,6 @@
+candidate,pooled_rmse
+oracle_6basis,1.4749224684245459
+curvature_geometry,19.863795144133686
+curvature_neighbor,20.281387562714293
+spatial_ridge,20.317647773042623
+z_anchor,107.49482425817837

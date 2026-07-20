@@ -1,0 +1,8 @@
+candidate,pooled_rmse
+oracle_config,14.390799822094014
+ridge_prior,14.748958761024927
+self_multiscale,21.4381069569277
+prefix_selected,22.62583956485423
+type_raw,25.83159987672731
+type_multiscale,26.480885232376185
+hybrid_multiscale,26.606406850601463

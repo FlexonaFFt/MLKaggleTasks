@@ -1,0 +1,15 @@
+{
+  "id": "flexonafft/rogii-curvature-recoverability-v1",
+  "title": "ROGII Curvature Recoverability V1",
+  "code_file": "rogii_curvature_recoverability_v1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": ["rogii-wellbore-geology-prediction"],
+  "kernel_sources": [],
+  "model_sources": []
+}

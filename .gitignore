@@ -35,6 +35,7 @@ sample_submission.csv
 **/health-submiss-pool/mine/*.csv
 !**/health-submiss-pool/mine/manifest.csv
 **/health-submiss-pool/blends/*.csv
+**/public_submissions_*/
 featured_*.csv
 
 # Generated experiment and Kaggle run artifacts

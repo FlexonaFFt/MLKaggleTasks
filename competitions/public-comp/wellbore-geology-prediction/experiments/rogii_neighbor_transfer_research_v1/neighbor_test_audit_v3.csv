@@ -1,0 +1,4 @@
+well_id,prediction_rows,same_id_train_copy,self_path_distance,external_neighbor,external_path_distance,external_neighbor_eligible,deployment_threshold
+000d7d20,3836,True,0.0,ff0aea78,400.3217158740419,True,750
+00bbac68,6014,True,0.0,155887bb,1112.005504239248,False,750
+00e12e8b,4301,True,0.0,42669188,439.7279353275564,True,750

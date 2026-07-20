@@ -1,0 +1,131 @@
+{
+  "version": "v3",
+  "wells": 773,
+  "rows": 3783989,
+  "scores": [
+    {
+      "candidate": "hybrid_md_600",
+      "pooled_rmse": 13.351120231373706
+    },
+    {
+      "candidate": "nested_selector",
+      "pooled_rmse": 13.480105633508673
+    },
+    {
+      "candidate": "hybrid_normalized_600",
+      "pooled_rmse": 13.941481985746302
+    },
+    {
+      "candidate": "ridge_prior",
+      "pooled_rmse": 14.748958761024914
+    },
+    {
+      "candidate": "top5x2_oracle",
+      "pooled_rmse": 14.823233852267713
+    },
+    {
+      "candidate": "last_known",
+      "pooled_rmse": 15.909852870734559
+    },
+    {
+      "candidate": "neighbor_path_md",
+      "pooled_rmse": 23.40112916882338
+    },
+    {
+      "candidate": "neighbor_path_normalized",
+      "pooled_rmse": 28.856042223496527
+    },
+    {
+      "candidate": "z_anchor",
+      "pooled_rmse": 107.49482425817841
+    }
+  ],
+  "best_deployable": "hybrid_md_600",
+  "best_deployable_rmse": 13.351120231373706,
+  "ridge_prior_rmse": 14.748958761024914,
+  "distance_coverage": {
+    "<150": 10,
+    "150-300": 79,
+    "300-600": 309,
+    ">600": 375
+  },
+  "median_path_distance": 571.3975094669316,
+  "calibration": [
+    {
+      "fold": 0,
+      "tuning_wells": 618,
+      "coordinate": "md",
+      "threshold": 750,
+      "inner_rmse": 13.215840324872328
+    },
+    {
+      "fold": 1,
+      "tuning_wells": 618,
+      "coordinate": "md",
+      "threshold": 900,
+      "inner_rmse": 13.56597918642072
+    },
+    {
+      "fold": 2,
+      "tuning_wells": 618,
+      "coordinate": "md",
+      "threshold": 750,
+      "inner_rmse": 13.844862845424679
+    },
+    {
+      "fold": 3,
+      "tuning_wells": 619,
+      "coordinate": "md",
+      "threshold": 600,
+      "inner_rmse": 13.559344332023025
+    },
+    {
+      "fold": 4,
+      "tuning_wells": 619,
+      "coordinate": "md",
+      "threshold": 750,
+      "inner_rmse": 13.666511284642015
+    }
+  ],
+  "nested_selector_rmse": 13.480105633508673,
+  "test_audit": [
+    {
+      "well_id": "000d7d20",
+      "prediction_rows": 3836,
+      "same_id_train_copy": true,
+      "self_path_distance": 0.0,
+      "external_neighbor": "ff0aea78",
+      "external_path_distance": 400.3217158740419,
+      "external_neighbor_eligible": true,
+      "deployment_threshold": 750
+    },
+    {
+      "well_id": "00bbac68",
+      "prediction_rows": 6014,
+      "same_id_train_copy": true,
+      "self_path_distance": 0.0,
+      "external_neighbor": "155887bb",
+      "external_path_distance": 1112.005504239248,
+      "external_neighbor_eligible": false,
+      "deployment_threshold": 750
+    },
+    {
+      "well_id": "00e12e8b",
+      "prediction_rows": 4301,
+      "same_id_train_copy": true,
+      "self_path_distance": 0.0,
+      "external_neighbor": "42669188",
+      "external_path_distance": 439.7279353275564,
+      "external_neighbor_eligible": true,
+      "deployment_threshold": 750
+    }
+  ],
+  "submission_decision": "skip_duplicate",
+  "prediction_artifact": "neighbor_oof_predictions_v3.parquet",
+  "caveats": [
+    "Random well folds test access to nearby interpreted references; spatial holdout is not yet run.",
+    "Top-5 x coordinate oracle uses validation targets and is diagnostic only.",
+    "The fixed Ridge fallback is imported from a prior cross-fitted experiment rather than retrained inside each nested outer fold.",
+    "No GR alignment, formation anchor, learned gate, or submission is included."
+  ]
+}

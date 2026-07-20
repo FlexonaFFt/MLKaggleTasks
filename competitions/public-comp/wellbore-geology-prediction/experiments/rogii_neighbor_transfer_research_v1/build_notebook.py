@@ -19,13 +19,13 @@ def code(text):
 
 
 md(
-    """# ROGII neighbor-transfer research v1
+    """# ROGII neighbor-transfer research v3
 
 ## tl;dr
 
-This is a diagnostic OOF notebook for one question: can the full TVT correction shape of a spatially close, same-direction training well improve a held-out well?
+V2 produced a nested OOF score of 13.480 versus the 14.749 Ridge fallback. V3 audits whether that held-out-well experiment can produce new leaderboard information on the actual three-well test set.
 
-It never creates `submission.csv`. The executed decision artifacts are `neighbor_scores_v1.csv`, `neighbor_distance_scores_v1.csv`, `neighbor_well_diagnostics_v1.csv`, and `neighbor_summary_v1.json`.
+It never creates `submission.csv`. The new decision artifact is `neighbor_test_audit_v3.csv`; V2 OOF artifacts are retained with V3 names.
 """
 )
 
@@ -39,9 +39,11 @@ The old neighbor proxy copied absolute TVT by MD and scored poorly. This version
 ### Key Assumptions
 
 - Validation suffix targets never participate in neighbor selection.
-- Every validation well can use only reference wells from other folds.
+- Outer validation wells use only outer-training references; inner calibration also excludes the outer fold and its own inner fold.
 - Full `X/Y/Z/MD` trajectories and drilling direction are legal at inference.
 - The prior Ridge coefficients come from the already completed cross-fitted geometry notebook.
+- Coordinate (`MD-after-PS` or normalized suffix) and threshold are selected from a fixed grid using pooled inner OOF SSE.
+- The test audit checks exact train-ID overlap before authorizing any leaderboard submission.
 - Random well folds model the case where evaluation wells have nearby interpreted training wells; spatial holdout remains a later robustness test.
 """
 )
@@ -64,7 +66,7 @@ import pandas as pd
 
 warnings.filterwarnings("ignore")
 
-VERSION = "v1"
+VERSION = "v3"
 SEED = 42
 N_SPLITS = 5
 SMOKE = os.environ.get("ROGII_SMOKE", "0") == "1"
@@ -89,6 +91,7 @@ def find_root():
 
 ROOT = find_root()
 TRAIN_DIR = ROOT / "train"
+TEST_DIR = ROOT / "test"
 WORK = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
 
 
@@ -99,7 +102,7 @@ def rmse(y_true, prediction):
 all_ids = sorted(path.name.removesuffix(HORIZONTAL_SUFFIX) for path in TRAIN_DIR.glob(f"*{HORIZONTAL_SUFFIX}"))
 ids = all_ids[:20] if SMOKE else all_ids
 if SMOKE:
-    N_SPLITS = 2
+    N_SPLITS = 3
 
 rng = np.random.default_rng(SEED)
 shuffled = np.array(ids, dtype=object)
@@ -224,68 +227,110 @@ assert abs(np.interp(0.0, np.r_[0.0, PROFILES[second_id]["normalized_md"]], np.r
 '''
 )
 
-md("## Results - well-grouped OOF")
+md("## Results - nested calibration and outer OOF")
 
 code(
-    r'''prediction_frames = []
+    r'''COORDINATES = ["normalized", "md"]
+THRESHOLDS = [150, 300, 450, 600, 750, 900, 1200]
+
+
+def candidate_bundle(well_id, reference_ids):
+    profile = PROFILES[well_id]
+    path_ranked = ranked_neighbors(well_id, reference_ids, "path")
+    neighbor_id, distance = path_ranked[0]
+    assert neighbor_id in reference_ids
+    predictions = {
+        coordinate: transferred_correction(well_id, neighbor_id, coordinate)
+        for coordinate in COORDINATES
+    }
+    return path_ranked, neighbor_id, distance, predictions
+
+
+prediction_frames = []
 well_rows = []
+calibration_rows = []
 start_time = time.time()
 
-for index, well_id in enumerate(ids, 1):
-    profile = PROFILES[well_id]
-    references = [ref for ref in ids if FOLD_BY_WELL[ref] != FOLD_BY_WELL[well_id]]
-    ps_ranked = ranked_neighbors(well_id, references, "ps")
-    path_ranked = ranked_neighbors(well_id, references, "path")
-    ps_neighbor, ps_distance = ps_ranked[0]
-    path_neighbor, path_distance = path_ranked[0]
-    assert FOLD_BY_WELL[ps_neighbor] != FOLD_BY_WELL[well_id]
-    assert FOLD_BY_WELL[path_neighbor] != FOLD_BY_WELL[well_id]
+for outer_fold in range(N_SPLITS):
+    outer_valid = [well_id for well_id in ids if FOLD_BY_WELL[well_id] == outer_fold]
+    outer_train = [well_id for well_id in ids if FOLD_BY_WELL[well_id] != outer_fold]
+    tuning_rows = []
 
-    neighbor_ps_normalized = transferred_correction(well_id, ps_neighbor, "normalized")
-    neighbor_path_normalized = transferred_correction(well_id, path_neighbor, "normalized")
-    neighbor_path_md = transferred_correction(well_id, path_neighbor, "md")
+    for well_id in outer_train:
+        inner_references = [
+            ref for ref in outer_train if FOLD_BY_WELL[ref] != FOLD_BY_WELL[well_id]
+        ]
+        assert inner_references and all(FOLD_BY_WELL[ref] != outer_fold for ref in inner_references)
+        _, _, distance, predictions = candidate_bundle(well_id, inner_references)
+        truth = PROFILES[well_id]["truth"]
+        tuning_rows.append({
+            "well_id": well_id, "rows": len(truth), "distance": distance,
+            "ridge_sse": float(np.sum((truth - ridge_prediction(well_id)) ** 2)),
+            "normalized_sse": float(np.sum((truth - predictions["normalized"]) ** 2)),
+            "md_sse": float(np.sum((truth - predictions["md"]) ** 2)),
+        })
 
-    top5_predictions = [transferred_correction(well_id, ref, "normalized") for ref, _ in path_ranked[:5]]
-    top5_errors = [rmse(profile["truth"], prediction) for prediction in top5_predictions]
-    oracle_position = int(np.argmin(top5_errors))
-    top5_oracle = top5_predictions[oracle_position]
-    oracle_neighbor = path_ranked[oracle_position][0]
+    tuning = pd.DataFrame(tuning_rows)
+    settings = []
+    for coordinate in COORDINATES:
+        for threshold in THRESHOLDS:
+            selected_sse = np.where(
+                tuning["distance"] <= threshold,
+                tuning[f"{coordinate}_sse"], tuning["ridge_sse"],
+            )
+            settings.append({
+                "coordinate": coordinate, "threshold": threshold,
+                "inner_rmse": float(np.sqrt(selected_sse.sum() / tuning["rows"].sum())),
+            })
+    best = min(settings, key=lambda row: row["inner_rmse"])
+    calibration_rows.append({"fold": outer_fold, "tuning_wells": len(tuning), **best})
 
-    prediction_frames.append(pd.DataFrame({
-        "id": [f"{well_id}_{row}" for row in profile["target_idx"]],
-        "well_id": well_id, "fold": profile["fold"], "target": profile["truth"],
-        "last_known": profile["last_known"], "z_anchor": profile["z_anchor"],
-        "ridge_prior": ridge_prediction(well_id),
-        "neighbor_ps_normalized": neighbor_ps_normalized,
-        "neighbor_path_normalized": neighbor_path_normalized,
-        "neighbor_path_md": neighbor_path_md,
-        "top5_oracle": top5_oracle,
-    }))
-    well_rows.append({
-        "well_id": well_id, "fold": profile["fold"], "rows": len(profile["truth"]),
-        "direction": profile["direction"], "ps_neighbor": ps_neighbor, "ps_distance": ps_distance,
-        "path_neighbor": path_neighbor, "path_distance": path_distance,
-        "path_angle_difference_deg": np.degrees(angular_difference(profile["azimuth"], PROFILES[path_neighbor]["azimuth"])),
-        "top5_oracle_neighbor": oracle_neighbor, "top5_oracle_rank": oracle_position + 1,
-    })
-    if index % 100 == 0:
-        print("transferred", index, "/", len(ids), "elapsed", round(time.time() - start_time, 1))
+    for well_id in outer_valid:
+        profile = PROFILES[well_id]
+        path_ranked, neighbor_id, distance, predictions = candidate_bundle(well_id, outer_train)
+        oracle_predictions = [
+            transferred_correction(well_id, ref, coordinate)
+            for ref, _ in path_ranked[:5] for coordinate in COORDINATES
+        ]
+        oracle_errors = [rmse(profile["truth"], prediction) for prediction in oracle_predictions]
+        oracle_position = int(np.argmin(oracle_errors))
+        top5x2_oracle = oracle_predictions[oracle_position]
+        ridge = ridge_prediction(well_id)
+        nested = predictions[best["coordinate"]] if distance <= best["threshold"] else ridge
+
+        prediction_frames.append(pd.DataFrame({
+            "id": [f"{well_id}_{row}" for row in profile["target_idx"]],
+            "well_id": well_id, "fold": outer_fold, "target": profile["truth"],
+            "last_known": profile["last_known"], "z_anchor": profile["z_anchor"],
+            "ridge_prior": ridge,
+            "neighbor_path_normalized": predictions["normalized"],
+            "neighbor_path_md": predictions["md"],
+            "hybrid_normalized_600": predictions["normalized"] if distance <= 600 else ridge,
+            "hybrid_md_600": predictions["md"] if distance <= 600 else ridge,
+            "nested_selector": nested, "top5x2_oracle": top5x2_oracle,
+        }))
+        well_rows.append({
+            "well_id": well_id, "fold": outer_fold, "rows": len(profile["truth"]),
+            "direction": profile["direction"], "path_neighbor": neighbor_id,
+            "path_distance": distance,
+            "path_angle_difference_deg": np.degrees(angular_difference(profile["azimuth"], PROFILES[neighbor_id]["azimuth"])),
+            "selected_coordinate": best["coordinate"], "selected_threshold": best["threshold"],
+            "top5x2_oracle_choice": oracle_position + 1,
+        })
+    print("outer fold", outer_fold, "choice", best, "elapsed", round(time.time() - start_time, 1))
 
 OOF = pd.concat(prediction_frames, ignore_index=True)
 WELL_DIAGNOSTICS = pd.DataFrame(well_rows)
-for threshold in [150, 300, 600]:
-    OOF[f"hybrid_{threshold}"] = np.where(
-        OOF["well_id"].map(WELL_DIAGNOSTICS.set_index("well_id")["path_distance"]) <= threshold,
-        OOF["neighbor_path_normalized"], OOF["ridge_prior"],
-    )
-
+CALIBRATION = pd.DataFrame(calibration_rows)
 CANDIDATES = [
     "last_known", "z_anchor", "ridge_prior",
-    "neighbor_ps_normalized", "neighbor_path_normalized", "neighbor_path_md",
-    "hybrid_150", "hybrid_300", "hybrid_600", "top5_oracle",
+    "neighbor_path_normalized", "neighbor_path_md",
+    "hybrid_normalized_600", "hybrid_md_600", "nested_selector", "top5x2_oracle",
 ]
 assert OOF["id"].is_unique and np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
+assert WELL_DIAGNOSTICS["well_id"].nunique() == len(ids)
 print("OOF", OOF.shape)
+display(CALIBRATION)
 '''
 )
 
@@ -313,7 +358,7 @@ OOF["distance_bin"] = OOF["well_id"].map(distance_by_well)
 
 distance_rows = []
 for distance_bin, group in OOF.groupby("distance_bin", observed=True):
-    for candidate in ["ridge_prior", "neighbor_path_normalized", "neighbor_path_md", "top5_oracle"]:
+    for candidate in ["ridge_prior", "neighbor_path_normalized", "neighbor_path_md", "nested_selector", "top5x2_oracle"]:
         distance_rows.append({
             "distance_bin": str(distance_bin), "candidate": candidate,
             "wells": int(group["well_id"].nunique()), "rows": len(group),
@@ -323,21 +368,72 @@ DISTANCE_SCORES = pd.DataFrame(distance_rows)
 
 display(SCORES)
 display(DISTANCE_SCORES.pivot(index="distance_bin", columns="candidate", values="pooled_rmse"))
-display(WELL_DIAGNOSTICS[["path_distance", "path_angle_difference_deg", "top5_oracle_rank"]].describe())
+display(WELL_DIAGNOSTICS[["path_distance", "path_angle_difference_deg", "top5x2_oracle_choice"]].describe())
+'''
+)
+
+md("## Test-distribution audit")
+
+code(
+    r'''def test_geometry(well_id):
+    frame = pd.read_csv(TEST_DIR / f"{well_id}{HORIZONTAL_SUFFIX}", usecols=LEGAL_COLUMNS)
+    known_idx = np.flatnonzero(frame["TVT_input"].notna().to_numpy())
+    target_idx = np.flatnonzero(frame["TVT_input"].isna().to_numpy())
+    ps = known_idx[-1]
+    md_values = frame["MD"].to_numpy(float)
+    x_coord = frame["X"].to_numpy(float)
+    y_coord = frame["Y"].to_numpy(float)
+    span = max(float(md_values[target_idx[-1]] - md_values[ps]), 1.0)
+    normalized_md = (md_values[target_idx] - md_values[ps]) / span
+    grid = np.linspace(0.0, 1.0, 25)
+    path_xy = np.column_stack([
+        np.interp(grid, np.r_[0.0, normalized_md], np.r_[x_coord[ps], x_coord[target_idx]]),
+        np.interp(grid, np.r_[0.0, normalized_md], np.r_[y_coord[ps], y_coord[target_idx]]),
+    ])
+    azimuth = float(np.arctan2(y_coord[target_idx[-1]] - y_coord[ps], x_coord[target_idx[-1]] - x_coord[ps]))
+    return target_idx, path_xy, azimuth, 1 if np.cos(azimuth) >= 0 else -1
+
+
+test_ids = sorted(path.name.removesuffix(HORIZONTAL_SUFFIX) for path in TEST_DIR.glob(f"*{HORIZONTAL_SUFFIX}"))
+deployment_threshold = int(CALIBRATION["threshold"].median())
+test_rows = []
+for well_id in test_ids:
+    target_idx, path_xy, azimuth, direction = test_geometry(well_id)
+    same_id_present = well_id in PROFILES
+    self_distance = float(np.median(np.linalg.norm(PROFILES[well_id]["path_xy"] - path_xy, axis=1))) if same_id_present else np.nan
+    external = [ref for ref in ids if ref != well_id and PROFILES[ref]["direction"] == direction]
+    paths = np.stack([PROFILES[ref]["path_xy"] for ref in external])
+    distances = np.median(np.linalg.norm(paths - path_xy[None, :, :], axis=2), axis=1)
+    nearest_index = int(np.argmin(distances))
+    test_rows.append({
+        "well_id": well_id, "prediction_rows": len(target_idx),
+        "same_id_train_copy": same_id_present, "self_path_distance": self_distance,
+        "external_neighbor": external[nearest_index], "external_path_distance": float(distances[nearest_index]),
+        "external_neighbor_eligible": bool(distances[nearest_index] <= deployment_threshold),
+        "deployment_threshold": deployment_threshold,
+    })
+
+TEST_AUDIT = pd.DataFrame(test_rows)
+sample = pd.read_csv(ROOT / "sample_submission.csv")
+assert TEST_AUDIT["prediction_rows"].sum() == len(sample)
+assert TEST_AUDIT["well_id"].nunique() == len(test_ids)
+display(TEST_AUDIT)
 '''
 )
 
 md("## Takeaways and artifacts")
 
 code(
-    r'''SCORES.to_csv(WORK / "neighbor_scores_v1.csv", index=False)
-DISTANCE_SCORES.to_csv(WORK / "neighbor_distance_scores_v1.csv", index=False)
-WELL_DIAGNOSTICS.to_csv(WORK / "neighbor_well_diagnostics_v1.csv", index=False)
+    r'''SCORES.to_csv(WORK / "neighbor_scores_v3.csv", index=False)
+DISTANCE_SCORES.to_csv(WORK / "neighbor_distance_scores_v3.csv", index=False)
+WELL_DIAGNOSTICS.to_csv(WORK / "neighbor_well_diagnostics_v3.csv", index=False)
+CALIBRATION.to_csv(WORK / "neighbor_calibration_v3.csv", index=False)
+TEST_AUDIT.to_csv(WORK / "neighbor_test_audit_v3.csv", index=False)
 
-prediction_path = WORK / "neighbor_oof_predictions_v1.parquet"
+prediction_path = WORK / "neighbor_oof_predictions_v3.parquet"
 OOF.to_parquet(prediction_path, index=False)
 
-best_deployable = SCORES[SCORES["candidate"] != "top5_oracle"].iloc[0]
+best_deployable = SCORES[SCORES["candidate"] != "top5x2_oracle"].iloc[0]
 summary = {
     "version": VERSION, "wells": int(OOF["well_id"].nunique()), "rows": int(len(OOF)),
     "scores": SCORES.to_dict("records"),
@@ -348,15 +444,19 @@ summary = {
         label: int((WELL_DIAGNOSTICS["distance_bin"].astype(str) == label).sum()) for label in labels
     },
     "median_path_distance": float(WELL_DIAGNOSTICS["path_distance"].median()),
-    "nearest_is_top5_oracle_share": float((WELL_DIAGNOSTICS["top5_oracle_rank"] == 1).mean()),
+    "calibration": CALIBRATION.to_dict("records"),
+    "nested_selector_rmse": float(SCORES.set_index("candidate").loc["nested_selector", "pooled_rmse"]),
+    "test_audit": TEST_AUDIT.to_dict("records"),
+    "submission_decision": "skip_duplicate" if TEST_AUDIT["same_id_train_copy"].all() else "build_controlled_submission",
     "prediction_artifact": prediction_path.name,
     "caveats": [
         "Random well folds test access to nearby interpreted references; spatial holdout is not yet run.",
-        "Top-5 oracle uses validation targets and is diagnostic only.",
+        "Top-5 x coordinate oracle uses validation targets and is diagnostic only.",
+        "The fixed Ridge fallback is imported from a prior cross-fitted experiment rather than retrained inside each nested outer fold.",
         "No GR alignment, formation anchor, learned gate, or submission is included.",
     ],
 }
-(WORK / "neighbor_summary_v1.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+(WORK / "neighbor_summary_v3.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary, indent=2))
 '''
 )

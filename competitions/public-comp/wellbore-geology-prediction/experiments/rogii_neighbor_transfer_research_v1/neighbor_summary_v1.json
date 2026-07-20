@@ -1,0 +1,64 @@
+{
+  "version": "v1",
+  "wells": 773,
+  "rows": 3783989,
+  "scores": [
+    {
+      "candidate": "hybrid_600",
+      "pooled_rmse": 13.941481985746307
+    },
+    {
+      "candidate": "hybrid_300",
+      "pooled_rmse": 14.657004547963451
+    },
+    {
+      "candidate": "ridge_prior",
+      "pooled_rmse": 14.748958761024927
+    },
+    {
+      "candidate": "hybrid_150",
+      "pooled_rmse": 14.803811918504495
+    },
+    {
+      "candidate": "last_known",
+      "pooled_rmse": 15.909852870734552
+    },
+    {
+      "candidate": "top5_oracle",
+      "pooled_rmse": 18.650783593030734
+    },
+    {
+      "candidate": "neighbor_path_md",
+      "pooled_rmse": 23.401129168823374
+    },
+    {
+      "candidate": "neighbor_path_normalized",
+      "pooled_rmse": 28.85604222349653
+    },
+    {
+      "candidate": "neighbor_ps_normalized",
+      "pooled_rmse": 31.239566049142447
+    },
+    {
+      "candidate": "z_anchor",
+      "pooled_rmse": 107.49482425817834
+    }
+  ],
+  "best_deployable": "hybrid_600",
+  "best_deployable_rmse": 13.941481985746307,
+  "ridge_prior_rmse": 14.748958761024927,
+  "distance_coverage": {
+    "<150": 10,
+    "150-300": 79,
+    "300-600": 309,
+    ">600": 375
+  },
+  "median_path_distance": 571.3975094669316,
+  "nearest_is_top5_oracle_share": 0.4398447606727037,
+  "prediction_artifact": "neighbor_oof_predictions_v1.parquet",
+  "caveats": [
+    "Random well folds test access to nearby interpreted references; spatial holdout is not yet run.",
+    "Top-5 oracle uses validation targets and is diagnostic only.",
+    "No GR alignment, formation anchor, learned gate, or submission is included."
+  ]
+}

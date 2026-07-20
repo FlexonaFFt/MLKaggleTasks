@@ -16,19 +16,19 @@ def code(text):
 
 
 md(
-    """# ROGII sequence-aware geometry research v3
+    """# ROGII cross-fitted sequence ranker v4
 
-This is version 3 of the same diagnostic Kaggle notebook. It never creates `submission.csv`.
+This is version 4 of the same diagnostic Kaggle notebook. It never creates `submission.csv`.
 
-V1 showed that the geometric shape `-Z` reaches **5.964 RMSE after a per-well oracle affine correction**, while V2 found an OOF Ridge quadratic prior at **14.749 RMSE**. V3 tests the next concrete hypothesis:
+V3 found strong ordinal signal in multi-scale GR/typewell cost (median Spearman **0.807**) but direct argmin degraded RMSE. V4 tests the next concrete hypothesis:
 
-> Can a target-free multi-scale GR/typewell alignment cost rank nearby quadratic trajectories better than the OOF Ridge prior?
+> Can a cross-fitted calibrator turn that cost signal into a selector that improves the OOF Ridge prior?
 
 Prediction family:
 
 `TVT_hat = TVT_PS - (Z - Z_PS) + c1*x + c2*x^2`, where `x=0` at PS and `x=1` at the toe.
 
-For every validation well, 49 trajectories are centered on its OOF Ridge coefficient prediction. The selector sees only `MD/X/Y/Z/GR/TVT_input` and the matching typewell; validation suffix `TVT` is used only to score the selector and grid oracle.
+Two selectors are evaluated: a one-parameter distance regularizer tuned on other folds, and a small histogram gradient-boosting ranker trained on other folds. Validation suffix `TVT` is used only for held-out scoring.
 """
 )
 
@@ -41,9 +41,10 @@ md(
 - The Ridge coefficient prior trains only on other folds.
 - A 7x7 coefficient grid uses offsets `[-120,-60,-30,0,30,60,120]` around that prior.
 - Raw, rolling-21, and rolling-61 GR alignment costs are evaluated on a stride-10 suffix sample.
+- Candidate MSE labels for every validation well are invisible to both selectors fitted for that fold.
 - Primary metric is pooled per-point RMSE.
 
-Artifacts: `sequence_scores_v3.csv`, `sequence_well_diagnostics_v3.csv`, `sequence_selected_coefficients_v3.csv`, `sequence_summary_v3.json`, and compressed OOF predictions.
+Artifacts: `ranker_scores_v4.csv`, `ranker_well_diagnostics_v4.csv`, `ranker_selected_coefficients_v4.csv`, `ranker_summary_v4.json`, and compressed OOF predictions.
 """
 )
 
@@ -53,6 +54,7 @@ import json, os, time, warnings
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -60,7 +62,7 @@ from scipy.stats import spearmanr
 
 warnings.filterwarnings("ignore")
 
-VERSION = "v3"
+VERSION = "v4"
 SEED = 42
 N_SPLITS = 5
 SMOKE = os.environ.get("ROGII_SMOKE", "0") == "1"
@@ -341,6 +343,7 @@ def alignment_cost(candidate_tvt, horizontal_gr, sample_idx, tw_tvt, tw_gr, sigm
 prediction_frames = []
 diagnostic_rows = []
 selected_rows = []
+candidate_frames = []
 start_time = time.time()
 
 for index, well_id in enumerate(WELLS.index, 1):
@@ -371,6 +374,20 @@ for index, well_id in enumerate(WELLS.index, 1):
     raw_cost, multiscale_cost = alignment_cost(sample_paths, horizontal_gr, sample_idx, tw_tvt, tw_gr, sigma)
     full_paths = base[:, None] + x[:, None] * grid_c1 + x[:, None] ** 2 * grid_c2
     candidate_rmse = np.sqrt(np.mean((truth[:, None] - full_paths) ** 2, axis=0))
+    cost_scaled = (multiscale_cost - multiscale_cost.min()) / (multiscale_cost.std() + 1e-8)
+    raw_scaled = (raw_cost - raw_cost.min()) / (raw_cost.std() + 1e-8)
+    cost_rank = np.argsort(np.argsort(multiscale_cost)).astype(float) / (len(multiscale_cost) - 1)
+    candidate_frames.append(pd.DataFrame({
+        "well_id": well_id, "fold": int(prior["fold"]), "suffix_rows": len(target_idx),
+        "c1": grid_c1, "c2": grid_c2,
+        "offset_c1": offset_c1.ravel(), "offset_c2": offset_c2.ravel(),
+        "distance_sq": (offset_c1.ravel() / 120.0) ** 2 + (offset_c2.ravel() / 120.0) ** 2,
+        "raw_cost": raw_cost, "multiscale_cost": multiscale_cost,
+        "raw_scaled": raw_scaled, "cost_scaled": cost_scaled, "cost_rank": cost_rank,
+        "prior_c1": float(prior["ridge_c1"]), "prior_c2": float(prior["ridge_c2"]),
+        "typewell_scale": scale, "typewell_bias": bias, "robust_sigma": sigma,
+        "candidate_mse": candidate_rmse ** 2,
+    }))
 
     raw_index = int(np.argmin(raw_cost))
     multiscale_index = int(np.argmin(multiscale_cost))
@@ -397,6 +414,7 @@ for index, well_id in enumerate(WELLS.index, 1):
     prediction_frames.append(pd.DataFrame({
         "id": [f"{well_id}_{row}" for row in target_idx], "well_id": well_id,
         "row_index": target_idx, "fold": int(prior["fold"]), "target": truth,
+        "z_anchor": base, "normalized_md": x,
         **predictions,
     }))
     for name, (c1, c2) in choices.items():
@@ -405,11 +423,80 @@ for index, well_id in enumerate(WELLS.index, 1):
         print("ranked", index, "/", len(WELLS), "elapsed", round(time.time() - start_time, 1))
 
 OOF = pd.concat(prediction_frames, ignore_index=True)
+CANDIDATE_TABLE = pd.concat(candidate_frames, ignore_index=True)
 WELL_DIAGNOSTICS = pd.DataFrame(diagnostic_rows)
 SELECTED = pd.DataFrame(selected_rows)
 CANDIDATES = ["last_known", "ridge_prior", "raw_selector", "multiscale_selector", "top3_multiscale", "grid_oracle"]
 assert OOF["id"].is_unique and np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
-print("OOF", OOF.shape)
+print("OOF", OOF.shape, "candidate table", CANDIDATE_TABLE.shape)
+'''
+)
+
+md("## Cross-fitted cost calibration")
+
+code(
+    r'''RANKER_FEATURES = [
+    "offset_c1", "offset_c2", "distance_sq",
+    "raw_scaled", "cost_scaled", "cost_rank",
+    "prior_c1", "prior_c2", "typewell_scale", "typewell_bias", "robust_sigma", "suffix_rows",
+]
+LAMBDA_GRID = [0.0, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0]
+meta_selected_rows = []
+fold_rows = []
+
+for fold in range(N_SPLITS):
+    train = CANDIDATE_TABLE[CANDIDATE_TABLE["fold"] != fold].copy()
+    valid = CANDIDATE_TABLE[CANDIDATE_TABLE["fold"] == fold].copy()
+    assert set(train["well_id"]).isdisjoint(valid["well_id"])
+
+    lambda_losses = {}
+    for value in LAMBDA_GRID:
+        train["selection_score"] = train["cost_scaled"] + value * train["distance_sq"]
+        chosen = train.loc[train.groupby("well_id")["selection_score"].idxmin()]
+        lambda_losses[value] = float(np.average(chosen["candidate_mse"], weights=chosen["suffix_rows"]))
+    best_lambda = min(lambda_losses, key=lambda_losses.get)
+    valid["regularized_score"] = valid["cost_scaled"] + best_lambda * valid["distance_sq"]
+    regularized = valid.loc[valid.groupby("well_id")["regularized_score"].idxmin()]
+
+    ranker = HistGradientBoostingRegressor(
+        learning_rate=0.05, max_iter=120, max_leaf_nodes=15,
+        min_samples_leaf=40, l2_regularization=5.0, random_state=SEED + fold,
+    )
+    ranker.fit(
+        train[RANKER_FEATURES], np.log1p(train["candidate_mse"]),
+        sample_weight=train["suffix_rows"],
+    )
+    valid["ranker_score"] = ranker.predict(valid[RANKER_FEATURES])
+    ranked = valid.loc[valid.groupby("well_id")["ranker_score"].idxmin()]
+
+    for selector, chosen in [("regularized_selector", regularized), ("ranker_selector", ranked)]:
+        for row in chosen.itertuples(index=False):
+            meta_selected_rows.append({
+                "well_id": row.well_id, "selector": selector,
+                "c1": float(row.c1), "c2": float(row.c2), "fold": fold,
+            })
+    fold_rows.append({
+        "fold": fold, "best_lambda": best_lambda,
+        "regularized_train_rmse": float(np.sqrt(lambda_losses[best_lambda])),
+    })
+    print("calibrated fold", fold, "lambda", best_lambda)
+
+META_SELECTED = pd.DataFrame(meta_selected_rows)
+SELECTED = pd.concat([SELECTED, META_SELECTED.drop(columns="fold")], ignore_index=True)
+for selector in ["regularized_selector", "ranker_selector"]:
+    chosen = META_SELECTED[META_SELECTED["selector"] == selector].set_index("well_id")
+    c1 = OOF["well_id"].map(chosen["c1"]).to_numpy(float)
+    c2 = OOF["well_id"].map(chosen["c2"]).to_numpy(float)
+    OOF[selector] = OOF["z_anchor"] + c1 * OOF["normalized_md"] + c2 * OOF["normalized_md"] ** 2
+
+FOLD_CALIBRATION = pd.DataFrame(fold_rows)
+CANDIDATES = [
+    "last_known", "ridge_prior", "regularized_selector", "ranker_selector",
+    "top3_multiscale", "multiscale_selector", "raw_selector", "grid_oracle",
+]
+assert META_SELECTED.groupby("selector")["well_id"].nunique().eq(len(WELLS)).all()
+assert np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
+display(FOLD_CALIBRATION)
 '''
 )
 
@@ -429,6 +516,7 @@ for well_id, group in OOF.groupby("well_id", sort=False):
     well_rmse.append(row)
 WELL_DIAGNOSTICS = WELL_DIAGNOSTICS.merge(pd.DataFrame(well_rmse), on="well_id", validate="one_to_one")
 WELL_DIAGNOSTICS["multiscale_regret"] = WELL_DIAGNOSTICS["multiscale_selector_rmse"] - WELL_DIAGNOSTICS["grid_oracle_rmse"]
+WELL_DIAGNOSTICS["ranker_delta_vs_prior"] = WELL_DIAGNOSTICS["ranker_selector_rmse"] - WELL_DIAGNOSTICS["ridge_prior_rmse"]
 
 continuous_sse = 0.0
 for well_id, group in OOF.groupby("well_id", sort=False):
@@ -446,7 +534,7 @@ for well_id, group in OOF.groupby("well_id", sort=False):
 CONTINUOUS_ORACLE_RMSE = float(np.sqrt(continuous_sse / len(OOF)))
 
 display(SCORES)
-display(WELL_DIAGNOSTICS[["cost_rmse_spearman", "oracle_cost_rank", "multiscale_regret"]].describe())
+display(WELL_DIAGNOSTICS[["cost_rmse_spearman", "oracle_cost_rank", "multiscale_regret", "ranker_delta_vs_prior"]].describe())
 print("continuous quadratic oracle", CONTINUOUS_ORACLE_RMSE)
 '''
 )
@@ -454,16 +542,18 @@ print("continuous quadratic oracle", CONTINUOUS_ORACLE_RMSE)
 md("## Artifacts")
 
 code(
-    r'''SCORES.to_csv(WORK / "sequence_scores_v3.csv", index=False)
-WELL_DIAGNOSTICS.to_csv(WORK / "sequence_well_diagnostics_v3.csv", index=False)
-SELECTED.to_csv(WORK / "sequence_selected_coefficients_v3.csv", index=False)
-COEFFICIENTS.reset_index(drop=True).to_csv(WORK / "sequence_ridge_coefficients_v3.csv", index=False)
+    r'''SCORES.to_csv(WORK / "ranker_scores_v4.csv", index=False)
+WELL_DIAGNOSTICS.to_csv(WORK / "ranker_well_diagnostics_v4.csv", index=False)
+SELECTED.to_csv(WORK / "ranker_selected_coefficients_v4.csv", index=False)
+COEFFICIENTS.reset_index(drop=True).to_csv(WORK / "ranker_ridge_coefficients_v4.csv", index=False)
+FOLD_CALIBRATION.to_csv(WORK / "ranker_fold_calibration_v4.csv", index=False)
+CANDIDATE_TABLE.to_parquet(WORK / "ranker_candidate_table_v4.parquet", index=False)
 
-prediction_path = WORK / "sequence_oof_predictions_v3.parquet"
+prediction_path = WORK / "ranker_oof_predictions_v4.parquet"
 try:
     OOF.to_parquet(prediction_path, index=False)
 except Exception as error:
-    prediction_path = WORK / "sequence_oof_predictions_v3.csv.gz"
+    prediction_path = WORK / "ranker_oof_predictions_v4.csv.gz"
     OOF.to_csv(prediction_path, index=False, compression="gzip")
     print("parquet fallback", error)
 
@@ -476,9 +566,11 @@ summary = {
     "mean_cost_rmse_spearman": float(WELL_DIAGNOSTICS["cost_rmse_spearman"].mean()),
     "median_oracle_cost_rank": float(WELL_DIAGNOSTICS["oracle_cost_rank"].median()),
     "grid_coverage_share": float(WELL_DIAGNOSTICS["continuous_oracle_in_grid"].mean()),
+    "ranker_better_well_share": float((WELL_DIAGNOSTICS["ranker_delta_vs_prior"] < 0).mean()),
+    "fold_calibration": FOLD_CALIBRATION.to_dict("records"),
     "prediction_artifact": prediction_path.name,
 }
-(WORK / "sequence_summary_v3.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+(WORK / "ranker_summary_v4.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary, indent=2))
 '''
 )

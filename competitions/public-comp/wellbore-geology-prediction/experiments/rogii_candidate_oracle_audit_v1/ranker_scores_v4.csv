@@ -1,0 +1,9 @@
+candidate,pooled_rmse
+grid_oracle,5.811821920891871
+ranker_selector,14.36662931939031
+regularized_selector,14.660849424124075
+ridge_prior,14.748958761024927
+last_known,15.909852870734552
+top3_multiscale,17.84398542180129
+raw_selector,22.022710280935204
+multiscale_selector,22.15200385569943

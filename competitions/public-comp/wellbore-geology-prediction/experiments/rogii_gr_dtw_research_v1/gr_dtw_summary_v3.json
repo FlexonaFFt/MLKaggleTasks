@@ -1,0 +1,113 @@
+{
+  "version": "v3",
+  "wells": 773,
+  "rows": 3783989,
+  "stride": 10,
+  "offset_grid": [
+    -90.0,
+    90.0,
+    3.0
+  ],
+  "configs": {
+    "dtw_raw": {
+      "emission": "raw",
+      "transition": 0.5,
+      "radius": 2,
+      "center": 0.01,
+      "gain": 0.2
+    },
+    "dtw_multi_soft": {
+      "emission": "multi",
+      "transition": 0.15,
+      "radius": 3,
+      "center": 0.002,
+      "gain": 0.1
+    },
+    "dtw_multi_stiff": {
+      "emission": "multi",
+      "transition": 1.0,
+      "radius": 2,
+      "center": 0.01,
+      "gain": 0.2
+    }
+  },
+  "scores": [
+    {
+      "candidate": "oracle_config",
+      "pooled_rmse": 13.330366340590446,
+      "pilot_rmse": 12.850066112349653,
+      "confirmatory_rmse": 13.34201544563922
+    },
+    {
+      "candidate": "nested_gate_raw",
+      "pooled_rmse": 14.555627592328271,
+      "pilot_rmse": 14.95652244563569,
+      "confirmatory_rmse": 14.54558178036053
+    },
+    {
+      "candidate": "nested_global_raw",
+      "pooled_rmse": 14.59559163568254,
+      "pilot_rmse": 14.965305745218288,
+      "confirmatory_rmse": 14.586337531351088
+    },
+    {
+      "candidate": "ridge_prior",
+      "pooled_rmse": 14.748958761024927,
+      "pilot_rmse": 15.736861131698967,
+      "confirmatory_rmse": 14.723709003596655
+    },
+    {
+      "candidate": "dtw_raw",
+      "pooled_rmse": 15.091304128021306,
+      "pilot_rmse": 14.43467679640817,
+      "confirmatory_rmse": 15.107167776394418
+    },
+    {
+      "candidate": "dtw_multi_soft",
+      "pooled_rmse": 15.10399316816753,
+      "pilot_rmse": 14.771162249819609,
+      "confirmatory_rmse": 15.112124467065637
+    },
+    {
+      "candidate": "dtw_multi_stiff",
+      "pooled_rmse": 15.961269376710014,
+      "pilot_rmse": 14.356636572417337,
+      "confirmatory_rmse": 15.998881754971991
+    }
+  ],
+  "selection_metric": "confirmatory_rmse",
+  "best_deployable": "nested_gate_raw",
+  "best_deployable_rmse": 14.54558178036053,
+  "ridge_prior_rmse": 14.723709003596655,
+  "public_anchor_expected_lb": 6.979,
+  "public_anchor_sha256": "0c60510dc11f7750c493c29c75ac9383eb6ea331d976a0c7991a895c700e7cf8",
+  "public_pseudo_scores": [
+    {
+      "candidate": "anchor_6979",
+      "pooled_rmse": 0.4337517809194579
+    },
+    {
+      "candidate": "anchor_plus_gate_010",
+      "pooled_rmse": 0.6435577008099235
+    },
+    {
+      "candidate": "anchor_plus_gate_025",
+      "pooled_rmse": 1.048056630807018
+    },
+    {
+      "candidate": "anchor_plus_gate_100",
+      "pooled_rmse": 3.276219699695248
+    }
+  ],
+  "submission_eligible": [],
+  "submission_decision": "reject_gate_on_anchor",
+  "prediction_artifact": "gr_dtw_oof_predictions_v3.parquet",
+  "caveats": [
+    "Nested gain predictions are cross-fitted by complete well; held-out TVT never enters its gain.",
+    "Fixed configurations are screened on the same OOF and are not yet nested-selected.",
+    "Gains were selected on the first 20 sorted wells; confirmatory_rmse excludes those pilot wells.",
+    "The Ridge center is imported from a prior cross-fitted experiment.",
+    "The public-ID pseudo-test uses train TVT as a proxy; hidden leaderboard TVT is unavailable.",
+    "No submission or test-set correction is produced."
+  ]
+}

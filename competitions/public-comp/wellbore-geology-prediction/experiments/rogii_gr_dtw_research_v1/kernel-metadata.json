@@ -1,0 +1,15 @@
+{
+  "id": "flexonafft/rogii-gr-dtw-research-v2",
+  "title": "ROGII GR DTW Research V2",
+  "code_file": "rogii_gr_dtw_research_v1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": ["rogii-wellbore-geology-prediction"],
+  "kernel_sources": ["flexonafft/rogii-det-mha120sep4mpkg10"],
+  "model_sources": []
+}

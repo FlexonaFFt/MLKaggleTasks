@@ -1,0 +1,15 @@
+{
+  "id": "flexonafft/rogii-candidate-oracle-audit-v1",
+  "title": "ROGII Candidate Oracle Audit V1",
+  "code_file": "rogii_candidate_oracle_audit_v1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": ["rogii-wellbore-geology-prediction"],
+  "kernel_sources": [],
+  "model_sources": []
+}

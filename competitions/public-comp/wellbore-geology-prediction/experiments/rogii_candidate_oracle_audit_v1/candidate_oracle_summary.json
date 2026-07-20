@@ -1,0 +1,59 @@
+{
+  "version": "v1",
+  "legal_columns": [
+    "MD",
+    "X",
+    "Y",
+    "Z",
+    "GR",
+    "TVT_input"
+  ],
+  "wells": 773,
+  "rows": 3783989,
+  "scores": [
+    {
+      "candidate": "last_known",
+      "pooled_rmse": 15.909852870734559,
+      "oracle_shift_rmse": 9.03540998809924,
+      "oracle_affine_rmse": 6.697194770121057
+    },
+    {
+      "candidate": "u_linear",
+      "pooled_rmse": 42.017616629916006,
+      "oracle_shift_rmse": 22.085583291017016,
+      "oracle_affine_rmse": 5.96394748733819
+    },
+    {
+      "candidate": "gr_viterbi",
+      "pooled_rmse": 43.272887028915854,
+      "oracle_shift_rmse": 25.726603241407137,
+      "oracle_affine_rmse": 15.314450618560628
+    },
+    {
+      "candidate": "u_hold",
+      "pooled_rmse": 108.58497572635879,
+      "oracle_shift_rmse": 54.2188579282315,
+      "oracle_affine_rmse": 5.963947487338189
+    },
+    {
+      "candidate": "neighbor_xy",
+      "pooled_rmse": 122.26607330199928,
+      "oracle_shift_rmse": 70.38293601111747,
+      "oracle_affine_rmse": 43.24073072236331
+    }
+  ],
+  "shape_ceilings": {
+    "degree_0": 9.03540998809924,
+    "degree_1": 6.6971947701210555,
+    "degree_2": 5.34227551647697
+  },
+  "candidate_oracles": {
+    "well_candidate_oracle_rmse": 11.483992828748248,
+    "row_candidate_oracle_rmse": 8.812219516445461
+  },
+  "prediction_artifact": "oof_predictions.parquet",
+  "decision_rule": {
+    "generator_problem": "well candidate oracle remains above 6.0",
+    "selector_problem": "well candidate oracle reaches 5.5 or below"
+  }
+}

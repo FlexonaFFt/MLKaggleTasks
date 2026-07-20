@@ -1,0 +1,54 @@
+{
+  "version": "v3",
+  "legal_columns": [
+    "MD",
+    "X",
+    "Y",
+    "Z",
+    "GR",
+    "TVT_input"
+  ],
+  "wells": 773,
+  "rows": 3783989,
+  "grid_offsets": [
+    -120.0,
+    -60.0,
+    -30.0,
+    0.0,
+    30.0,
+    60.0,
+    120.0
+  ],
+  "scores": [
+    {
+      "candidate": "grid_oracle",
+      "pooled_rmse": 5.811821920891871
+    },
+    {
+      "candidate": "ridge_prior",
+      "pooled_rmse": 14.748958761024927
+    },
+    {
+      "candidate": "last_known",
+      "pooled_rmse": 15.909852870734552
+    },
+    {
+      "candidate": "top3_multiscale",
+      "pooled_rmse": 17.84398542180129
+    },
+    {
+      "candidate": "raw_selector",
+      "pooled_rmse": 22.022710280935204
+    },
+    {
+      "candidate": "multiscale_selector",
+      "pooled_rmse": 22.15200385569943
+    }
+  ],
+  "continuous_quadratic_oracle_rmse": 4.279138161875685,
+  "median_cost_rmse_spearman": 0.8067346938775508,
+  "mean_cost_rmse_spearman": 0.7610707025371598,
+  "median_oracle_cost_rank": 6.0,
+  "grid_coverage_share": 0.9831824062095731,
+  "prediction_artifact": "sequence_oof_predictions_v3.parquet"
+}

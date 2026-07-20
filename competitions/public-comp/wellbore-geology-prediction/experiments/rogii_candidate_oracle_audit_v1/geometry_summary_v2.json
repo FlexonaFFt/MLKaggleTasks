@@ -1,0 +1,97 @@
+{
+  "version": "v2",
+  "legal_columns": [
+    "MD",
+    "X",
+    "Y",
+    "Z",
+    "GR",
+    "TVT_input"
+  ],
+  "wells": 773,
+  "rows": 3783989,
+  "scores": [
+    {
+      "candidate": "ridge_quadratic",
+      "pooled_rmse": 14.748958761024927
+    },
+    {
+      "candidate": "blend_quadratic",
+      "pooled_rmse": 15.526048319490746
+    },
+    {
+      "candidate": "last_known",
+      "pooled_rmse": 15.909852870734552
+    },
+    {
+      "candidate": "extra_linear",
+      "pooled_rmse": 16.66255778872779
+    },
+    {
+      "candidate": "extra_quadratic",
+      "pooled_rmse": 17.445162803547344
+    },
+    {
+      "candidate": "prefix_u_slope",
+      "pooled_rmse": 35.66136979974491
+    },
+    {
+      "candidate": "z_anchor",
+      "pooled_rmse": 107.49482425817834
+    }
+  ],
+  "coefficient_scores": [
+    {
+      "model": "ridge_quadratic",
+      "coefficient": "true_c1",
+      "rmse": 41.26826263046239,
+      "r2": 0.9456770656608372
+    },
+    {
+      "model": "ridge_quadratic",
+      "coefficient": "true_c2",
+      "rmse": 41.70773418200502,
+      "r2": 0.3989738095228865
+    },
+    {
+      "model": "extra_quadratic",
+      "coefficient": "true_c1",
+      "rmse": 47.76542141754559,
+      "r2": 0.9272256932514823
+    },
+    {
+      "model": "extra_quadratic",
+      "coefficient": "true_c2",
+      "rmse": 49.776999488662995,
+      "r2": 0.14391353297159337
+    },
+    {
+      "model": "blend_quadratic",
+      "coefficient": "true_c1",
+      "rmse": 42.882455822562456,
+      "r2": 0.9413443100922901
+    },
+    {
+      "model": "blend_quadratic",
+      "coefficient": "true_c2",
+      "rmse": 44.445443995705276,
+      "r2": 0.31748106968472656
+    },
+    {
+      "model": "extra_linear",
+      "coefficient": "true_linear_c1",
+      "rmse": 24.767812636119775,
+      "r2": 0.9794555150508302
+    }
+  ],
+  "oracle_ceilings": {
+    "constant_tvt": 9.035409988099245,
+    "linear_tvt": 6.697194770121058,
+    "quadratic_tvt": 5.342275516476973,
+    "z_free_affine": 5.96394748733819,
+    "z_anchored_linear": 7.587488701726045,
+    "z_anchored_quadratic": 4.279138161875686,
+    "z_anchored_cubic": 2.9797690671606376
+  },
+  "prediction_artifact": "geometry_oof_predictions_v2.parquet"
+}

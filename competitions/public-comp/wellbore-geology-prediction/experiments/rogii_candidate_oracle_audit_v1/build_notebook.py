@@ -16,56 +16,58 @@ def code(text):
 
 
 md(
-    """# ROGII candidate/oracle audit v1
+    """# ROGII sequence-aware geometry research v3
 
-Diagnostic only: this notebook never creates `submission.csv`.
+This is version 3 of the same diagnostic Kaggle notebook. It never creates `submission.csv`.
 
-It answers one question on all train wells using the organizer's real `TVT_input` prefix/suffix mask: **do we lack useful trajectory shapes, or do we already have them and fail to select them?**
+V1 showed that the geometric shape `-Z` reaches **5.964 RMSE after a per-well oracle affine correction**, while V2 found an OOF Ridge quadratic prior at **14.749 RMSE**. V3 tests the next concrete hypothesis:
 
-Legal prediction inputs: `MD`, `X`, `Y`, `Z`, `GR`, `TVT_input`, paired typewell, and targets from other training wells. Train-only formation columns are intentionally ignored.
+> Can a target-free multi-scale GR/typewell alignment cost rank nearby quadratic trajectories better than the OOF Ridge prior?
 
-Artifacts:
+Prediction family:
 
-- `candidate_scores.csv`
-- `candidate_well_scores.csv`
-- `candidate_diagnostics.csv`
-- `candidate_oracle_summary.json`
-- `oof_predictions.parquet` (or `.csv.gz` fallback)
+`TVT_hat = TVT_PS - (Z - Z_PS) + c1*x + c2*x^2`, where `x=0` at PS and `x=1` at the toe.
+
+For every validation well, 49 trajectories are centered on its OOF Ridge coefficient prediction. The selector sees only `MD/X/Y/Z/GR/TVT_input` and the matching typewell; validation suffix `TVT` is used only to score the selector and grid oracle.
 """
 )
 
 md(
     """## Experiment contract
 
-- Five folds are assigned by whole well.
-- A validation well can use its visible prefix but never its hidden suffix target.
-- Neighbor candidates can use only wells outside the validation fold.
-- Pooled per-point RMSE is the primary metric.
-- Oracle shift/affine corrections are diagnostics only; they use suffix targets and are not deployable.
+- The organizer's actual `TVT_input` prefix/suffix mask is preserved.
+- Five folds are split by complete well.
+- Oracle coefficients from validation suffix targets are used only for scoring.
+- The Ridge coefficient prior trains only on other folds.
+- A 7x7 coefficient grid uses offsets `[-120,-60,-30,0,30,60,120]` around that prior.
+- Raw, rolling-21, and rolling-61 GR alignment costs are evaluated on a stride-10 suffix sample.
+- Primary metric is pooled per-point RMSE.
+
+Artifacts: `sequence_scores_v3.csv`, `sequence_well_diagnostics_v3.csv`, `sequence_selected_coefficients_v3.csv`, `sequence_summary_v3.json`, and compressed OOF predictions.
 """
 )
 
 code(
     r'''from pathlib import Path
-import gc, json, os, time, warnings
+import json, os, time, warnings
 
 import numpy as np
 import pandas as pd
-from scipy.spatial import cKDTree
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import spearmanr
 
 warnings.filterwarnings("ignore")
 
-VERSION = "v1"
+VERSION = "v3"
 SEED = 42
 N_SPLITS = 5
-NEIGHBOR_INDEX_STRIDE = 20
-NEIGHBOR_PROBE_STRIDE = 80
-NEIGHBOR_PREFIX_ROWS = 400
-GR_STRIDE = 5
-GR_GRID = np.arange(-45.0, 45.01, 1.5)
-GR_MAX_MOVE = 2
-GR_MOVE_PENALTY = 0.35
 SMOKE = os.environ.get("ROGII_SMOKE", "0") == "1"
+LEGAL_COLUMNS = ["MD", "X", "Y", "Z", "GR", "TVT_input"]
+HORIZONTAL_SUFFIX = "__horizontal_well.csv"
+TYPEWELL_SUFFIX = "__typewell.csv"
+GRID_OFFSETS = np.array([-120., -60., -30., 0., 30., 60., 120.])
 
 
 def find_root():
@@ -78,46 +80,32 @@ def find_root():
     ]
     roots.extend(parent / "datasets" for parent in list(Path.cwd().parents)[:4])
     for root in roots:
-        if root is None:
-            continue
-        if (root / "train").exists() and (root / "test").exists():
+        if root is not None and (root / "train").exists() and (root / "test").exists():
             return root
     raise FileNotFoundError("ROGII dataset root not found")
 
 
 ROOT = find_root()
-WORK = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
 TRAIN_DIR = ROOT / "train"
-HORIZONTAL_SUFFIX = "__horizontal_well.csv"
-TYPEWELL_SUFFIX = "__typewell.csv"
-LEGAL_COLUMNS = ["MD", "X", "Y", "Z", "GR", "TVT_input"]
+WORK = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
 
 
 def well_ids():
-    return sorted(p.name.removesuffix(HORIZONTAL_SUFFIX) for p in TRAIN_DIR.glob(f"*{HORIZONTAL_SUFFIX}"))
+    return sorted(path.name.removesuffix(HORIZONTAL_SUFFIX) for path in TRAIN_DIR.glob(f"*{HORIZONTAL_SUFFIX}"))
 
 
-def horizontal_path(well_id):
-    return TRAIN_DIR / f"{well_id}{HORIZONTAL_SUFFIX}"
-
-
-def typewell_path(well_id):
-    return TRAIN_DIR / f"{well_id}{TYPEWELL_SUFFIX}"
-
-
-def load_horizontal(well_id, include_target=True):
-    columns = LEGAL_COLUMNS + (["TVT"] if include_target else [])
-    return pd.read_csv(horizontal_path(well_id), usecols=columns)
+def load_well(well_id):
+    return pd.read_csv(TRAIN_DIR / f"{well_id}{HORIZONTAL_SUFFIX}", usecols=LEGAL_COLUMNS + ["TVT"])
 
 
 def load_typewell(well_id):
-    return pd.read_csv(typewell_path(well_id), usecols=["TVT", "GR"]).dropna().sort_values("TVT")
+    frame = pd.read_csv(TRAIN_DIR / f"{well_id}{TYPEWELL_SUFFIX}")
+    return frame[["TVT", "GR"]].dropna().sort_values("TVT").drop_duplicates("TVT")
 
 
 def split_mask(frame):
     known = frame["TVT_input"].notna().to_numpy()
-    target = ~known
-    return known, target
+    return known, ~known
 
 
 def rmse(y_true, y_pred):
@@ -127,404 +115,371 @@ def rmse(y_true, y_pred):
 
 
 ids = well_ids()
-usable = []
-metadata = []
-suffix_rows = 0
-for well_id in ids:
-    frame = load_horizontal(well_id)
-    known, target = split_mask(frame)
-    if known.sum() < 20 or target.sum() < 20 or not np.isfinite(frame.loc[target, "TVT"]).all():
-        continue
-    usable.append(well_id)
-    suffix_rows += int(target.sum())
-    dx = float(frame["X"].iloc[-1] - frame["X"].iloc[0])
-    dy = float(frame["Y"].iloc[-1] - frame["Y"].iloc[0])
-    metadata.append({
-        "well_id": well_id,
-        "azimuth_deg": float(np.degrees(np.arctan2(dy, dx))),
-        "direction": "SE_like" if dx >= 0 else "NW_like",
-        "suffix_rows": int(target.sum()),
-    })
-
 if SMOKE:
-    usable = usable[:20]
-    metadata = [row for row in metadata if row["well_id"] in set(usable)]
+    ids = ids[:20]
     N_SPLITS = 2
 
-META = pd.DataFrame(metadata).set_index("well_id")
 rng = np.random.default_rng(SEED)
-shuffled = np.array(usable, dtype=object)
+shuffled = np.array(ids, dtype=object)
 rng.shuffle(shuffled)
-FOLD_BY_WELL = {well_id: int(i % N_SPLITS) for i, well_id in enumerate(shuffled)}
+FOLD_BY_WELL = {well_id: int(index % N_SPLITS) for index, well_id in enumerate(shuffled)}
 
-print({
-    "version": VERSION,
-    "root": str(ROOT),
-    "wells": len(usable),
-    "suffix_rows_full": suffix_rows,
-    "folds": N_SPLITS,
-    "smoke": SMOKE,
-})
+print({"version": VERSION, "root": str(ROOT), "wells": len(ids), "folds": N_SPLITS, "smoke": SMOKE})
 '''
 )
 
-md("## Same-well geometry and GR candidates")
+md("## Per-well legal features and oracle coefficient targets")
 
 code(
-    r'''def tail_linear_u(frame, known, target):
+    r'''def safe_slope(x, y):
+    x = np.asarray(x, float)
+    y = np.asarray(y, float)
+    valid = np.isfinite(x) & np.isfinite(y)
+    if valid.sum() < 3 or np.ptp(x[valid]) < 1e-9:
+        return 0.0
+    return float(np.polyfit(x[valid], y[valid], 1)[0])
+
+
+def anchored_coefficients(error, x, degree):
+    design = np.column_stack([x ** power for power in range(1, degree + 1)])
+    return np.linalg.lstsq(design, error, rcond=None)[0]
+
+
+def describe_well(well_id):
+    full = load_well(well_id)
+    target_values = full["TVT"].to_numpy(float)
+    frame = full[LEGAL_COLUMNS].copy()
+    known, target = split_mask(frame)
     known_idx = np.flatnonzero(known)
-    tail_idx = known_idx[-min(400, len(known_idx)):]
+    target_idx = np.flatnonzero(target)
+    if len(known_idx) < 20 or len(target_idx) < 20 or not np.isfinite(target_values[target_idx]).all():
+        return None
+
     md = frame["MD"].to_numpy(float)
+    x_coord = frame["X"].to_numpy(float)
+    y_coord = frame["Y"].to_numpy(float)
     z = frame["Z"].to_numpy(float)
     tvt_input = frame["TVT_input"].to_numpy(float)
-    u = tvt_input[tail_idx] + z[tail_idx]
-    x = md[tail_idx] - md[tail_idx[-1]]
-    slope = float(np.polyfit(x, u, 1)[0]) if len(tail_idx) >= 3 and np.ptp(x) > 0 else 0.0
-    # ponytail: bounded linear structural prior; replace with a learned curvature prior if this ceiling is too high.
-    slope = float(np.clip(slope, -0.03, 0.03))
-    u_last = float(np.median(u[-min(80, len(u)):]))
-    target_idx = np.flatnonzero(target)
-    u_hold = np.full(len(target_idx), u_last) - z[target_idx]
-    u_linear = u_last + slope * (md[target_idx] - md[tail_idx[-1]]) - z[target_idx]
-    return u_hold, u_linear
+    ps = known_idx[-1]
+    span = max(float(md[target_idx[-1]] - md[ps]), 1.0)
+    x = (md[target_idx] - md[ps]) / span
+    base = float(tvt_input[ps]) - (z[target_idx] - z[ps])
+    truth = target_values[target_idx]
+    error = truth - base
+
+    linear = anchored_coefficients(error, x, 1)
+    quadratic = anchored_coefficients(error, x, 2)
+    cubic = anchored_coefficients(error, x, 3)
+
+    u = tvt_input[known_idx] + z[known_idx]
+    prefix_span = max(float(md[ps] - md[known_idx[0]]), 1.0)
+    prefix_x = (md[known_idx] - md[ps]) / prefix_span
+    prefix_u = u - u[-1]
+    prefix_poly = anchored_coefficients(prefix_u, prefix_x, 2)
+
+    slopes = {}
+    for window in [100, 300, 800]:
+        idx = known_idx[-min(window, len(known_idx)):]
+        slopes[f"u_slope_{window}"] = safe_slope(md[idx], tvt_input[idx] + z[idx])
+    slopes["u_slope_all"] = safe_slope(md[known_idx], u)
+    prefix_slope = float(np.median(list(slopes.values())))
+
+    gr = frame["GR"].astype(float).interpolate(limit_direction="both")
+    gr = gr.fillna(float(gr.median()) if gr.notna().any() else 0.0).to_numpy(float)
+    dx = float(x_coord[-1] - x_coord[0])
+    dy = float(y_coord[-1] - y_coord[0])
+    future_base = base - float(tvt_input[ps])
+    future_z_poly = anchored_coefficients(future_base, x, 3)
+
+    features = {
+        "well_id": well_id,
+        "fold": FOLD_BY_WELL[well_id],
+        "known_rows": len(known_idx),
+        "suffix_rows": len(target_idx),
+        "prefix_md_span": prefix_span,
+        "suffix_md_span": span,
+        "prediction_share": len(target_idx) / len(frame),
+        "tvt_ps": float(tvt_input[ps]),
+        "z_ps": float(z[ps]),
+        "u_ps": float(tvt_input[ps] + z[ps]),
+        "prefix_u_range": float(np.ptp(u)),
+        "prefix_u_std": float(np.std(u)),
+        "prefix_u_c1": float(prefix_poly[0]),
+        "prefix_u_c2": float(prefix_poly[1]),
+        "prefix_slope_end_correction": prefix_slope * span,
+        **slopes,
+        "future_dz": float(z[-1] - z[ps]),
+        "future_z_range": float(np.ptp(z[target_idx])),
+        "future_z_c1": float(future_z_poly[0]),
+        "future_z_c2": float(future_z_poly[1]),
+        "future_z_c3": float(future_z_poly[2]),
+        "future_dx": float(x_coord[-1] - x_coord[ps]),
+        "future_dy": float(y_coord[-1] - y_coord[ps]),
+        "future_dxy": float(np.hypot(x_coord[-1] - x_coord[ps], y_coord[-1] - y_coord[ps])),
+        "azimuth_sin": float(np.sin(np.arctan2(dy, dx))),
+        "azimuth_cos": float(np.cos(np.arctan2(dy, dx))),
+        "prefix_gr_mean": float(np.mean(gr[known_idx])),
+        "prefix_gr_std": float(np.std(gr[known_idx])),
+        "suffix_gr_mean": float(np.mean(gr[target_idx])),
+        "suffix_gr_std": float(np.std(gr[target_idx])),
+        "gr_mean_change": float(np.mean(gr[target_idx]) - np.mean(gr[known_idx])),
+        "gr_std_change": float(np.std(gr[target_idx]) - np.std(gr[known_idx])),
+        "gr_missing_prefix": float(frame["GR"].iloc[known_idx].isna().mean()),
+        "gr_missing_suffix": float(frame["GR"].iloc[target_idx].isna().mean()),
+        "oracle_linear_c1": float(linear[0]),
+        "oracle_quadratic_c1": float(quadratic[0]),
+        "oracle_quadratic_c2": float(quadratic[1]),
+        "oracle_cubic_c1": float(cubic[0]),
+        "oracle_cubic_c2": float(cubic[1]),
+        "oracle_cubic_c3": float(cubic[2]),
+    }
+    return features
 
 
-def calibrate_typewell_gr(frame, typewell, known):
-    tvt_grid = typewell["TVT"].to_numpy(float)
-    gr_grid = typewell["GR"].to_numpy(float)
-    observed = frame["GR"].to_numpy(float)
-    tvt_input = frame["TVT_input"].to_numpy(float)
-    mask = known & np.isfinite(observed) & np.isfinite(tvt_input)
-    if mask.sum() < 20:
-        return tvt_grid, gr_grid, 25.0
-    predicted = np.interp(tvt_input[mask], tvt_grid, gr_grid)
-    design = np.c_[predicted, np.ones(mask.sum())]
-    coef = np.linalg.lstsq(design, observed[mask], rcond=None)[0]
-    scale = float(np.clip(coef[0], 0.3, 3.0))
-    bias = float(coef[1])
-    calibrated = scale * gr_grid + bias
-    residual = observed[mask] - np.interp(tvt_input[mask], tvt_grid, calibrated)
-    sigma = float(np.clip(np.nanmedian(np.abs(residual - np.nanmedian(residual))) * 1.4826, 8.0, 50.0))
-    return tvt_grid, calibrated, sigma
+records = []
+for index, well_id in enumerate(ids, 1):
+    record = describe_well(well_id)
+    if record is not None:
+        records.append(record)
+    if index % 100 == 0:
+        print("described", index, "/", len(ids))
+
+WELLS = pd.DataFrame(records).set_index("well_id", drop=False)
+TARGET_COLUMNS = ["oracle_quadratic_c1", "oracle_quadratic_c2"]
+LINEAR_TARGET = "oracle_linear_c1"
+FEATURE_COLUMNS = [
+    column for column in WELLS.columns
+    if column not in {"well_id", "fold", LINEAR_TARGET, *TARGET_COLUMNS, "oracle_cubic_c1", "oracle_cubic_c2", "oracle_cubic_c3"}
+]
+
+assert not any(column.startswith("oracle_") for column in FEATURE_COLUMNS)
+assert WELLS[FEATURE_COLUMNS].replace([np.inf, -np.inf], np.nan).notna().all().all()
+print("usable wells", len(WELLS), "features", len(FEATURE_COLUMNS))
+display(WELLS[TARGET_COLUMNS + [LINEAR_TARGET]].describe().T)
+'''
+)
+
+md("## Cross-fitted Ridge coefficient prior")
+
+code(
+    r'''coefficient_rows = []
+
+for fold in range(N_SPLITS):
+    train = WELLS[WELLS["fold"] != fold]
+    valid = WELLS[WELLS["fold"] == fold]
+    feature_median = train[FEATURE_COLUMNS].median()
+    x_train = train[FEATURE_COLUMNS].fillna(feature_median).to_numpy(float)
+    x_valid = valid[FEATURE_COLUMNS].fillna(feature_median).to_numpy(float)
+    y_train = train[TARGET_COLUMNS].to_numpy(float)
+
+    ridge = make_pipeline(StandardScaler(), Ridge(alpha=20.0))
+    ridge.fit(x_train, y_train)
+    ridge_prediction = ridge.predict(x_valid)
+
+    lower = np.quantile(y_train, 0.01, axis=0)
+    upper = np.quantile(y_train, 0.99, axis=0)
+    ridge_prediction = np.clip(ridge_prediction, lower, upper)
+
+    for position, well_id in enumerate(valid.index):
+        coefficient_rows.append({
+            "well_id": well_id,
+            "fold": fold,
+            "true_c1": float(valid.loc[well_id, TARGET_COLUMNS[0]]),
+            "true_c2": float(valid.loc[well_id, TARGET_COLUMNS[1]]),
+            "ridge_c1": float(ridge_prediction[position, 0]),
+            "ridge_c2": float(ridge_prediction[position, 1]),
+        })
+    print("fold", fold, "train", len(train), "valid", len(valid))
+
+COEFFICIENTS = pd.DataFrame(coefficient_rows).set_index("well_id", drop=False)
+display(COEFFICIENTS.describe().T)
+'''
+)
+
+md("## Target-free sequence cost and 49-path grid")
+
+code(
+    r'''def filled_gr(series):
+    values = pd.Series(series, dtype=float).interpolate(limit_direction="both")
+    fallback = float(values.median()) if values.notna().any() else 0.0
+    return values.fillna(fallback).to_numpy(float)
 
 
-def rolling_mean(values, window):
+def rolling(values, window):
     return pd.Series(values).rolling(window, center=True, min_periods=1).mean().to_numpy(float)
 
 
-def viterbi_gr(frame, typewell, target, prior):
-    target_idx = np.flatnonzero(target)
-    sampled_pos = np.arange(0, len(target_idx), GR_STRIDE)
-    if sampled_pos[-1] != len(target_idx) - 1:
-        sampled_pos = np.r_[sampled_pos, len(target_idx) - 1]
-    row_idx = target_idx[sampled_pos]
-
-    observed = frame["GR"].astype(float).interpolate(limit_direction="both").to_numpy(float)[row_idx]
-    if not np.isfinite(observed).any():
-        return prior.copy()
-    observed = pd.Series(observed).fillna(float(np.nanmedian(observed))).to_numpy(float)
-    known, _ = split_mask(frame)
-    tvt_grid, type_gr, sigma = calibrate_typewell_gr(frame, typewell, known)
-    type_gr_smooth = rolling_mean(type_gr, 21)
-    observed_smooth = rolling_mean(observed, 9)
-
-    states = prior[sampled_pos, None] + GR_GRID[None, :]
-    expected_raw = np.interp(states, tvt_grid, type_gr)
-    expected_smooth = np.interp(states, tvt_grid, type_gr_smooth)
-    raw_cost = ((observed[:, None] - expected_raw) / sigma) ** 2
-    smooth_cost = ((observed_smooth[:, None] - expected_smooth) / sigma) ** 2
-    emission = np.minimum(0.5 * raw_cost + 0.5 * smooth_cost, 25.0)
-
-    n_time, n_state = emission.shape
-    center = int(np.argmin(np.abs(GR_GRID)))
-    dp = np.full(n_state, 25.0)
-    dp[center] = 0.0
-    back = np.zeros((n_time, n_state), np.int8)
-    shifts = np.arange(-GR_MAX_MOVE, GR_MAX_MOVE + 1)
-    for t in range(n_time):
-        alternatives = np.full((len(shifts), n_state), np.inf)
-        for si, shift in enumerate(shifts):
-            if shift < 0:
-                alternatives[si, :shift] = dp[-shift:] + GR_MOVE_PENALTY * shift * shift
-            elif shift > 0:
-                alternatives[si, shift:] = dp[:-shift] + GR_MOVE_PENALTY * shift * shift
-            else:
-                alternatives[si] = dp
-        choice = np.argmin(alternatives, axis=0)
-        dp = alternatives[choice, np.arange(n_state)] + emission[t]
-        dp -= float(dp.min())
-        back[t] = shifts[choice]
-
-    path = np.empty(n_time, dtype=int)
-    path[-1] = int(np.argmin(dp))
-    for t in range(n_time - 1, 0, -1):
-        path[t - 1] = int(np.clip(path[t] - back[t, path[t]], 0, n_state - 1))
-    sampled_prediction = prior[sampled_pos] + GR_GRID[path]
-    return np.interp(np.arange(len(target_idx)), sampled_pos, sampled_prediction)
+def calibrated_typewell(well_id, horizontal, known_idx):
+    typewell = load_typewell(well_id)
+    tw_tvt = typewell["TVT"].to_numpy(float)
+    tw_gr = filled_gr(typewell["GR"])
+    tvt_input = horizontal["TVT_input"].to_numpy(float)
+    horizontal_gr = filled_gr(horizontal["GR"])
+    calibration_idx = known_idx[np.isfinite(tvt_input[known_idx])]
+    reference = np.interp(tvt_input[calibration_idx], tw_tvt, tw_gr)
+    design = np.c_[reference, np.ones(len(reference))]
+    scale, bias = np.linalg.lstsq(design, horizontal_gr[calibration_idx], rcond=None)[0]
+    scale = float(np.clip(scale, 0.3, 3.0))
+    calibrated = scale * tw_gr + float(bias)
+    residual = horizontal_gr[calibration_idx] - np.interp(tvt_input[calibration_idx], tw_tvt, calibrated)
+    sigma = float(np.clip(1.4826 * np.median(np.abs(residual - np.median(residual))), 8.0, 50.0))
+    return tw_tvt, calibrated, horizontal_gr, scale, float(bias), sigma
 
 
-def same_well_candidates(frame, typewell):
-    known, target = split_mask(frame)
-    target_idx = np.flatnonzero(target)
-    last_known = float(frame.loc[known, "TVT_input"].iloc[-1])
-    u_hold, u_linear = tail_linear_u(frame, known, target)
-    return target_idx, {
-        "last_known": np.full(len(target_idx), last_known),
-        "u_hold": u_hold,
-        "u_linear": u_linear,
-        "gr_viterbi": viterbi_gr(frame, typewell, target, u_linear),
-    }
-'''
-)
-
-md("## Fold-safe XY neighbor transfer")
-
-code(
-    r'''def build_spatial_index(reference_wells):
-    points = []
-    owners = []
-    for owner_index, well_id in enumerate(reference_wells):
-        frame = load_horizontal(well_id)
-        xy = frame[["X", "Y"]].to_numpy(float)[::NEIGHBOR_INDEX_STRIDE]
-        points.append(xy)
-        owners.append(np.full(len(xy), owner_index, np.int32))
-    points = np.concatenate(points)
-    owners = np.concatenate(owners)
-    return cKDTree(points), owners, list(reference_wells)
+def alignment_cost(candidate_tvt, horizontal_gr, sample_idx, tw_tvt, tw_gr, sigma):
+    costs = []
+    for window in [1, 21, 61]:
+        horizontal_scale = horizontal_gr if window == 1 else rolling(horizontal_gr, window)
+        typewell_scale = tw_gr if window == 1 else rolling(tw_gr, window)
+        reference = np.interp(candidate_tvt.ravel(), tw_tvt, typewell_scale).reshape(candidate_tvt.shape)
+        residual = (horizontal_scale[sample_idx, None] - reference) / sigma
+        costs.append(np.mean(np.minimum(residual * residual, 16.0), axis=0))
+    outside = np.mean((candidate_tvt < tw_tvt[0]) | (candidate_tvt > tw_tvt[-1]), axis=0)
+    return costs[0] + 25.0 * outside, np.mean(costs, axis=0) + 25.0 * outside
 
 
-def choose_neighbor(frame, global_tree, owners, reference_wells):
-    probe_xy = frame[["X", "Y"]].to_numpy(float)[::NEIGHBOR_PROBE_STRIDE]
-    _, global_index = global_tree.query(probe_xy, k=8)
-    candidate_owner_indices = np.unique(owners[np.asarray(global_index).reshape(-1)])
-    best = None
-    for owner_index in candidate_owner_indices:
-        well_id = reference_wells[int(owner_index)]
-        reference = load_horizontal(well_id)
-        reference_xy = reference[["X", "Y"]].to_numpy(float)[::NEIGHBOR_INDEX_STRIDE]
-        distance = cKDTree(reference_xy).query(probe_xy, k=1)[0]
-        score = float(np.median(distance))
-        if best is None or score < best[0]:
-            best = (score, well_id)
-    if best is None:
-        raise RuntimeError("no neighbor candidate found")
-    return best
-
-
-def neighbor_prediction(frame, target, neighbor_id):
-    reference = load_horizontal(neighbor_id)
-    reference_xy = reference[["X", "Y"]].to_numpy(float)
-    tree = cKDTree(reference_xy)
-    target_xy = frame[["X", "Y"]].to_numpy(float)
-    distance, nearest = tree.query(target_xy, k=1)
-    mapped = reference["TVT"].to_numpy(float)[nearest]
-
-    known_idx = np.flatnonzero(~target)[-NEIGHBOR_PREFIX_ROWS:]
-    valid = np.isfinite(frame["TVT_input"].to_numpy(float)[known_idx]) & np.isfinite(mapped[known_idx])
-    offset = float(np.median(frame["TVT_input"].to_numpy(float)[known_idx][valid] - mapped[known_idx][valid])) if valid.any() else 0.0
-    target_idx = np.flatnonzero(target)
-    return mapped[target_idx] + offset, float(np.median(distance[::NEIGHBOR_PROBE_STRIDE]))
-'''
-)
-
-md("## Five-fold OOF candidate bank")
-
-code(
-    r'''candidate_frames = []
+prediction_frames = []
+diagnostic_rows = []
+selected_rows = []
 start_time = time.time()
 
-for fold in range(N_SPLITS):
-    valid_wells = [well_id for well_id in usable if FOLD_BY_WELL[well_id] == fold]
-    reference_wells = [well_id for well_id in usable if FOLD_BY_WELL[well_id] != fold]
-    global_tree, owners, indexed_wells = build_spatial_index(reference_wells)
-    print(f"fold={fold} valid={len(valid_wells)} refs={len(reference_wells)} index_points={global_tree.n}")
+for index, well_id in enumerate(WELLS.index, 1):
+    full = load_well(well_id)
+    target_values = full["TVT"].to_numpy(float)
+    frame = full[LEGAL_COLUMNS]
+    known, target = split_mask(frame)
+    known_idx = np.flatnonzero(known)
+    target_idx = np.flatnonzero(target)
+    ps = known_idx[-1]
+    md_values = frame["MD"].to_numpy(float)
+    z = frame["Z"].to_numpy(float)
+    tvt_input = frame["TVT_input"].to_numpy(float)
+    span = max(float(md_values[target_idx[-1]] - md_values[ps]), 1.0)
+    x = (md_values[target_idx] - md_values[ps]) / span
+    base = float(tvt_input[ps]) - (z[target_idx] - z[ps])
+    truth = target_values[target_idx]
+    prior = COEFFICIENTS.loc[well_id]
 
-    for position, well_id in enumerate(valid_wells, 1):
-        frame = load_horizontal(well_id)
-        target_values = frame["TVT"].to_numpy(float)
-        legal_frame = frame[LEGAL_COLUMNS].copy()
-        typewell = load_typewell(well_id)
-        _, target = split_mask(legal_frame)
-        target_idx, candidates = same_well_candidates(legal_frame, typewell)
-        _, neighbor_id = choose_neighbor(legal_frame, global_tree, owners, indexed_wells)
-        candidates["neighbor_xy"], mapped_distance = neighbor_prediction(legal_frame, target, neighbor_id)
+    offset_c1, offset_c2 = np.meshgrid(GRID_OFFSETS, GRID_OFFSETS, indexing="ij")
+    grid_c1 = prior["ridge_c1"] + offset_c1.ravel()
+    grid_c2 = prior["ridge_c2"] + offset_c2.ravel()
+    sample_local = np.unique(np.r_[np.arange(0, len(target_idx), 10), len(target_idx) - 1])
+    sample_idx = target_idx[sample_local]
+    sample_paths = base[sample_local, None] + x[sample_local, None] * grid_c1 + x[sample_local, None] ** 2 * grid_c2
 
-        result = pd.DataFrame({
-            "id": [f"{well_id}_{row}" for row in target_idx],
-            "well_id": well_id,
-            "row_index": target_idx,
-            "fold": fold,
-            "target": target_values[target_idx],
-            "md": legal_frame["MD"].to_numpy(float)[target_idx],
-            "neighbor_id": neighbor_id,
-            "neighbor_distance": mapped_distance,
-            "azimuth_deg": float(META.loc[well_id, "azimuth_deg"]),
-            "direction": str(META.loc[well_id, "direction"]),
-            **candidates,
-        })
-        candidate_frames.append(result)
-        if position % 25 == 0 or position == len(valid_wells):
-            print(f"  {position}/{len(valid_wells)} elapsed={time.time() - start_time:.0f}s")
+    tw_tvt, tw_gr, horizontal_gr, scale, bias, sigma = calibrated_typewell(well_id, frame, known_idx)
+    raw_cost, multiscale_cost = alignment_cost(sample_paths, horizontal_gr, sample_idx, tw_tvt, tw_gr, sigma)
+    full_paths = base[:, None] + x[:, None] * grid_c1 + x[:, None] ** 2 * grid_c2
+    candidate_rmse = np.sqrt(np.mean((truth[:, None] - full_paths) ** 2, axis=0))
 
-    del global_tree, owners
-    gc.collect()
+    raw_index = int(np.argmin(raw_cost))
+    multiscale_index = int(np.argmin(multiscale_cost))
+    oracle_index = int(np.argmin(candidate_rmse))
+    top3_index = np.argsort(multiscale_cost)[:3]
+    choices = {
+        "ridge_prior": (float(prior["ridge_c1"]), float(prior["ridge_c2"])),
+        "raw_selector": (float(grid_c1[raw_index]), float(grid_c2[raw_index])),
+        "multiscale_selector": (float(grid_c1[multiscale_index]), float(grid_c2[multiscale_index])),
+        "top3_multiscale": (float(np.mean(grid_c1[top3_index])), float(np.mean(grid_c2[top3_index]))),
+        "grid_oracle": (float(grid_c1[oracle_index]), float(grid_c2[oracle_index])),
+    }
+    rank_correlation = spearmanr(multiscale_cost, candidate_rmse).statistic
+    oracle_cost_rank = int(np.argsort(np.argsort(multiscale_cost))[oracle_index] + 1)
+    diagnostic_rows.append({
+        "well_id": well_id, "fold": int(prior["fold"]), "suffix_rows": len(target_idx),
+        "cost_rmse_spearman": float(rank_correlation) if np.isfinite(rank_correlation) else 0.0,
+        "oracle_cost_rank": oracle_cost_rank, "grid_candidates": len(grid_c1),
+        "typewell_scale": scale, "typewell_bias": bias, "robust_sigma": sigma,
+        "continuous_oracle_in_grid": bool(abs(prior["true_c1"] - prior["ridge_c1"]) <= 120 and abs(prior["true_c2"] - prior["ridge_c2"]) <= 120),
+    })
+    predictions = {name: base + c1 * x + c2 * x * x for name, (c1, c2) in choices.items()}
+    predictions["last_known"] = np.full(len(target_idx), float(tvt_input[ps]))
+    prediction_frames.append(pd.DataFrame({
+        "id": [f"{well_id}_{row}" for row in target_idx], "well_id": well_id,
+        "row_index": target_idx, "fold": int(prior["fold"]), "target": truth,
+        **predictions,
+    }))
+    for name, (c1, c2) in choices.items():
+        selected_rows.append({"well_id": well_id, "selector": name, "c1": c1, "c2": c2})
+    if index % 100 == 0:
+        print("ranked", index, "/", len(WELLS), "elapsed", round(time.time() - start_time, 1))
 
-OOF = pd.concat(candidate_frames, ignore_index=True)
-CANDIDATES = ["last_known", "u_hold", "u_linear", "gr_viterbi", "neighbor_xy"]
-
-assert OOF["id"].is_unique
-assert OOF[CANDIDATES].notna().all().all()
-assert np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
-assert all(
-    FOLD_BY_WELL[neighbor_id] != fold
-    for neighbor_id, fold in OOF[["neighbor_id", "fold"]].drop_duplicates().itertuples(index=False, name=None)
-)
-print("OOF", OOF.shape, "elapsed", round(time.time() - start_time, 1), "seconds")
+OOF = pd.concat(prediction_frames, ignore_index=True)
+WELL_DIAGNOSTICS = pd.DataFrame(diagnostic_rows)
+SELECTED = pd.DataFrame(selected_rows)
+CANDIDATES = ["last_known", "ridge_prior", "raw_selector", "multiscale_selector", "top3_multiscale", "grid_oracle"]
+assert OOF["id"].is_unique and np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
+print("OOF", OOF.shape)
 '''
 )
 
-md("## Scores, shape ceilings, and oracle diagnostics")
+md("## Results and decision diagnostics")
 
 code(
-    r'''def per_well_oracle_corrections(group, candidate):
-    y = group["target"].to_numpy(float)
-    p = group[candidate].to_numpy(float)
-    x = group["md"].to_numpy(float)
-    x = (x - x.mean()) / max(x.std(), 1e-9)
-    error = y - p
-    shift = float(error.mean())
-    affine = np.linalg.lstsq(np.c_[np.ones(len(x)), x], error, rcond=None)[0]
-    return (
-        float(np.sum((y - (p + shift)) ** 2)),
-        float(np.sum((y - (p + affine[0] + affine[1] * x)) ** 2)),
-    )
+    r'''SCORES = pd.DataFrame([
+    {"candidate": candidate, "pooled_rmse": rmse(OOF["target"], OOF[candidate])}
+    for candidate in CANDIDATES
+]).sort_values("pooled_rmse").reset_index(drop=True)
 
-
-score_rows = []
-well_rows = []
-for candidate in CANDIDATES:
-    shift_sse = 0.0
-    affine_sse = 0.0
-    for well_id, group in OOF.groupby("well_id", sort=False):
-        score = rmse(group["target"], group[candidate])
-        well_rows.append({
-            "well_id": well_id,
-            "candidate": candidate,
-            "rmse": score,
-            "rows": len(group),
-            "fold": int(group["fold"].iloc[0]),
-            "neighbor_distance": float(group["neighbor_distance"].iloc[0]),
-            "direction": str(group["direction"].iloc[0]),
-        })
-        shifted, affine = per_well_oracle_corrections(group, candidate)
-        shift_sse += shifted
-        affine_sse += affine
-    score_rows.append({
-        "candidate": candidate,
-        "pooled_rmse": rmse(OOF["target"], OOF[candidate]),
-        "oracle_shift_rmse": float(np.sqrt(shift_sse / len(OOF))),
-        "oracle_affine_rmse": float(np.sqrt(affine_sse / len(OOF))),
-    })
-
-SCORES = pd.DataFrame(score_rows).sort_values("pooled_rmse").reset_index(drop=True)
-WELL_SCORES = pd.DataFrame(well_rows)
-
-shape_sse = {0: 0.0, 1: 0.0, 2: 0.0}
-well_oracle_sse = 0.0
-row_oracle_sse = 0.0
+well_rmse = []
 for well_id, group in OOF.groupby("well_id", sort=False):
-    y = group["target"].to_numpy(float)
-    x = group["md"].to_numpy(float)
-    x = (x - x.mean()) / max(x.std(), 1e-9)
-    for degree in shape_sse:
-        fitted = np.polyval(np.polyfit(x, y, degree), x)
-        shape_sse[degree] += float(np.sum((y - fitted) ** 2))
-    errors = np.stack([(y - group[candidate].to_numpy(float)) ** 2 for candidate in CANDIDATES], axis=1)
-    well_oracle_sse += float(errors.sum(axis=0).min())
-    row_oracle_sse += float(errors.min(axis=1).sum())
+    row = {"well_id": well_id}
+    for candidate in CANDIDATES:
+        row[f"{candidate}_rmse"] = rmse(group["target"], group[candidate])
+    well_rmse.append(row)
+WELL_DIAGNOSTICS = WELL_DIAGNOSTICS.merge(pd.DataFrame(well_rmse), on="well_id", validate="one_to_one")
+WELL_DIAGNOSTICS["multiscale_regret"] = WELL_DIAGNOSTICS["multiscale_selector_rmse"] - WELL_DIAGNOSTICS["grid_oracle_rmse"]
 
-SHAPE_CEILINGS = {f"degree_{degree}": float(np.sqrt(sse / len(OOF))) for degree, sse in shape_sse.items()}
-ORACLES = {
-    "well_candidate_oracle_rmse": float(np.sqrt(well_oracle_sse / len(OOF))),
-    "row_candidate_oracle_rmse": float(np.sqrt(row_oracle_sse / len(OOF))),
-}
-
-if not SMOKE:
-    assert 8.5 < SHAPE_CEILINGS["degree_0"] < 9.5
-    assert 6.2 < SHAPE_CEILINGS["degree_1"] < 7.2
-    assert 4.8 < SHAPE_CEILINGS["degree_2"] < 5.8
+continuous_sse = 0.0
+for well_id, group in OOF.groupby("well_id", sort=False):
+    coefficient = COEFFICIENTS.loc[well_id]
+    full = load_well(well_id)
+    known, target = split_mask(full)
+    known_idx, target_idx = np.flatnonzero(known), np.flatnonzero(target)
+    ps = known_idx[-1]
+    md_values, z = full["MD"].to_numpy(float), full["Z"].to_numpy(float)
+    span = max(float(md_values[target_idx[-1]] - md_values[ps]), 1.0)
+    x = (md_values[target_idx] - md_values[ps]) / span
+    base = float(full["TVT_input"].iloc[ps]) - (z[target_idx] - z[ps])
+    prediction = base + coefficient["true_c1"] * x + coefficient["true_c2"] * x * x
+    continuous_sse += float(np.sum((full["TVT"].to_numpy(float)[target_idx] - prediction) ** 2))
+CONTINUOUS_ORACLE_RMSE = float(np.sqrt(continuous_sse / len(OOF)))
 
 display(SCORES)
-print("shape ceilings", SHAPE_CEILINGS)
-print("candidate oracles", ORACLES)
+display(WELL_DIAGNOSTICS[["cost_rmse_spearman", "oracle_cost_rank", "multiscale_regret"]].describe())
+print("continuous quadratic oracle", CONTINUOUS_ORACLE_RMSE)
 '''
 )
 
-md("## Distance and direction diagnostics")
+md("## Artifacts")
 
 code(
-    r'''OOF["distance_bin"] = pd.cut(
-    OOF["neighbor_distance"],
-    bins=[-np.inf, 150.0, 600.0, np.inf],
-    labels=["under_150", "150_to_600", "over_600"],
-)
+    r'''SCORES.to_csv(WORK / "sequence_scores_v3.csv", index=False)
+WELL_DIAGNOSTICS.to_csv(WORK / "sequence_well_diagnostics_v3.csv", index=False)
+SELECTED.to_csv(WORK / "sequence_selected_coefficients_v3.csv", index=False)
+COEFFICIENTS.reset_index(drop=True).to_csv(WORK / "sequence_ridge_coefficients_v3.csv", index=False)
 
-diagnostic_rows = []
-for dimension in ["distance_bin", "direction", "fold"]:
-    for value, group in OOF.groupby(dimension, observed=True):
-        for candidate in CANDIDATES:
-            diagnostic_rows.append({
-                "dimension": dimension,
-                "value": str(value),
-                "candidate": candidate,
-                "rows": len(group),
-                "wells": int(group["well_id"].nunique()),
-                "pooled_rmse": rmse(group["target"], group[candidate]),
-            })
-
-DIAGNOSTICS = pd.DataFrame(diagnostic_rows)
-display(DIAGNOSTICS[DIAGNOSTICS["dimension"] == "distance_bin"].pivot(index="candidate", columns="value", values="pooled_rmse"))
-display(DIAGNOSTICS[DIAGNOSTICS["dimension"] == "direction"].pivot(index="candidate", columns="value", values="pooled_rmse"))
-'''
-)
-
-md("## Persist auditable artifacts")
-
-code(
-    r'''SCORES.to_csv(WORK / "candidate_scores.csv", index=False)
-WELL_SCORES.to_csv(WORK / "candidate_well_scores.csv", index=False)
-DIAGNOSTICS.to_csv(WORK / "candidate_diagnostics.csv", index=False)
-
-prediction_columns = [
-    "id", "well_id", "row_index", "fold", "target", "md", "neighbor_id",
-    "neighbor_distance", "azimuth_deg", "direction", "distance_bin", *CANDIDATES,
-]
-prediction_path = WORK / "oof_predictions.parquet"
+prediction_path = WORK / "sequence_oof_predictions_v3.parquet"
 try:
-    OOF[prediction_columns].to_parquet(prediction_path, index=False)
+    OOF.to_parquet(prediction_path, index=False)
 except Exception as error:
-    prediction_path = WORK / "oof_predictions.csv.gz"
-    OOF[prediction_columns].to_csv(prediction_path, index=False, compression="gzip")
-    print("parquet fallback:", error)
+    prediction_path = WORK / "sequence_oof_predictions_v3.csv.gz"
+    OOF.to_csv(prediction_path, index=False, compression="gzip")
+    print("parquet fallback", error)
 
 summary = {
-    "version": VERSION,
-    "legal_columns": LEGAL_COLUMNS,
-    "wells": int(OOF["well_id"].nunique()),
-    "rows": int(len(OOF)),
-    "scores": SCORES.to_dict("records"),
-    "shape_ceilings": SHAPE_CEILINGS,
-    "candidate_oracles": ORACLES,
+    "version": VERSION, "legal_columns": LEGAL_COLUMNS,
+    "wells": int(OOF["well_id"].nunique()), "rows": int(len(OOF)),
+    "grid_offsets": GRID_OFFSETS.tolist(), "scores": SCORES.to_dict("records"),
+    "continuous_quadratic_oracle_rmse": CONTINUOUS_ORACLE_RMSE,
+    "median_cost_rmse_spearman": float(WELL_DIAGNOSTICS["cost_rmse_spearman"].median()),
+    "mean_cost_rmse_spearman": float(WELL_DIAGNOSTICS["cost_rmse_spearman"].mean()),
+    "median_oracle_cost_rank": float(WELL_DIAGNOSTICS["oracle_cost_rank"].median()),
+    "grid_coverage_share": float(WELL_DIAGNOSTICS["continuous_oracle_in_grid"].mean()),
     "prediction_artifact": prediction_path.name,
-    "decision_rule": {
-        "generator_problem": "well candidate oracle remains above 6.0",
-        "selector_problem": "well candidate oracle reaches 5.5 or below",
-    },
 }
-(WORK / "candidate_oracle_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-
+(WORK / "sequence_summary_v3.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary, indent=2))
-print("artifacts written to", WORK)
 '''
 )
 

@@ -19,13 +19,13 @@ def code(text):
 
 
 md(
-    """# ROGII heel-calibrated aggregation v3
+    """# ROGII heel-calibrated aggregation v4
 
 ## tl;dr
 
 V1 established a real heel-calibrated offset signal (`13.996`). V2 rejected piecewise Viterbi (`14.516`). V3 cross-fits a well-level aggregator over three independent experts: neighbor (`13.351`), heel, and Ridge fallback.
 
-The aggregator learns only from other folds and emits constant per-well convex weights. No `submission.csv` is created.
+V4 fits the promoted components on all training wells and writes an audited `submission.csv` for hidden-test inference.
 """
 )
 
@@ -63,11 +63,13 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
-VERSION = "v3"
+VERSION = "v4"
 SEED = 42
 N_FOLDS = 5
 STRIDE = 5
@@ -95,6 +97,7 @@ def find_root():
 
 ROOT = find_root()
 TRAIN_DIR = ROOT / "train"
+TEST_DIR = ROOT / "test"
 WORK = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
 ridge_coefficients = pd.read_csv(StringIO(RIDGE_CSV)).set_index("well_id")
 ids = sorted(path.name.removesuffix(HORIZONTAL_SUFFIX) for path in TRAIN_DIR.glob(f"*{HORIZONTAL_SUFFIX}"))
@@ -501,6 +504,231 @@ summary = {
 }
 (WORK / "heel_bimodal_summary_v3.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary, indent=2))
+'''
+)
+
+md("## V4 deployment - fit full models and predict hidden test")
+
+code(
+    r'''def safe_slope(x, y):
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    valid = np.isfinite(x) & np.isfinite(y)
+    return float(np.polyfit(x[valid], y[valid], 1)[0]) if valid.sum() >= 3 and np.ptp(x[valid]) > 1e-9 else 0.0
+
+
+def anchored_coefficients(error, x):
+    return np.linalg.lstsq(np.c_[x, x * x], error, rcond=None)[0]
+
+
+def coefficient_record(frame, include_target):
+    known_idx = np.flatnonzero(frame["TVT_input"].notna().to_numpy())
+    target_idx = np.flatnonzero(frame["TVT_input"].isna().to_numpy())
+    ps = known_idx[-1]
+    md_values = frame["MD"].to_numpy(float)
+    x_coord, y_coord, z = (frame[column].to_numpy(float) for column in ["X", "Y", "Z"])
+    tvt_input = frame["TVT_input"].to_numpy(float)
+    span = max(float(md_values[target_idx[-1]] - md_values[ps]), 1.0)
+    x = (md_values[target_idx] - md_values[ps]) / span
+    base = float(tvt_input[ps]) - (z[target_idx] - z[ps])
+    u = tvt_input[known_idx] + z[known_idx]
+    prefix_span = max(float(md_values[ps] - md_values[known_idx[0]]), 1.0)
+    prefix_x = (md_values[known_idx] - md_values[ps]) / prefix_span
+    prefix_u = u - u[-1]
+    prefix_poly = anchored_coefficients(prefix_u, prefix_x)
+    slopes = {}
+    for window in [100, 300, 800]:
+        idx = known_idx[-min(window, len(known_idx)):]
+        slopes[f"u_slope_{window}"] = safe_slope(md_values[idx], tvt_input[idx] + z[idx])
+    slopes["u_slope_all"] = safe_slope(md_values[known_idx], u)
+    gr_series = frame["GR"].astype(float)
+    gr = filled(gr_series)
+    future_base = base - float(tvt_input[ps])
+    future_z_poly = np.linalg.lstsq(np.c_[x, x*x, x*x*x], future_base, rcond=None)[0]
+    azimuth = np.arctan2(y_coord[-1] - y_coord[0], x_coord[-1] - x_coord[0])
+    record = {
+        "known_rows": len(known_idx), "suffix_rows": len(target_idx),
+        "prefix_md_span": prefix_span, "suffix_md_span": span,
+        "prediction_share": len(target_idx) / len(frame), "tvt_ps": float(tvt_input[ps]),
+        "z_ps": float(z[ps]), "u_ps": float(tvt_input[ps] + z[ps]),
+        "prefix_u_range": float(np.ptp(u)), "prefix_u_std": float(np.std(u)),
+        "prefix_u_c1": float(prefix_poly[0]), "prefix_u_c2": float(prefix_poly[1]),
+        "prefix_slope_end_correction": float(np.median(list(slopes.values())) * span), **slopes,
+        "future_dz": float(z[-1] - z[ps]), "future_z_range": float(np.ptp(z[target_idx])),
+        "future_z_c1": float(future_z_poly[0]), "future_z_c2": float(future_z_poly[1]),
+        "future_z_c3": float(future_z_poly[2]), "future_dx": float(x_coord[-1] - x_coord[ps]),
+        "future_dy": float(y_coord[-1] - y_coord[ps]),
+        "future_dxy": float(np.hypot(x_coord[-1] - x_coord[ps], y_coord[-1] - y_coord[ps])),
+        "azimuth_sin": float(np.sin(azimuth)), "azimuth_cos": float(np.cos(azimuth)),
+        "prefix_gr_mean": float(np.mean(gr[known_idx])), "prefix_gr_std": float(np.std(gr[known_idx])),
+        "suffix_gr_mean": float(np.mean(gr[target_idx])), "suffix_gr_std": float(np.std(gr[target_idx])),
+        "gr_mean_change": float(np.mean(gr[target_idx]) - np.mean(gr[known_idx])),
+        "gr_std_change": float(np.std(gr[target_idx]) - np.std(gr[known_idx])),
+        "gr_missing_prefix": float(gr_series.iloc[known_idx].isna().mean()),
+        "gr_missing_suffix": float(gr_series.iloc[target_idx].isna().mean()),
+    }
+    if include_target:
+        truth = frame["TVT"].to_numpy(float)[target_idx]
+        record.update(zip(["oracle_quadratic_c1", "oracle_quadratic_c2"], anchored_coefficients(truth - base, x)))
+    return record, target_idx, ps, x, base
+
+
+train_coefficient_rows = []
+for well_id in ids:
+    frame = pd.read_csv(TRAIN_DIR / f"{well_id}{HORIZONTAL_SUFFIX}", usecols=LEGAL_COLUMNS + ["TVT"])
+    record, *_ = coefficient_record(frame, True)
+    record["well_id"] = well_id
+    train_coefficient_rows.append(record)
+DEPLOY_TRAIN = pd.DataFrame(train_coefficient_rows).set_index("well_id")
+DEPLOY_TARGETS = ["oracle_quadratic_c1", "oracle_quadratic_c2"]
+DEPLOY_FEATURES = [column for column in DEPLOY_TRAIN if column not in DEPLOY_TARGETS]
+coefficient_model = make_pipeline(StandardScaler(), Ridge(alpha=20.0)).fit(
+    DEPLOY_TRAIN[DEPLOY_FEATURES], DEPLOY_TRAIN[DEPLOY_TARGETS]
+)
+coefficient_lower = DEPLOY_TRAIN[DEPLOY_TARGETS].quantile(0.01).to_numpy(float)
+coefficient_upper = DEPLOY_TRAIN[DEPLOY_TARGETS].quantile(0.99).to_numpy(float)
+
+full_aggregator = HistGradientBoostingClassifier(
+    max_iter=150, max_leaf_nodes=8, learning_rate=0.04, l2_regularization=5.0, random_state=SEED
+)
+full_aggregator.fit(
+    AGGREGATOR_WELLS[AGG_FEATURES], AGGREGATOR_WELLS["oracle_label"],
+    sample_weight=AGGREGATOR_WELLS["rows"] / AGGREGATOR_WELLS["rows"].median(),
+)
+print("deployment models fitted", len(DEPLOY_TRAIN), len(AGGREGATOR_WELLS))
+'''
+)
+
+code(
+    r'''def geometry_profile(frame, truth=None):
+    known_idx = np.flatnonzero(frame["TVT_input"].notna().to_numpy())
+    target_idx = np.flatnonzero(frame["TVT_input"].isna().to_numpy())
+    ps = known_idx[-1]
+    md_values = frame["MD"].to_numpy(float)
+    x_coord, y_coord, z = (frame[column].to_numpy(float) for column in ["X", "Y", "Z"])
+    span = max(float(md_values[target_idx[-1]] - md_values[ps]), 1.0)
+    md_after = md_values[target_idx] - md_values[ps]
+    normalized = md_after / span
+    grid = np.linspace(0.0, 1.0, 25)
+    path_xy = np.column_stack([
+        np.interp(grid, np.r_[0.0, normalized], np.r_[x_coord[ps], x_coord[target_idx]]),
+        np.interp(grid, np.r_[0.0, normalized], np.r_[y_coord[ps], y_coord[target_idx]]),
+    ])
+    azimuth = float(np.arctan2(y_coord[target_idx[-1]] - y_coord[ps], x_coord[target_idx[-1]] - x_coord[ps]))
+    z_anchor = float(frame["TVT_input"].iloc[ps]) - (z[target_idx] - z[ps])
+    profile = {
+        "target_idx": target_idx, "md_after": md_after, "path_xy": path_xy, "azimuth": azimuth,
+        "direction": 1 if np.cos(azimuth) >= 0 else -1, "z_anchor": z_anchor,
+    }
+    if truth is not None:
+        profile["correction"] = np.asarray(truth, float) - z_anchor
+    return profile
+
+
+REFERENCE_PROFILES = {}
+for well_id in ids:
+    frame = pd.read_csv(TRAIN_DIR / f"{well_id}{HORIZONTAL_SUFFIX}", usecols=LEGAL_COLUMNS + ["TVT"])
+    target_idx = np.flatnonzero(frame["TVT_input"].isna().to_numpy())
+    REFERENCE_PROFILES[well_id] = geometry_profile(frame, frame["TVT"].to_numpy(float)[target_idx])
+
+
+def neighbor_prediction(well_id, query, ridge):
+    candidates = [
+        ref for ref, profile in REFERENCE_PROFILES.items()
+        if ref != well_id and profile["direction"] == query["direction"]
+    ]
+    if not candidates:
+        candidates = [ref for ref in REFERENCE_PROFILES if ref != well_id]
+    distances = np.array([
+        np.median(np.linalg.norm(REFERENCE_PROFILES[ref]["path_xy"] - query["path_xy"], axis=1))
+        for ref in candidates
+    ])
+    neighbor_id = candidates[int(np.argmin(distances))]
+    distance = float(np.min(distances))
+    reference = REFERENCE_PROFILES[neighbor_id]
+    correction = np.interp(
+        query["md_after"], np.r_[0.0, reference["md_after"]], np.r_[0.0, reference["correction"]],
+        left=0.0, right=float(reference["correction"][-1]),
+    )
+    prediction = query["z_anchor"] + correction if distance <= 600.0 else ridge
+    angle = float(np.degrees(abs(np.arctan2(np.sin(query["azimuth"] - reference["azimuth"]), np.cos(query["azimuth"] - reference["azimuth"])))))
+    return prediction, neighbor_id, distance, angle
+'''
+)
+
+md("## V4 submission and audit")
+
+code(
+    r'''test_ids = sorted(path.name.removesuffix(HORIZONTAL_SUFFIX) for path in TEST_DIR.glob(f"*{HORIZONTAL_SUFFIX}"))
+test_predictions, test_wells = [], []
+for number, well_id in enumerate(test_ids, 1):
+    frame = pd.read_csv(TEST_DIR / f"{well_id}{HORIZONTAL_SUFFIX}", usecols=LEGAL_COLUMNS)
+    feature_record, target_idx, ps, s, base = coefficient_record(frame, False)
+    coefficients = np.clip(
+        coefficient_model.predict(pd.DataFrame([feature_record])[DEPLOY_FEATURES])[0],
+        coefficient_lower, coefficient_upper,
+    )
+    ridge = base + coefficients[0] * s + coefficients[1] * s * s
+    query = geometry_profile(frame)
+    neighbor, neighbor_id, path_distance, path_angle = neighbor_prediction(well_id, query, ridge)
+
+    typewell = pd.read_csv(TEST_DIR / f"{well_id}{TYPEWELL_SUFFIX}", usecols=["TVT", "GR"])
+    typewell = typewell.dropna().sort_values("TVT").drop_duplicates("TVT")
+    horizontal_gr = filled(frame["GR"])
+    calibrated, sigma, calibration_r2, gain, bias = affine_heel_calibration(
+        horizontal_gr, np.arange(ps + 1), frame["TVT_input"].to_numpy(float),
+        typewell["TVT"].to_numpy(float), filled(typewell["GR"]),
+    )
+    heel_inputs = {
+        "target_idx": target_idx, "ridge": ridge, "s": s, "horizontal_gr": calibrated,
+        "tw_tvt": typewell["TVT"].to_numpy(float), "tw_gr": filled(typewell["GR"]), "sigma": sigma,
+    }
+    heel_result = config_predictions(heel_inputs, CONFIGS["denoise_r30"])
+    heel = heel_result["posterior_g25"]
+    expert_values = np.column_stack([neighbor, heel, ridge])
+    aggregator_features = {
+        "calibration_r2": calibration_r2, "calibration_gain": gain, "sigma": sigma,
+        "posterior_probability": heel_result["probability1"],
+        "posterior_shift": heel_result["posterior_shift"], "cost_gap": heel_result["cost2"] - heel_result["cost1"],
+        "path_distance": path_distance, "path_angle": path_angle,
+        "neighbor_ridge_rms": float(np.sqrt(np.mean((neighbor - ridge) ** 2))),
+        "heel_ridge_rms": float(np.sqrt(np.mean((heel - ridge) ** 2))),
+        "neighbor_heel_rms": float(np.sqrt(np.mean((neighbor - heel) ** 2))),
+    }
+    probability = full_aggregator.predict_proba(pd.DataFrame([aggregator_features])[AGG_FEATURES])
+    weights = (probability @ WEIGHT_GRID[full_aggregator.classes_])[0]
+    raw = expert_values @ weights
+    prediction = neighbor + 0.50 * (raw - neighbor)
+    test_predictions.append(pd.DataFrame({
+        "id": [f"{well_id}_{row}" for row in target_idx], "tvt": prediction,
+    }))
+    test_wells.append({
+        "well_id": well_id, "rows": len(target_idx), "neighbor": neighbor_id,
+        "path_distance": path_distance, "path_angle": path_angle,
+        **{f"weight_{expert}": float(weight) for expert, weight in zip(EXPERTS, weights)},
+    })
+    print("predicted", number, "/", len(test_ids), well_id)
+
+predictions = pd.concat(test_predictions, ignore_index=True)
+sample = pd.read_csv(ROOT / "sample_submission.csv")
+submission = sample[["id"]].merge(predictions, on="id", how="left", validate="one_to_one")
+assert list(submission["id"]) == list(sample["id"])
+assert submission["id"].is_unique and len(submission) == len(sample)
+assert np.isfinite(submission["tvt"].to_numpy(float)).all()
+assert set(submission.columns) == {"id", "tvt"}
+submission.to_csv(WORK / "submission.csv", index=False)
+submission.to_csv(WORK / "submission_v4_aggregator_g50.csv", index=False)
+TEST_WELLS = pd.DataFrame(test_wells)
+TEST_WELLS.to_csv(WORK / "heel_bimodal_test_wells_v4.csv", index=False)
+submission_audit = {
+    "version": VERSION, "primary": PRIMARY, "rows": len(submission), "wells": len(test_ids),
+    "id_order_exact": True, "finite": True, "duplicate_ids": 0,
+    "tvt_min": float(submission["tvt"].min()), "tvt_max": float(submission["tvt"].max()),
+    "mean_weights": TEST_WELLS.filter(like="weight_").mean().to_dict(),
+}
+(WORK / "heel_bimodal_submission_audit_v4.json").write_text(json.dumps(submission_audit, indent=2), encoding="utf-8")
+print(json.dumps(submission_audit, indent=2))
+display(TEST_WELLS)
+display(submission.head())
 '''
 )
 

@@ -1,0 +1,16 @@
+{
+  "version": "v4",
+  "primary": "aggregator_g50",
+  "rows": 14151,
+  "wells": 3,
+  "id_order_exact": true,
+  "finite": true,
+  "duplicate_ids": 0,
+  "tvt_min": 11591.301442377306,
+  "tvt_max": 12242.41165529787,
+  "mean_weights": {
+    "weight_neighbor_hybrid": 0.3875440048299444,
+    "weight_denoise_r30_posterior_g25": 0.4208081474010674,
+    "weight_ridge_prior": 0.19164784776898822
+  }
+}

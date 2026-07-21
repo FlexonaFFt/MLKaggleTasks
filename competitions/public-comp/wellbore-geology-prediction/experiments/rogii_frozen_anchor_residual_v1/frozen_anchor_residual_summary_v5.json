@@ -1,0 +1,17 @@
+{
+  "version": "v5",
+  "primary_weight": 0.25,
+  "oof_wells": 773,
+  "oof_rows": 3783989,
+  "baseline_rmse": 10.372252680286161,
+  "primary_rmse": 10.272240125159923,
+  "gain_ft": 0.10001255512623786,
+  "baseline_worst10_sse_share": 0.5608657541214985,
+  "primary_worst10_sse_share": 0.5565616560476593,
+  "fold_wins": 4,
+  "viable": true,
+  "submission_changed": true,
+  "baseline_sha256": "7f035f1b633601455e9bab9aea0862a87b414218503cd71f8b77e9fad7a9264c",
+  "final_sha256": "730e11ceb825a73410f29d99003c6852513d7115afda99b666ebd14a9be4f94f",
+  "caveat": "OOF baseline covers frozen core Ridge(pp), not later contact/public-overlap overlays."
+}

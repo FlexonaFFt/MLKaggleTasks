@@ -19,13 +19,13 @@ def code(text):
 
 
 md(
-    """# ROGII heel-calibrated bimodal alignment v1
+    """# ROGII heel-calibrated aggregation v3
 
 ## tl;dr
 
-Stage 1 tests one new deployable signal: calibrate horizontal GR to its typewell using only the visible prefix, search bounded anchored corrections around the frozen OOF Ridge path, preserve two separated modes, and emit their posterior mean.
+V1 established a real heel-calibrated offset signal (`13.996`). V2 rejected piecewise Viterbi (`14.516`). V3 cross-fits a well-level aggregator over three independent experts: neighbor (`13.351`), heel, and Ridge fallback.
 
-The primary configuration is frozen before scoring: median-7 denoise, 15% anchor ramp, posterior correction gain 0.25. No `submission.csv` is created.
+The aggregator learns only from other folds and emits constant per-well convex weights. No `submission.csv` is created.
 """
 )
 
@@ -37,12 +37,12 @@ md(
 - The full horizontal GR trace and typewell are legal inputs.
 - Affine GR calibration uses only rows with visible `TVT_input`.
 - Candidate TVT paths are centered on the previously cross-fitted Ridge prediction.
-- The correction is exactly zero at projection start and reaches its offset after 15% of the suffix.
-- Search is bounded to `±60 ft`; two modes must be separated by at least `9 ft`.
+- Every correction is exactly zero at projection start.
+- Heel search remains bounded to `±60 ft`; rejected Viterbi paths are not executed.
 - Validation targets enter only scores and oracle diagnostics.
 - Spatially stratified folds are reporting slices; the per-well aligner fits no cross-well model.
 
-Promotion gate: primary RMSE below Ridge `14.749`, wins at least 4/5 slices, does not worsen worst-decile SSE share, with a stretch target of `≤13.0`.
+Promotion gate: aggregator RMSE below neighbor-transfer `13.351`, wins in at least 4/5 slices, and does not worsen worst-decile SSE share.
 """
 )
 
@@ -62,11 +62,12 @@ import hashlib, json, os, warnings
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
-VERSION = "v1"
+VERSION = "v3"
 SEED = 42
 N_FOLDS = 5
 STRIDE = 5
@@ -75,7 +76,7 @@ SMOKE = os.environ.get("ROGII_SMOKE", "0") == "1"
 HORIZONTAL_SUFFIX = "__horizontal_well.csv"
 TYPEWELL_SUFFIX = "__typewell.csv"
 LEGAL_COLUMNS = ["MD", "X", "Y", "Z", "GR", "TVT_input"]
-PRIMARY = "denoise_r15_posterior_g25"
+PRIMARY = "aggregator_g50"
 
 
 def find_root():
@@ -238,11 +239,70 @@ def config_predictions(inputs, config):
     }
 
 
-# Runnable checks: anchor stays fixed and the two modes are separated.
+PATH_CONFIGS = {
+    "path_stiff_g10": {"transition": 1.0, "radius": 1, "center": 0.01, "gain": 0.10},
+    "path_smooth_g10": {"transition": 0.25, "radius": 2, "center": 0.005, "gain": 0.10},
+    "path_smooth_g25": {"transition": 0.25, "radius": 2, "center": 0.005, "gain": 0.25},
+    "path_fault_g10": {"transition": 0.10, "radius": 4, "center": 0.002, "gain": 0.10},
+}
+
+
+def path_emission(inputs):
+    target_idx, ridge = inputs["target_idx"], inputs["ridge"]
+    local = np.unique(np.r_[np.arange(0, len(target_idx), STRIDE), len(target_idx) - 1])
+    rows = target_idx[local]
+    candidates = ridge[local, None] + SHIFT_GRID[None, :]
+    horizontal = median_smooth(inputs["horizontal_gr"], 7)
+    tw_gr = median_smooth(inputs["tw_gr"], 7)
+    expected = np.interp(candidates.ravel(), inputs["tw_tvt"], tw_gr).reshape(candidates.shape)
+    residual = (horizontal[rows, None] - expected) / inputs["sigma"]
+    outside = ((candidates < inputs["tw_tvt"][0]) | (candidates > inputs["tw_tvt"][-1])) * 16.0
+    return local, np.minimum(residual * residual, 16.0) + outside
+
+
+def decode_path(emission, transition, radius, center):
+    n_rows, n_states = emission.shape
+    back = np.zeros((n_rows, n_states), dtype=np.int16)
+    dp = emission[0] + 8.0 * (SHIFT_GRID / 3.0) ** 2
+    center_cost = center * (SHIFT_GRID / 30.0) ** 2
+    for row in range(1, n_rows):
+        new = np.full(n_states, np.inf)
+        source = np.zeros(n_states, dtype=np.int16)
+        for step in range(-radius, radius + 1):
+            destination = np.arange(max(0, step), min(n_states, n_states + step))
+            origin = destination - step
+            candidate = dp[origin] + transition * step * step
+            better = candidate < new[destination]
+            new[destination[better]] = candidate[better]
+            source[destination[better]] = origin[better]
+        dp = new + emission[row] + center_cost
+        back[row] = source
+    state = int(np.argmin(dp))
+    states = np.empty(n_rows, dtype=int); states[-1] = state
+    for row in range(n_rows - 1, 0, -1):
+        state = int(back[row, state]); states[row - 1] = state
+    return SHIFT_GRID[states]
+
+
+def piecewise_predictions(inputs):
+    local, emission = path_emission(inputs)
+    ramp = anchored_ramp(inputs["s"], 0.05)
+    predictions, diagnostics = {}, {}
+    for name, config in PATH_CONFIGS.items():
+        sampled = decode_path(emission, config["transition"], config["radius"], config["center"])
+        offset = np.interp(np.arange(len(inputs["s"])), local, sampled) * ramp
+        predictions[name] = inputs["ridge"] + config["gain"] * offset
+        diagnostics[f"{name}_roughness"] = float(np.mean(np.abs(np.diff(offset))))
+        diagnostics[f"{name}_boundary_share"] = float(np.mean(np.abs(offset) >= SHIFT_GRID.max()))
+    return predictions, diagnostics
+
+
+# Runnable checks: anchor stays fixed, modes are separated, and zero-emission Viterbi stays at zero.
 assert anchored_ramp([0.0, 0.15, 1.0], 0.15)[0] == 0.0
 demo_cost = (SHIFT_GRID - 12.0) ** 2
 demo_first, demo_second = separated_modes(demo_cost)
 assert abs(SHIFT_GRID[demo_first] - SHIFT_GRID[demo_second]) >= 9.0
+assert np.max(np.abs(decode_path(np.zeros((8, len(SHIFT_GRID))), 1.0, 1, 0.01))) == 0.0
 '''
 )
 
@@ -270,14 +330,17 @@ for number, well_id in enumerate(ids, 1):
     oracle_name = min(predictions, key=lambda name: rmse(truth, predictions[name]))
     predictions["oracle_config"] = predictions[oracle_name]
     record["oracle_config"] = oracle_name
-    prediction_frames.append(pd.DataFrame({"well_id": well_id, "target": truth, **predictions}))
+    prediction_frames.append(pd.DataFrame({
+        "id": [f"{well_id}_{row}" for row in inputs["target_idx"]],
+        "well_id": well_id, "target": truth, **predictions,
+    }))
     diagnostics.append(record)
     if number % 100 == 0:
         print("aligned", number, "/", len(ids))
 
 OOF = pd.concat(prediction_frames, ignore_index=True)
 WELLS = pd.DataFrame(diagnostics)
-CANDIDATES = [column for column in OOF.columns if column not in {"well_id", "target"}]
+CANDIDATES = [column for column in OOF.columns if column not in {"id", "well_id", "target"}]
 assert OOF["well_id"].nunique() == len(WELLS) and np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
 print("OOF", OOF.shape, "wells", len(WELLS))
 '''
@@ -294,6 +357,83 @@ for region, group in WELLS.groupby("region"):
     WELLS.loc[ordered.index, "fold"] = np.arange(len(ordered)) % N_FOLDS
 fold_map = WELLS.set_index("well_id")["fold"]
 OOF["fold"] = OOF["well_id"].map(fold_map)
+
+neighbor_paths = list(Path("/kaggle/input").glob("**/neighbor_oof_predictions_v3.parquet"))
+diagnostic_paths = list(Path("/kaggle/input").glob("**/neighbor_well_diagnostics_v3.csv"))
+assert len(neighbor_paths) == 1 and len(diagnostic_paths) == 1, (neighbor_paths, diagnostic_paths)
+neighbor = pd.read_parquet(
+    neighbor_paths[0], columns=["id", "target", "hybrid_md_600", "nested_selector"]
+).rename(columns={"target": "neighbor_target", "hybrid_md_600": "neighbor_hybrid", "nested_selector": "neighbor_nested"})
+OOF = OOF.merge(neighbor, on="id", how="left", validate="one_to_one")
+assert OOF["neighbor_hybrid"].notna().all() and np.allclose(OOF["target"], OOF["neighbor_target"])
+OOF = OOF.drop(columns="neighbor_target")
+
+neighbor_diagnostics = pd.read_csv(diagnostic_paths[0])[
+    ["well_id", "path_distance", "path_angle_difference_deg"]
+]
+WELLS = WELLS.merge(neighbor_diagnostics, on="well_id", how="left", validate="one_to_one")
+assert WELLS[["path_distance", "path_angle_difference_deg"]].notna().all().all()
+
+EXPERTS = ["neighbor_hybrid", "denoise_r30_posterior_g25", "ridge_prior"]
+WEIGHT_GRID = np.array([
+    (neighbor_weight, heel_weight, 1.0 - neighbor_weight - heel_weight)
+    for neighbor_weight in np.arange(0.0, 1.01, 0.25)
+    for heel_weight in np.arange(0.0, 1.01 - neighbor_weight, 0.25)
+])
+
+feature_rows = []
+for well_id, group in OOF.groupby("well_id", sort=False):
+    expert_values = group[EXPERTS].to_numpy(float)
+    truth = group["target"].to_numpy(float)
+    candidates = expert_values @ WEIGHT_GRID.T
+    oracle_label = int(np.argmin(np.mean((truth[:, None] - candidates) ** 2, axis=0)))
+    well = WELLS.set_index("well_id").loc[well_id]
+    feature_rows.append({
+        "well_id": well_id, "fold": int(well["fold"]), "rows": len(group), "oracle_label": oracle_label,
+        "calibration_r2": well["calibration_r2"], "calibration_gain": well["calibration_gain"],
+        "sigma": well["sigma"], "posterior_probability": well["denoise_r30_probability1"],
+        "posterior_shift": well["denoise_r30_posterior_shift"],
+        "cost_gap": well["denoise_r30_cost2"] - well["denoise_r30_cost1"],
+        "path_distance": well["path_distance"], "path_angle": well["path_angle_difference_deg"],
+        "neighbor_ridge_rms": float(np.sqrt(np.mean((expert_values[:, 0] - expert_values[:, 2]) ** 2))),
+        "heel_ridge_rms": float(np.sqrt(np.mean((expert_values[:, 1] - expert_values[:, 2]) ** 2))),
+        "neighbor_heel_rms": float(np.sqrt(np.mean((expert_values[:, 0] - expert_values[:, 1]) ** 2))),
+    })
+AGGREGATOR_WELLS = pd.DataFrame(feature_rows).set_index("well_id", drop=False)
+AGG_FEATURES = [column for column in AGGREGATOR_WELLS if column not in {"well_id", "fold", "rows", "oracle_label"}]
+
+weight_rows = []
+for fold in range(N_FOLDS):
+    train = AGGREGATOR_WELLS["fold"] != fold
+    valid = AGGREGATOR_WELLS["fold"] == fold
+    model = HistGradientBoostingClassifier(
+        max_iter=150, max_leaf_nodes=8, learning_rate=0.04, l2_regularization=5.0, random_state=SEED
+    )
+    sample_weight = AGGREGATOR_WELLS.loc[train, "rows"] / AGGREGATOR_WELLS.loc[train, "rows"].median()
+    model.fit(
+        AGGREGATOR_WELLS.loc[train, AGG_FEATURES], AGGREGATOR_WELLS.loc[train, "oracle_label"],
+        sample_weight=sample_weight,
+    )
+    probability = model.predict_proba(AGGREGATOR_WELLS.loc[valid, AGG_FEATURES])
+    weights = probability @ WEIGHT_GRID[model.classes_]
+    for well_id, values in zip(AGGREGATOR_WELLS.index[valid], weights):
+        weight_rows.append({"well_id": well_id, "fold": fold, **{f"weight_{expert}": value for expert, value in zip(EXPERTS, values)}})
+AGGREGATOR_WEIGHTS = pd.DataFrame(weight_rows).set_index("well_id")
+assert len(AGGREGATOR_WEIGHTS) == len(WELLS) and np.allclose(AGGREGATOR_WEIGHTS.filter(like="weight_").sum(axis=1), 1.0)
+
+raw = np.zeros(len(OOF))
+for expert in EXPERTS:
+    raw += OOF[expert].to_numpy(float) * OOF["well_id"].map(AGGREGATOR_WEIGHTS[f"weight_{expert}"]).to_numpy(float)
+OOF["aggregator_raw"] = raw
+OOF["aggregator_g25"] = OOF["neighbor_hybrid"] + 0.25 * (raw - OOF["neighbor_hybrid"])
+OOF["aggregator_g50"] = OOF["neighbor_hybrid"] + 0.50 * (raw - OOF["neighbor_hybrid"])
+
+OOF["oracle_aggregator"] = np.nan
+for well_id, group in OOF.groupby("well_id", sort=False):
+    label = int(AGGREGATOR_WELLS.loc[well_id, "oracle_label"])
+    OOF.loc[group.index, "oracle_aggregator"] = group[EXPERTS].to_numpy(float) @ WEIGHT_GRID[label]
+CANDIDATES = [column for column in OOF.columns if column not in {"id", "well_id", "target", "fold"}]
+assert np.isfinite(OOF[CANDIDATES].to_numpy(float)).all()
 
 
 def candidate_stats(candidate):
@@ -316,43 +456,50 @@ FOLD_SCORES = pd.DataFrame([
 score_index = SCORES.set_index("candidate")
 ridge_score = float(score_index.loc["ridge_prior", "pooled_rmse"])
 primary_score = float(score_index.loc[PRIMARY, "pooled_rmse"])
-ridge_tail = float(score_index.loc["ridge_prior", "worst10_sse_share"])
+heel_score = float(score_index.loc["denoise_r15_posterior_g25", "pooled_rmse"])
+neighbor_score = float(score_index.loc["neighbor_hybrid", "pooled_rmse"])
+neighbor_tail = float(score_index.loc["neighbor_hybrid", "worst10_sse_share"])
 primary_tail = float(score_index.loc[PRIMARY, "worst10_sse_share"])
 pivot = FOLD_SCORES.pivot(index="fold", columns="candidate", values="pooled_rmse")
-fold_wins = int((pivot[PRIMARY] < pivot["ridge_prior"]).sum())
-viable = bool(primary_score < ridge_score and fold_wins >= 4 and primary_tail <= ridge_tail)
-stretch = bool(viable and primary_score <= 13.0)
+fold_wins = int((pivot[PRIMARY] < pivot["neighbor_hybrid"]).sum())
+viable = bool(primary_score < neighbor_score and fold_wins >= 4 and primary_tail <= neighbor_tail)
 
 display(SCORES.head(15))
-display(pivot[["ridge_prior", PRIMARY, "oracle_config"]])
+display(pivot[["ridge_prior", "neighbor_hybrid", "denoise_r30_posterior_g25", PRIMARY, "oracle_aggregator", "oracle_config"]])
+display(AGGREGATOR_WEIGHTS.filter(like="weight_").describe())
 display(WELLS[["calibration_r2", "calibration_gain", "sigma", "denoise_r15_probability1", "denoise_r15_posterior_shift"]].describe())
-print({"primary": PRIMARY, "improvement_ft": ridge_score - primary_score, "fold_wins": fold_wins, "viable": viable, "stretch": stretch})
+print({"primary": PRIMARY, "vs_neighbor_ft": neighbor_score - primary_score, "fold_wins": fold_wins, "viable": viable})
 '''
 )
 
 md("## Takeaways and artifacts")
 
 code(
-    r'''SCORES.to_csv(WORK / "heel_bimodal_scores_v1.csv", index=False)
-FOLD_SCORES.to_csv(WORK / "heel_bimodal_fold_scores_v1.csv", index=False)
-WELLS.to_csv(WORK / "heel_bimodal_wells_v1.csv", index=False)
-OOF.to_parquet(WORK / "heel_bimodal_oof_v1.parquet", index=False)
+    r'''SCORES.to_csv(WORK / "heel_bimodal_scores_v3.csv", index=False)
+FOLD_SCORES.to_csv(WORK / "heel_bimodal_fold_scores_v3.csv", index=False)
+AGGREGATOR_WELLS.reset_index(drop=True).to_csv(WORK / "heel_bimodal_aggregator_wells_v3.csv", index=False)
+AGGREGATOR_WEIGHTS.reset_index().to_csv(WORK / "heel_bimodal_aggregator_weights_v3.csv", index=False)
+WELLS.to_csv(WORK / "heel_bimodal_wells_v3.csv", index=False)
+OOF.to_parquet(WORK / "heel_bimodal_oof_v3.parquet", index=False)
 summary = {
     "version": VERSION, "wells": int(WELLS.shape[0]), "rows": int(len(OOF)), "primary": PRIMARY,
-    "ridge_rmse": ridge_score, "primary_rmse": primary_score, "improvement_ft": ridge_score - primary_score,
-    "ridge_worst10_sse_share": ridge_tail, "primary_worst10_sse_share": primary_tail,
-    "fold_wins": fold_wins, "viable": viable, "stretch_target_met": stretch,
+    "ridge_rmse": ridge_score, "heel_v1_rmse": heel_score, "neighbor_rmse": neighbor_score,
+    "primary_rmse": primary_score, "improvement_vs_neighbor_ft": neighbor_score - primary_score,
+    "neighbor_worst10_sse_share": neighbor_tail, "primary_worst10_sse_share": primary_tail,
+    "fold_wins_vs_neighbor": fold_wins, "viable": viable,
+    "mean_weights": AGGREGATOR_WEIGHTS.filter(like="weight_").mean().to_dict(),
     "scores": SCORES.head(15).to_dict("records"),
-    "viability_rule": "primary beats Ridge, wins >=4/5 spatially stratified slices, and does not worsen worst10 SSE share",
-    "decision": "build_piecewise_path" if viable else "revise_or_stop_heel_alignment",
+    "viability_rule": "aggregator_g50 beats neighbor_hybrid, wins >=4/5 slices, and does not worsen worst10 SSE share",
+    "decision": "build_submission_pipeline" if viable else "stop_or_revise_aggregator",
     "caveats": [
         "Ridge center is imported from an earlier cross-fitted random-well experiment.",
-        "Fixed variants share this OOF screen; only the predeclared primary controls promotion.",
-        "Spatially stratified folds are evaluation slices because the aligner is per-well and fits no cross-well model.",
+        "Neighbor predictions are imported from their original cross-fitted V3 artifact.",
+        "Aggregator labels use only outer-training wells and predictions are outer-fold held out.",
+        "V1 heel configuration was selected in a preceding experiment on the same wells.",
         "No submission is created.",
     ],
 }
-(WORK / "heel_bimodal_summary_v1.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+(WORK / "heel_bimodal_summary_v3.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 print(json.dumps(summary, indent=2))
 '''
 )

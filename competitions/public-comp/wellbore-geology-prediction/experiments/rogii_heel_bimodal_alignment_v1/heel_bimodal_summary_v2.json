@@ -1,0 +1,30 @@
+{
+  "version": "v2",
+  "wells": 773,
+  "rows": 3783989,
+  "primary": "nested_path",
+  "ridge_rmse": 14.748958761024927,
+  "heel_v1_rmse": 13.995556112035,
+  "neighbor_target_rmse": 13.351120231373706,
+  "primary_rmse": 14.516025549801151,
+  "oracle_path_rmse": 13.759167244267465,
+  "oracle_config_rmse": 8.632833433783922,
+  "improvement_vs_heel_ft": -0.5204694377661507,
+  "heel_worst10_sse_share": 0.4844339489510667,
+  "primary_worst10_sse_share": 0.5107264170432577,
+  "fold_wins_vs_heel": 0,
+  "viable": false,
+  "nested_selection": [
+    {"fold": 0, "selected": "path_stiff_g10", "train_rmse": 14.375890473744233},
+    {"fold": 1, "selected": "path_stiff_g10", "train_rmse": 14.587788281267132},
+    {"fold": 2, "selected": "path_stiff_g10", "train_rmse": 14.709024960905225},
+    {"fold": 3, "selected": "path_stiff_g10", "train_rmse": 14.63949160599831},
+    {"fold": 4, "selected": "path_stiff_g10", "train_rmse": 14.267707473826608}
+  ],
+  "decision": "stop_or_revise_piecewise_path",
+  "caveats": [
+    "Path configuration is selected for each fold using only the other folds.",
+    "V1 heel configuration was selected in the preceding experiment on the same wells.",
+    "No submission is created."
+  ]
+}

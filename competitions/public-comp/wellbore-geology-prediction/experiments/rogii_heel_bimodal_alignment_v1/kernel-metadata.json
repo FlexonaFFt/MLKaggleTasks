@@ -10,6 +10,6 @@
   "enable_internet": false,
   "dataset_sources": [],
   "competition_sources": ["rogii-wellbore-geology-prediction"],
-  "kernel_sources": [],
+  "kernel_sources": ["flexonafft/rogii-neighbor-transfer-research-v1"],
   "model_sources": []
 }

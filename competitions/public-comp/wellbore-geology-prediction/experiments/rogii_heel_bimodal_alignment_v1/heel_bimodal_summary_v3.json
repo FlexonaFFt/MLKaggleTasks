@@ -1,0 +1,29 @@
+{
+  "version": "v3",
+  "wells": 773,
+  "rows": 3783989,
+  "primary": "aggregator_g50",
+  "ridge_rmse": 14.748958761024927,
+  "heel_v1_rmse": 13.995556112035,
+  "neighbor_rmse": 13.351120231373718,
+  "primary_rmse": 12.562344049647864,
+  "aggregator_raw_rmse": 12.327953275338146,
+  "oracle_aggregator_rmse": 10.624194886246839,
+  "improvement_vs_neighbor_ft": 0.7887761817258543,
+  "neighbor_worst10_sse_share": 0.5249869768022327,
+  "primary_worst10_sse_share": 0.5226260659858885,
+  "fold_wins_vs_neighbor": 5,
+  "viable": true,
+  "mean_weights": {
+    "weight_neighbor_hybrid": 0.26184240771840656,
+    "weight_denoise_r30_posterior_g25": 0.4361741070244499,
+    "weight_ridge_prior": 0.3019834852571436
+  },
+  "decision": "build_submission_pipeline",
+  "caveats": [
+    "Neighbor predictions are imported from their original cross-fitted V3 artifact.",
+    "Aggregator labels use only outer-training wells and predictions are outer-fold held out.",
+    "V1 heel configuration was selected in a preceding experiment on the same wells.",
+    "No submission is created."
+  ]
+}

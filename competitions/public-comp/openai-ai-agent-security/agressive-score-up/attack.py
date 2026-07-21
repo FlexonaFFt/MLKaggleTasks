@@ -296,9 +296,11 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 returned_seen.add(message)
                 replay_cost += elapsed
 
-        # A robust per-candidate replay estimate for the fill template: the median
-        # firing latency (falls back to the slowest observed if unmeasured).
-        selected_latencies = latencies[selected_index]
+        # Replay returns only fired candidates, so pace fill from fired selected
+        # latencies when available; fall back to all selected trials.
+        selected_latencies = [
+            elapsed for template_index, _, elapsed in bank if template_index == selected_index
+        ] or latencies[selected_index]
         fill_unit = _median(selected_latencies) if selected_latencies else slowest
         if fill_unit <= 0 or fill_unit == float("inf"):
             fill_unit = slowest

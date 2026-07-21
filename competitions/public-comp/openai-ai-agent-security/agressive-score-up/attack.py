@@ -258,12 +258,13 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 selected_index = template_index
                 selected_cost = cost
 
-        # Seed the returned set with the fired probe candidates, accumulating the
-        # replay cost they will incur.
+        # Seed only the selected arm. Probe hits from slower arms already spent
+        # search time; replay budget is better used by the selected fill arm.
         candidates: list[AttackCandidate] = []
         returned_seen: set[str] = set()
         replay_cost = 0.0
-        for template_index, index, elapsed in bank:
+        selected_bank = [entry for entry in bank if entry[0] == selected_index] or bank
+        for template_index, index, elapsed in selected_bank:
             message = _message(TEMPLATES[template_index][1], index)
             if message not in returned_seen:
                 candidates.append(_candidate(TEMPLATES[template_index][1], index))

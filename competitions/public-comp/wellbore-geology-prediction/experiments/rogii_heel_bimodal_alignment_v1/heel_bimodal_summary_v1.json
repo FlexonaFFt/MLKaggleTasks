@@ -1,0 +1,22 @@
+{
+  "version": "v1",
+  "wells": 773,
+  "rows": 3783989,
+  "primary": "denoise_r15_posterior_g25",
+  "ridge_rmse": 14.748958761024927,
+  "primary_rmse": 13.995556112035,
+  "best_screened_rmse": 13.754128491293978,
+  "oracle_config_rmse": 8.919108327373694,
+  "improvement_ft": 0.7534026489899261,
+  "ridge_worst10_sse_share": 0.5154463706808455,
+  "primary_worst10_sse_share": 0.4844339489510667,
+  "fold_wins": 5,
+  "viable": true,
+  "stretch_target_met": false,
+  "decision": "build_piecewise_path",
+  "caveats": [
+    "Ridge center is imported from an earlier cross-fitted random-well experiment.",
+    "Only the predeclared primary controls promotion; denoise_r30_posterior_g25 is screened on the same OOF.",
+    "No submission is created."
+  ]
+}

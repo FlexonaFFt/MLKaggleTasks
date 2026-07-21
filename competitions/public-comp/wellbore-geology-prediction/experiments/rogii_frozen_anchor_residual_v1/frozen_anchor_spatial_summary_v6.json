@@ -1,0 +1,15 @@
+{
+  "version": "v6",
+  "v5_gain_ft": 0.10001255512623786,
+  "spatial_fold_wins": 5,
+  "spatial_cluster_wins": 10,
+  "regime_wins": 4,
+  "spatial_fold_count": 5,
+  "spatial_cluster_count": 12,
+  "regime_count": 6,
+  "viable": true,
+  "submission_changed": true,
+  "final_sha256": "730e11ceb825a73410f29d99003c6852513d7115afda99b666ebd14a9be4f94f",
+  "gate": "V5 viable; spatial folds >=4/5; clusters >=8/12; regimes >=4/6",
+  "caveat": "Frozen residual needs no fold training. OOF baseline is core Ridge(pp), not final contact overlays."
+}

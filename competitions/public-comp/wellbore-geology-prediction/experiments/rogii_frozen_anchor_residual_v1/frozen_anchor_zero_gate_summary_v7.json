@@ -1,0 +1,22 @@
+{
+  "version": "v7",
+  "threshold": 0.6,
+  "beneficial_well_rate": 0.5394566623544631,
+  "oof_gate_coverage": 0.17464424320827943,
+  "test_gate_coverage": null,
+  "baseline_rmse": 10.372252680286161,
+  "v5_rmse": 10.272240125159923,
+  "v7_rmse": 10.35276964796328,
+  "v5_gain_ft": 0.10001255512623786,
+  "v7_gain_ft": 0.0194830323228814,
+  "v5_worst10_sse_share": 0.5565616560476593,
+  "v7_worst10_sse_share": 0.5607636180370843,
+  "spatial_fold_wins": 4,
+  "spatial_cluster_wins": 7,
+  "regime_wins": 4,
+  "viable": false,
+  "submission_changed_from_v5": false,
+  "final_sha256": "730e11ceb825a73410f29d99003c6852513d7115afda99b666ebd14a9be4f94f",
+  "gate": "V7 <= V5 RMSE/tail; folds >=4/5; clusters >=11/12; regimes >=4/6; coverage 20-95%",
+  "caveat": "Gate labels use OOF truth, while every reported probability is spatially cross-fitted."
+}

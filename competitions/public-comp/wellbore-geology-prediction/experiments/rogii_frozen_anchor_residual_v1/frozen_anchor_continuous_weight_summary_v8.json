@@ -1,0 +1,22 @@
+{
+  "version": "v8",
+  "trust": 0.5,
+  "multiplier_p10": 0.8399914954789798,
+  "multiplier_median": 0.9976959454475762,
+  "multiplier_p90": 1.1571149029700387,
+  "baseline_rmse": 10.372252680286161,
+  "v5_rmse": 10.272240125159923,
+  "v8_rmse": 10.271740059262298,
+  "v5_gain_ft": 0.10001255512623786,
+  "v8_gain_ft": 0.1005126210238636,
+  "v5_worst10_sse_share": 0.5565616560476593,
+  "v8_worst10_sse_share": 0.5568990176829625,
+  "spatial_fold_wins": 5,
+  "spatial_cluster_wins": 9,
+  "regime_wins": 5,
+  "viable": false,
+  "submission_changed": false,
+  "submission_sha256": "730e11ceb825a73410f29d99003c6852513d7115afda99b666ebd14a9be4f94f",
+  "gate": "V8 < V5 RMSE; V8 <= V5 tail; folds >=4/5; clusters >=10/12; regimes >=4/6",
+  "caveat": "Validation only. Deployment is intentionally deferred until this gate passes."
+}

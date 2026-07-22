@@ -64,7 +64,7 @@ Practice tasks are kept separately under [practice/](practice/).
 | - | - | - | - | - | - | - |
 | 1 | Predicting Students Test Score | 624 | 1741 | 64.2% | - | manual |
 | 2 | Thermophysical Property: Melting Point | 309 | 1177 | 73.7% | 35.59526 | kaggle |
-| 3 | LLM Classification | 153 | 247 | 38.1% | 1.07413 | kaggle |
+| 3 | LLM Classification | 153 | 232 | 34.1% | 1.07413 | kaggle |
 | 4 | Astronomical Classification | 285 | 894 | 68.1% | 0.5864 | kaggle |
 | 5 | Predicting Heart Disease | 70 | 536 | 86.9% | - | manual |
 | 6 | Playground Series S6E2 | 2407 | 4371 | 44.9% | 0.95323 | kaggle |
@@ -72,15 +72,15 @@ Practice tasks are kept separately under [practice/](practice/).
 | 8 | Playground Series S6E3 | 2485 | 4143 | 40.0% | 0.91338 | kaggle |
 | 9 | Playground Series S5E11 | 2010 | 3726 | 46.1% | 0.92150 | kaggle |
 | 10 | Playground Series S6E5 | 303 | 3023 | 90.0% | 0.95453 | kaggle |
-| 11 | Biohub Cell Tracking During Development | 168 | 1324 | 87.3% | 0.902 | kaggle |
-| 12 | Ai Agent Security Multi Step Tool Attacks | 164 | 1998 | 91.8% | 76.230 | kaggle |
+| 11 | Biohub Cell Tracking During Development | 297 | 1516 | 80.4% | 0.926 | kaggle |
+| 12 | Ai Agent Security Multi Step Tool Attacks | 375 | 2225 | 83.1% | 83.610 | kaggle |
 | 13 | Playground Series S6E6 | 66 | 2817 | 97.7% | 0.97259 | kaggle |
-| 14 | Playground Series S6E7 | 13 | 2031 | 99.4% | 0.95238 | kaggle |
+| 14 | Playground Series S6E7 | 84 | 2489 | 96.6% | 0.95238 | kaggle |
 <!-- COMPETITION-TABLE:END -->
 
 <!-- PROGRESS-CHART:START -->
 <img src="assets/progress.svg" alt="Kaggle progress chart" width="100%" />
-<p><sub>Last updated: 2026-07-17 16:12</sub></p>
+<p><sub>Last updated: 2026-07-22 15:06</sub></p>
 <!-- PROGRESS-CHART:END -->
 
 ## Data Policy

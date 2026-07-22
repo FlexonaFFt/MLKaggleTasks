@@ -18,7 +18,8 @@ import numpy as np, pandas as pd
 warnings.filterwarnings('ignore')
 
 def find_root():
-    for p in [Path('/kaggle/input/competitions/rogii-wellbore-geology-prediction'), Path('/kaggle/input/rogii-wellbore-geology-prediction'), Path.cwd()/'datasets', Path.cwd().parent/'datasets', Path.cwd().parents[1]/'datasets']:
+    roots = [Path('/kaggle/input/competitions/rogii-wellbore-geology-prediction'), Path('/kaggle/input/rogii-wellbore-geology-prediction'), Path.cwd()/'datasets', *(parent/'datasets' for parent in list(Path.cwd().parents)[:4])]
+    for p in roots:
         if (p/'train').exists() and (p/'test').exists(): return p
     raise FileNotFoundError('dataset root not found')
 ROOT=find_root(); SEED=42; N_SPLITS=5

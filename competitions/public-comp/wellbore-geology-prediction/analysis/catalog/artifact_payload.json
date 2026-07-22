@@ -134,14 +134,14 @@
         "source": {
           "id": "source_chart_missing",
           "label": "missing_summary.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/missing_summary.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/missing_summary.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/missing_summary.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/missing_summary.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/missing_summary.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/missing_summary.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -152,7 +152,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/missing_summary.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/missing_summary.csv');"
           }
         }
       },
@@ -186,14 +186,14 @@
         "source": {
           "id": "source_chart_prediction_share",
           "label": "prediction_share_hist.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/prediction_share_hist.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/prediction_share_hist.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/prediction_share_hist.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/prediction_share_hist.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/prediction_share_hist.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/prediction_share_hist.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -204,7 +204,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/prediction_share_hist.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/prediction_share_hist.csv');"
           }
         }
       },
@@ -238,14 +238,14 @@
         "source": {
           "id": "source_chart_rows_hist",
           "label": "row_count_hist.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/row_count_hist.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/row_count_hist.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/row_count_hist.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/row_count_hist.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/row_count_hist.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/row_count_hist.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -256,7 +256,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/row_count_hist.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/row_count_hist.csv');"
           }
         }
       },
@@ -286,14 +286,14 @@
         "source": {
           "id": "source_chart_test_zones",
           "label": "test_prediction_zones.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/test_prediction_zones.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/test_prediction_zones.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/test_prediction_zones.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/test_prediction_zones.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/test_prediction_zones.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/test_prediction_zones.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -304,7 +304,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/test_prediction_zones.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/test_prediction_zones.csv');"
           }
         }
       },
@@ -334,14 +334,14 @@
         "source": {
           "id": "source_chart_geology",
           "label": "geology_summary.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/geology_summary.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/geology_summary.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/geology_summary.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/geology_summary.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/geology_summary.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/geology_summary.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -352,7 +352,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/geology_summary.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/geology_summary.csv');"
           }
         }
       }
@@ -396,14 +396,14 @@
         "source": {
           "id": "source_table_schema",
           "label": "schema_variants.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/schema_variants.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/schema_variants.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/schema_variants.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/schema_variants.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/schema_variants.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/schema_variants.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -414,7 +414,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/schema_variants.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/schema_variants.csv');"
           }
         }
       },
@@ -466,14 +466,14 @@
         "source": {
           "id": "source_table_test_zones",
           "label": "test_prediction_zones.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/test_prediction_zones.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/test_prediction_zones.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/test_prediction_zones.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/test_prediction_zones.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/test_prediction_zones.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/test_prediction_zones.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -484,7 +484,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/test_prediction_zones.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/test_prediction_zones.csv');"
           }
         }
       },
@@ -536,14 +536,14 @@
         "source": {
           "id": "source_table_profile",
           "label": "profile_sample.csv",
-          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/profile_sample.csv",
+          "path": "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/profile_sample.csv",
           "query": {
-            "description": "Read reviewed aggregate rows from analysis/profile_sample.csv.",
+            "description": "Read reviewed aggregate rows from analysis/data-quality/profile_sample.csv.",
             "engine": "duckdb",
             "language": "sql",
             "executed_at": "2026-06-28T16:20:17",
             "tables_used": [
-              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/profile_sample.csv"
+              "/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/profile_sample.csv"
             ],
             "filters": [
               "Aggregate artifact table generated from local Kaggle CSV files."
@@ -554,7 +554,7 @@
               "Missing rate is missing_rows divided by total rows at the relevant split/file/column grain.",
               "Prediction share is prediction_rows divided by total horizontal rows for each well."
             ],
-            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/profile_sample.csv');"
+            "sql": "SELECT * FROM read_csv_auto('/Users/flexonafft/MLKaggleTasks/competitions/public-comp/wellbore-geology-prediction/analysis/data-quality/profile_sample.csv');"
           }
         }
       }

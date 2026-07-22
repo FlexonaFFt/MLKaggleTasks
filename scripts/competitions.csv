@@ -1,22 +1,22 @@
 title,slug,project_path,rank,total,best_score,metric,score_order,source,last_synced
 Predicting Students Test Score,,competitions/predicting-students-test-scores,624,1741,,,,manual,
-Thermophysical Property: Melting Point,melting-point,competitions/thermophysical-melting-point,309,1177,35.59526,,,kaggle,2026-07-17 16:12
-LLM Classification,llm-classification-finetuning,competitions/llm-classification-finetuning,153,247,1.07413,,,kaggle,2026-07-17 16:12
-Astronomical Classification,mallorn-astronomical-classification-challenge,competitions/astronomical-classification,285,894,0.5864,,,kaggle,2026-07-17 16:12
+Thermophysical Property: Melting Point,melting-point,competitions/thermophysical-melting-point,309,1177,35.59526,,,kaggle,2026-07-22 15:05
+LLM Classification,llm-classification-finetuning,competitions/llm-classification-finetuning,153,232,1.07413,,,kaggle,2026-07-22 15:05
+Astronomical Classification,mallorn-astronomical-classification-challenge,competitions/astronomical-classification,285,894,0.5864,,,kaggle,2026-07-22 15:05
 Predicting Heart Disease,2026-ptnk-ai-predicting-heart-disease,competitions/predicting-heart-disease,70,536,,,,manual,
-M5 Forecasting Accuracy,m5-forecasting-accuracy,,,5582,,,,kaggle,2026-07-17 16:12
-Santa 2025,santa-2025,,,3359,,,,kaggle,2026-07-17 16:12
-Deep Past Initiative Machine Translation,deep-past-initiative-machine-translation,,,2675,,,,kaggle,2026-07-17 16:12
-Rental Product Recommendation System,rental-product-recommendation-system,,,278,,,,kaggle,2026-07-17 16:12
-Playground Series S6E2,playground-series-s6e2,,2407,4371,0.95323,,,kaggle,2026-07-17 16:12
-Playground Series S6E1,playground-series-s6e1,,,4319,8.76542,,,kaggle,2026-07-17 16:12
-Playground Series S6E4,playground-series-s6e4,,1602,4316,0.96735,,,kaggle,2026-07-17 16:12
-Playground Series S6E3,playground-series-s6e3,,2485,4143,0.91338,,,kaggle,2026-07-17 16:12
-Playground Series S5E11,playground-series-s5e11,,2010,3726,0.92150,,,kaggle,2026-07-17 16:12
-Playground Series S6E5,playground-series-s6e5,,303,3023,0.95453,,,kaggle,2026-07-17 16:12
-Biohub Cell Tracking During Development,biohub-cell-tracking-during-development,,168,1324,0.902,,,kaggle,2026-07-17 16:12
-Rogii Wellbore Geology Prediction,rogii-wellbore-geology-prediction,,,5107,16.714,,,kaggle,2026-07-17 16:12
-Ai Agent Security Multi Step Tool Attacks,ai-agent-security-multi-step-tool-attacks,,164,1998,76.230,,,kaggle,2026-07-17 16:12
-Playground Series S6E6,playground-series-s6e6,,66,2817,0.97259,,,kaggle,2026-07-17 16:12
-Playground Series S6E7,playground-series-s6e7,,13,2031,0.95238,,,kaggle,2026-07-17 16:12
-5 Day Ai Agents Intensive Vibecoding Course With Google,5-day-ai-agents-intensive-vibecoding-course-with-google,,,0,,,,kaggle,2026-07-17 16:12
+M5 Forecasting Accuracy,m5-forecasting-accuracy,,,5582,,,,kaggle,2026-07-22 15:05
+Santa 2025,santa-2025,,,3359,,,,kaggle,2026-07-22 15:05
+Deep Past Initiative Machine Translation,deep-past-initiative-machine-translation,,,2675,,,,kaggle,2026-07-22 15:05
+Rental Product Recommendation System,rental-product-recommendation-system,,,278,,,,kaggle,2026-07-22 15:05
+Playground Series S6E2,playground-series-s6e2,,2407,4371,0.95323,,,kaggle,2026-07-22 15:05
+Playground Series S6E1,playground-series-s6e1,,,4319,8.76542,,,kaggle,2026-07-22 15:06
+Playground Series S6E4,playground-series-s6e4,,1602,4316,0.96735,,,kaggle,2026-07-22 15:06
+Playground Series S6E3,playground-series-s6e3,,2485,4143,0.91338,,,kaggle,2026-07-22 15:06
+Playground Series S5E11,playground-series-s5e11,,2010,3726,0.92150,,,kaggle,2026-07-22 15:06
+Playground Series S6E5,playground-series-s6e5,,303,3023,0.95453,,,kaggle,2026-07-22 15:06
+Biohub Cell Tracking During Development,biohub-cell-tracking-during-development,,297,1516,0.926,,,kaggle,2026-07-22 15:06
+Rogii Wellbore Geology Prediction,rogii-wellbore-geology-prediction,,,5448,16.714,,,kaggle,2026-07-22 15:06
+Ai Agent Security Multi Step Tool Attacks,ai-agent-security-multi-step-tool-attacks,,375,2225,83.610,,,kaggle,2026-07-22 15:06
+Playground Series S6E6,playground-series-s6e6,,66,2817,0.97259,,,kaggle,2026-07-22 15:06
+Playground Series S6E7,playground-series-s6e7,,84,2489,0.95238,,,kaggle,2026-07-22 15:06
+5 Day Ai Agents Intensive Vibecoding Course With Google,5-day-ai-agents-intensive-vibecoding-course-with-google,,,0,,,,kaggle,2026-07-22 15:06

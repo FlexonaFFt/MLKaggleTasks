@@ -22,7 +22,7 @@ import numpy as np, pandas as pd
 warnings.filterwarnings('ignore')
 
 def find_root():
-    roots=[Path('/kaggle/input/competitions/rogii-wellbore-geology-prediction'),Path('/kaggle/input/rogii-wellbore-geology-prediction'),Path.cwd()/'datasets',Path.cwd().parent/'datasets',Path.cwd().parents[1]/'datasets']
+    roots=[Path('/kaggle/input/competitions/rogii-wellbore-geology-prediction'),Path('/kaggle/input/rogii-wellbore-geology-prediction'),Path.cwd()/'datasets',*(parent/'datasets' for parent in list(Path.cwd().parents)[:4])]
     return next((p for p in roots if (p/'train').exists() and (p/'test').exists()),None)
 ROOT=find_root()
 if ROOT is None: raise FileNotFoundError('dataset root not found')

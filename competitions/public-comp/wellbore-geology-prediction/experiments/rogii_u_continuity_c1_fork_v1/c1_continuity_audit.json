@@ -1,0 +1,16 @@
+{
+  "base_c0_sha256": "50515fc1f872c9836e6d63a1990419ebf32316fe4521e654270b8e389a9199a3",
+  "changed_rows": 11043,
+  "clipped_wells": 1,
+  "final_c1_sha256": "1209045039a57c86359acb30dd8bb20799c0ff7047da2f193c813adbde8be111",
+  "first_hidden_points_preserved": true,
+  "max_abs_move_ft": 1.0,
+  "max_move_cap_ft": 1.0,
+  "mean_abs_move_ft": 0.03194117306321605,
+  "method": "bounded C1 U-continuity",
+  "rows": 14151,
+  "score_status": "UNSUBMITTED_NOTEBOOK_RUN",
+  "tau_md_ft": 120.0,
+  "wells": 3,
+  "window_md_ft": 240.0
+}

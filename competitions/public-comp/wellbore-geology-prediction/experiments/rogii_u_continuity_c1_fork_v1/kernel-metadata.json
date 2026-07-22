@@ -1,0 +1,20 @@
+{
+  "id": "flexonafft/rogii-u-continuity-c1-fork-v1",
+  "title": "ROGII U-Continuity C1 Fork V1",
+  "code_file": "rogii_u_continuity_c1_fork_v1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": [
+    "rogii-wellbore-geology-prediction"
+  ],
+  "kernel_sources": [
+    "fleongg/rogii-f594-continuity8"
+  ],
+  "model_sources": []
+}

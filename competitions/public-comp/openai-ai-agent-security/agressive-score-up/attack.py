@@ -85,7 +85,7 @@ SLOWEST0 = 24.0
 # returned candidates is a direct (not estimated) measure of their replay cost,
 # self-calibrating per model (gpt ~10s/cand -> ~770; gemma ~6s/cand -> ~1266).
 REPLAY_BUDGET_S = 9000.0
-REPLAY_SAFE = 0.99  # 8910s cap, leaving a nominal 90s replay margin
+REPLAY_SAFE = 0.985  # 8865s cap, adding 45s replay margin vs 0.99
 
 # v24's three PROVEN templates only (v24 scored 87.9 with these).  The aggressive
 # open-commentary / <|constrain|> forms from v25 are intentionally REMOVED: they

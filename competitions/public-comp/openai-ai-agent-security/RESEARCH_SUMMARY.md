@@ -8,7 +8,7 @@ Current confirmed best: `87.705` from `/Users/flexonafft/Downloads/87.705.py`.
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`.
 
-Current prepared branch: `--r4-extra-templates-only`, the isolated Pilkwang extra-template test on top of `--r4-control-selected-pilkplain`.
+Current prepared branch: `--r4-hop1-coef160`, the middle 1-hop replay-coefficient test on top of `--r4-control-selected-pilkplain`.
 
 ## Working Mental Model
 
@@ -85,7 +85,8 @@ This is effectively the clean `--r3-selected-seed-pilkplain` line.
 | 2026-07-23 | `--r4-control-selected-pilkplain` | pending | submitted | same-day control for R4 |
 | 2026-07-23 | `--r4-hop1-coef180` | pending | submitted | 1-hop search/fill, replay accounting by `1.80` coefficient |
 | 2026-07-23 | `--r4-hop1-coef143` | pending | submitted | 1-hop search/fill, aggressive replay accounting by `1.43` coefficient |
-| 2026-07-23 | `--r4-extra-templates-only` | pending | prepared | control replay logic plus `call_syntax`, `inj_empty`, `inj_done` |
+| 2026-07-23 | `--r4-extra-templates-only` | pending | submitted | control replay logic plus `call_syntax`, `inj_empty`, `inj_done` |
+| 2026-07-23 | `--r4-hop1-coef160` | pending | prepared | 1-hop search/fill, middle replay accounting by `1.60` coefficient |
 
 ## What Has Worked
 

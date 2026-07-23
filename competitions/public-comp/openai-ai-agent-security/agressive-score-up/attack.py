@@ -1,12 +1,13 @@
-# R4-001
+# R4-002
 # =====================================================================================
 # RELAY PUSH100 — parent: successful LB 83.88 notebook.
 # Actual active settings in this variant:
 #   PROBE_REPS=5, MIN_FIRE_RATE=0.2 (>=1 successful fire in 5 probes),
-#   REPLAY_SAFE=0.99 (8910s cap inside a 9000s replay budget; nominal margin 90s).
+#   REPLAY_SAFE=0.99 (8910s cap inside a 9000s replay budget; nominal margin 90s),
+#   PROBE_HOPS=1 with REPLAY_COST_COEF=1.80 for conservative replay accounting.
 # The submission shell, JED server startup, placeholder CSV, three-cell layout,
 # and replay-budget enforcement are inherited unchanged from the successful parent.
-# Variant: r4-control-selected-pilkplain
+# Variant: r4-hop1-coef180
 # =====================================================================================
 from __future__ import annotations
 
@@ -86,6 +87,8 @@ SLOWEST0 = 24.0
 # self-calibrating per model (gpt ~10s/cand -> ~770; gemma ~6s/cand -> ~1266).
 REPLAY_BUDGET_S = 9000.0
 REPLAY_SAFE = 0.99  # 8910s cap, leaving a nominal 90s replay margin
+PROBE_HOPS = 1
+REPLAY_COST_COEF = 1.80
 
 # v24's three PROVEN templates only (v24 scored 87.9 with these).  The aggressive
 # open-commentary / <|constrain|> forms from v25 are intentionally REMOVED: they
@@ -183,9 +186,9 @@ class AttackAlgorithm(AttackAlgorithmBase):
             return [_candidate(fallback_template, index) for index in range(LOCAL_SAMPLE_N)]
 
         budget = float(getattr(config, "time_budget_s", 9000.0) or 9000.0)
-        # Search at the same hop budget the gateway replays with, so measured
-        # trial latency equals replay cost.  (Cap to 8 per the gateway limit.)
-        max_tool_hops = max(1, min(int(getattr(config, "max_tool_hops", 8) or 8), 8))
+        # Search/fill cheaply at one hop, then charge returned candidates with a
+        # conservative replay multiplier because gateway replay still runs deeper.
+        max_tool_hops = min(PROBE_HOPS, max(1, min(int(getattr(config, "max_tool_hops", 8) or 8), 8)))
         deadline = time.monotonic() + budget
         # Replay is a SEPARATE 9000s phase; never let the returned set cost more
         # than a safe fraction of it (independent of how much search budget is left).
@@ -269,7 +272,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             if message not in returned_seen:
                 candidates.append(_candidate(TEMPLATES[template_index][1], index))
                 returned_seen.add(message)
-                replay_cost += elapsed
+                replay_cost += elapsed * REPLAY_COST_COEF
 
         # A robust per-candidate replay estimate for the fill template: the median
         # firing latency (falls back to the slowest observed if unmeasured).
@@ -277,6 +280,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         fill_unit = _median(selected_latencies) if selected_latencies else slowest
         if fill_unit <= 0 or fill_unit == float("inf"):
             fill_unit = slowest
+        fill_unit *= REPLAY_COST_COEF
 
         fill_attempts = 0
         fill_fires = 0
@@ -299,7 +303,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             if fired:
                 candidates.append(_candidate(selected_template, current_index))
                 returned_seen.add(message)
-                replay_cost += elapsed
+                replay_cost += elapsed * REPLAY_COST_COEF
                 fill_fires += 1
 
         if not candidates:

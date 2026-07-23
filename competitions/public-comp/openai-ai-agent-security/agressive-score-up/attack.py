@@ -1,13 +1,13 @@
-# R4-002
+# R4-003
 # =====================================================================================
 # RELAY PUSH100 — parent: successful LB 83.88 notebook.
 # Actual active settings in this variant:
 #   PROBE_REPS=5, MIN_FIRE_RATE=0.2 (>=1 successful fire in 5 probes),
 #   REPLAY_SAFE=0.99 (8910s cap inside a 9000s replay budget; nominal margin 90s),
-#   PROBE_HOPS=1 with REPLAY_COST_COEF=1.80 for conservative replay accounting.
+#   PROBE_HOPS=1 with REPLAY_COST_COEF=1.43 for aggressive replay accounting.
 # The submission shell, JED server startup, placeholder CSV, three-cell layout,
 # and replay-budget enforcement are inherited unchanged from the successful parent.
-# Variant: r4-hop1-coef180
+# Variant: r4-hop1-coef143
 # =====================================================================================
 from __future__ import annotations
 
@@ -88,7 +88,7 @@ SLOWEST0 = 24.0
 REPLAY_BUDGET_S = 9000.0
 REPLAY_SAFE = 0.99  # 8910s cap, leaving a nominal 90s replay margin
 PROBE_HOPS = 1
-REPLAY_COST_COEF = 1.80
+REPLAY_COST_COEF = 1.43
 
 # v24's three PROVEN templates only (v24 scored 87.9 with these).  The aggressive
 # open-commentary / <|constrain|> forms from v25 are intentionally REMOVED: they

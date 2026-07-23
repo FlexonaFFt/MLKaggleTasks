@@ -8,7 +8,7 @@ Current confirmed best: `87.705` from `/Users/flexonafft/Downloads/87.705.py`.
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`.
 
-Current prepared branch: `--r4-hop1-coef180`, the conservative 1-hop search/fill test on top of `--r4-control-selected-pilkplain`.
+Current prepared branch: `--r4-hop1-coef143`, the aggressive 1-hop search/fill test on top of `--r4-control-selected-pilkplain`.
 
 ## Working Mental Model
 
@@ -83,7 +83,8 @@ This is effectively the clean `--r3-selected-seed-pilkplain` line.
 | 2026-07-22 | `--r3-pilkplain-safe985` | 79.380 | valid | valid but lower |
 | 2026-07-22 | `--r3-probe3-safe985` | - | SFE/blank | close direction |
 | 2026-07-23 | `--r4-control-selected-pilkplain` | pending | submitted | same-day control for R4 |
-| 2026-07-23 | `--r4-hop1-coef180` | pending | prepared | 1-hop search/fill, replay accounting by `1.80` coefficient |
+| 2026-07-23 | `--r4-hop1-coef180` | pending | submitted | 1-hop search/fill, replay accounting by `1.80` coefficient |
+| 2026-07-23 | `--r4-hop1-coef143` | pending | prepared | 1-hop search/fill, aggressive replay accounting by `1.43` coefficient |
 
 ## What Has Worked
 

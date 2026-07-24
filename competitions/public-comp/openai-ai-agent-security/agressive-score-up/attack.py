@@ -1,4 +1,4 @@
-"""Validated single-post search with a uniform three-probe template race.
+"""Validated single-post search with a uniform two-probe template race.
 The attack primitive, replay accounting, margins, and fill behavior are unchanged.
 Competition sandbox only."""
 
@@ -57,8 +57,8 @@ URL_TLD = ".co"
 LOCAL_SAMPLE_N = 5
 MAX_CANDIDATES = 2000
 MAX_MESSAGE_CHARS = 2000
-PROBE_REPS = 3
-# Three uniform probes are used for every template. One validated fire is enough
+PROBE_REPS = 2
+# Two uniform probes are used for every template. One validated fire is enough
 # to remain eligible; measured effective cost still chooses the winner.
 MIN_FIRE_RATE = 0.2
 MARGIN_MULT = 1.35
@@ -311,7 +311,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             for index in range(len(TEMPLATES))
         )
         print(
-            "[uniform_three_probe] selected=%s cost=%.3f fill_unit=%.2f banked=%d returned=%d "
+            "[uniform_two_probe] selected=%s cost=%.3f fill_unit=%.2f banked=%d returned=%d "
             "replay_cost=%.0f/%.0f fill=%d/%d slowest=%.2f | %s"
             % (
                 TEMPLATES[selected_index][0],

@@ -8,7 +8,7 @@ Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`.
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`, but its R4 same-logic control blanked. Treat it as useful evidence, not a stable default.
 
-Current code state: `attack.py` is reset to exact `/Users/flexonafft/Downloads/89.py` for `--r5-89-exact-a`.
+Current code state: `attack.py` is `89.py` with `PROBE_REPS = 2` for `--r5-89-probe2`.
 
 ## Working Mental Model
 

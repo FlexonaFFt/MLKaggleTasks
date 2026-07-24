@@ -1,14 +1,14 @@
 # AI Agent Security - Research Summary
 
-Last updated: 2026-07-23.
+Last updated: 2026-07-24.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
-Current confirmed best: `87.705` from `/Users/flexonafft/Downloads/87.705.py`.
+Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`.
 
-Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`.
+Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`, but its R4 same-logic control blanked. Treat it as useful evidence, not a stable default.
 
-Current prepared branch: `--r4-hop1-coef160`, the middle 1-hop replay-coefficient test on top of `--r4-control-selected-pilkplain`.
+Current code state: `attack.py` is reset to exact `/Users/flexonafft/Downloads/89.py` for `--r5-89-exact-a`.
 
 ## Working Mental Model
 
@@ -38,7 +38,7 @@ Before every Kaggle submission:
 5. Dry-run `AttackAlgorithm().run(None, config)` and check 5 one-message candidates.
 6. Use a descriptive submission label.
 
-## Current Recommended Branch
+## Current Recovery Baseline
 
 Use this as the next starting point unless a new public notebook gives a stronger reason:
 
@@ -46,14 +46,13 @@ Use this as the next starting point unless a new public notebook gives a stronge
 - single-post EXFIL with `SECRET_MARKER` in `http.post` data
 - short `http://aa.co` style hosts
 - live template probing
-- `PROBE_REPS = 5`
+- `PROBE_REPS = 3`
 - `REPLAY_SAFE = 0.99`
-- selected-arm seed only
-- Pilkwang-style natural language `plain`
+- start from `/Users/flexonafft/Downloads/89.py` or a carefully reset clean branch
 - old binary `_effective_cost` selector, not `raw/sec`
 - old all-selected-latency `fill_unit`, not fired-only fill pacing
 
-This is effectively the clean `--r3-selected-seed-pilkplain` line.
+Do not rebuild from failed R4 branches.
 
 ## Submission History
 
@@ -82,11 +81,12 @@ This is effectively the clean `--r3-selected-seed-pilkplain` line.
 | 2026-07-22 | `--r3-selected-seed-pilkplain` | 82.080 | valid | best recent branch |
 | 2026-07-22 | `--r3-pilkplain-safe985` | 79.380 | valid | valid but lower |
 | 2026-07-22 | `--r3-probe3-safe985` | - | SFE/blank | close direction |
-| 2026-07-23 | `--r4-control-selected-pilkplain` | pending | submitted | same-day control for R4 |
-| 2026-07-23 | `--r4-hop1-coef180` | pending | submitted | 1-hop search/fill, replay accounting by `1.80` coefficient |
-| 2026-07-23 | `--r4-hop1-coef143` | pending | submitted | 1-hop search/fill, aggressive replay accounting by `1.43` coefficient |
-| 2026-07-23 | `--r4-extra-templates-only` | pending | submitted | control replay logic plus `call_syntax`, `inj_empty`, `inj_done` |
-| 2026-07-23 | `--r4-hop1-coef160` | pending | prepared | 1-hop search/fill, middle replay accounting by `1.60` coefficient |
+| 2026-07-23 | `--r4-control-selected-pilkplain` | - | SFE/blank | same-day control failed; `selected-seed + pilkplain` is unstable at this cap |
+| 2026-07-23 | `--r4-hop1-coef180` | 75.285 | valid | 1-hop passed but scored poorly |
+| 2026-07-23 | `--r4-hop1-coef143` | - | SFE/blank | aggressive 1-hop accounting failed |
+| 2026-07-23 | `--r4-extra-templates-only` | 76.995 | valid | extra templates hurt |
+| 2026-07-23 | `--r4-hop1-coef160` | - | SFE/blank | middle 1-hop accounting failed |
+| 2026-07-24 | external / downloaded `89.py` | ~89 | valid | same five templates as `87.705`, main behavior change is `PROBE_REPS=3`; new baseline |
 
 ## What Has Worked
 
@@ -97,10 +97,11 @@ This is effectively the clean `--r3-selected-seed-pilkplain` line.
 | Short `.co` URLs | baseline and Pilkwang branches | yes |
 | Live template probing | adapts across replay models | yes |
 | Replay-safe sizing by measured latency | necessary for non-blank runs | yes |
-| `PROBE_REPS = 5` | more stable than `3` in our tests | yes |
+| `PROBE_REPS = 3` in the exact uniform branch | `89.py` improved over `87.705` by reducing probe overhead | yes |
+| `PROBE_REPS = 5` | still useful as older stability control | control only |
 | `REPLAY_SAFE = 0.99` | best risk/reward when it lands | yes, but risky |
 | Selected-arm seed only | `81.495` R2 and part of `82.080` R3 | yes |
-| Pilkwang-style natural language `plain` | clean combo scored `82.080`; standalone safe scored `79.380` | yes, with selected-seed |
+| Pilkwang-style natural language `plain` | clean combo scored `82.080`; R4 control blanked | maybe, but not a stable default |
 
 ## Closed Or Low-EV Directions
 
@@ -108,8 +109,10 @@ This is effectively the clean `--r3-selected-seed-pilkplain` line.
 |---|---|
 | `raw/sec` selector | `73.665`; likely overcounts noisy multi-EXFIL traces or rewards slow candidates. |
 | Fired-only `fill_unit` | SFE/blank; likely underestimates replay cost. |
-| `PROBE_REPS = 3` | SFE/blank in our branch; less stable than expected. |
+| Mixed `PROBE_REPS = 3` branches | SFE/blank happened when mixed with selected-bank / safety changes; exact `89.py` is not closed. |
 | `REPLAY_SAFE = 0.985` as generic fix | did not save old plain; valid Pilkwang-safe branch scored lower. |
+| 1-hop search/fill with replay coefficients | `1.80` valid but only `75.285`; `1.43` and `1.60` blanked. Close direction. |
+| Extra Pilkwang templates: `call_syntax`, `inj_empty`, `inj_done` | `76.995`; valid but worse than control-quality branches. Close direction. |
 | Short suppress text: `OK`, `Routine call; no analysis.` | scored worse: `72.990` and `71.865`. |
 | Removing useful templates too early | lost fallback diversity. |
 | `90th percentile fill_unit` | scored `74.925`, likely over-conservative. |
@@ -126,27 +129,39 @@ Fresh public notebooks checked on 2026-07-23:
 
 - `pilkwang/ai-agent-v3-1-2-single-post-exfiltration`
 - `kaiwalyaatulraut/ai-agent-security-competition-solution`
+- `kaiwalyaatulraut/ai-agent-security-solution`
 - `tetsutani/ai-agent-sec-adaptive-uniform-three-probe-race`
 
 Notes:
 
 - Pilkwang is still the most relevant source because our best R3 branch confirms selected-seed + Pilkwang plain are compatible.
 - Tetsutani's three-probe idea did not transfer cleanly to our branch (`--r3-probe3-safe985` blanked), so it should not be copied blindly.
+- Kaiwalya's solution decodes to the same `uniform_three_probe` attack as Tetsutani: `PROBE_REPS=3`, old plain, all-bank seed, no selected-bank, no Pilkwang plain, no 1-hop. This exact branch has not been cleanly tested in our submissions.
 - Any new public code needs source-level diffing, not just copying parameters.
 
 ## Next Useful Directions
 
 Best practical next steps:
 
-1. Reset `attack.py` to the clean `--r3-selected-seed-pilkplain` branch before further experiments.
-2. Inspect the latest 2026-07-23 Pilkwang notebook source and diff it against our branch.
-3. Spend at most one attempt on a repeat of `--r3-selected-seed-pilkplain` to measure same-day noise.
-4. Use remaining attempts only on one-change experiments against that branch.
+1. Reset `attack.py` away from `--r4-hop1-coef160`.
+2. Rebuild from `/Users/flexonafft/Downloads/89.py` or another confirmed stable baseline.
+3. Stop spending attempts on Pilkwang extra templates, 1-hop accounting, raw/sec, fired-only fill, and mixed three-probe variants.
+4. Repeat exact `89.py` before trying new hybrids; run noise is large enough that repeats are useful.
+5. Look for a genuinely new public mechanism or a safer replay-cap strategy before more speculative submissions.
+
+Today's planned R5 attempts:
+
+| Order | Label | Source | Change | Purpose |
+|---:|---|---|---|---|
+| 1 | `--r5-89-exact-a` | `/Users/flexonafft/Downloads/89.py` | none | confirm / repeat new best baseline |
+| 2 | `--r5-89-exact-b` | `/Users/flexonafft/Downloads/89.py` | none | exploit run variance on strongest branch |
+| 3 | `--r5-89-probe2` | `89.py` | `PROBE_REPS=2` | one controlled upside test: less probe overhead, noisier selector |
+| 4 | `--r5-89-safe985` | `89.py` | `REPLAY_SAFE=0.985` | safer replay cap, likely slightly lower score |
+| 5 | `--r5-087705-control` | `/Users/flexonafft/Downloads/87.705.py` | none | old strong-control fallback |
 
 Reasonable experiment candidates:
 
-- Pilkwang latest diff: import only one clearly useful change if present.
-- Conservative valid-score branch: same as `selected-seed-pilkplain`, but slightly lower cap such as `REPLAY_SAFE = 0.975` or `0.98`; likely lower score, useful only if we need a guaranteed valid run.
+- Conservative valid-score branch from the original `87.705.py`, not from the failed R4 code.
 - Selector priority branch: keep binary `_effective_cost`, but add explicit deterministic preference for historically strong templates when costs tie.
 - Candidate-text micro-branch: compare only `plain` wording while keeping all replay logic identical.
 - Exact-EXFIL counting branch: count only traces that include the selected URL and marker; this could reduce false optimism, but may also shrink throughput.
@@ -159,6 +174,6 @@ What we may be missing:
 
 ## Strategic Read
 
-The recent experiments are not bad because they scored below `87.705`; they are useful because they closed several tempting branches. We now know the biggest mistake would be continuing to tune around `rawsec`, fired-only pacing, or three-probe probing.
+The recent experiments are useful because they closed several tempting branches. We now know the biggest mistake would be continuing to tune around `rawsec`, fired-only pacing, three-probe probing, 1-hop replay coefficients, or extra Pilkwang templates.
 
 To reach 100+, the current single-post approach needs about 14% more effective throughput. Small safety and wording changes are unlikely to create that alone. The next real upside must come from either a lower-latency prompt/tool-call pattern or a new public-code mechanism that increases fired candidates without increasing replay cost.

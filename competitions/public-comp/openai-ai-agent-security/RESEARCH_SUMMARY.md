@@ -4,11 +4,11 @@ Last updated: 2026-07-24.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
-Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`.
+Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`, but R5 could not reproduce it in our notebook shell.
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`, but its R4 same-logic control blanked. Treat it as useful evidence, not a stable default.
 
-Current code state: `attack.py` is exact `/Users/flexonafft/Downloads/87.705.py` for `--r5-087705-control`.
+Current code state: `attack.py` is Yusuke 70/30 mix with `REPLAY_SAFE = 0.90` for `--r6-yusuke-mix90`.
 
 ## Working Mental Model
 
@@ -87,6 +87,11 @@ Do not rebuild from failed R4 branches.
 | 2026-07-23 | `--r4-extra-templates-only` | 76.995 | valid | extra templates hurt |
 | 2026-07-23 | `--r4-hop1-coef160` | - | SFE/blank | middle 1-hop accounting failed |
 | 2026-07-24 | external / downloaded `89.py` | ~89 | valid | same five templates as `87.705`, main behavior change is `PROBE_REPS=3`; new baseline |
+| 2026-07-24 | `--r5-89-exact-a` | - | SFE/blank | exact `89.py`; blank means the high-cap branch is not reproducible enough |
+| 2026-07-24 | `--r5-89-exact-b` | - | SFE/blank | exact repeat also blanked; not just one bad run |
+| 2026-07-24 | `--r5-89-probe2` | - | SFE/blank | lower probe overhead did not solve replay invalidation |
+| 2026-07-24 | `--r5-89-safe985` | - | SFE/blank | `0.985` only adds 45s margin vs `0.99`; insufficient |
+| 2026-07-24 | `--r5-087705-control` | - | SFE/blank | old control also blanked; current failure is systemic/high-cap replay risk |
 
 ## What Has Worked
 
@@ -97,7 +102,7 @@ Do not rebuild from failed R4 branches.
 | Short `.co` URLs | baseline and Pilkwang branches | yes |
 | Live template probing | adapts across replay models | yes |
 | Replay-safe sizing by measured latency | necessary for non-blank runs | yes |
-| `PROBE_REPS = 3` in the exact uniform branch | `89.py` improved over `87.705` by reducing probe overhead | yes |
+| `PROBE_REPS = 3` in the exact uniform branch | external `89.py` improved over `87.705`, but R5 repeats blanked | only with safer replay cap |
 | `PROBE_REPS = 5` | still useful as older stability control | control only |
 | `REPLAY_SAFE = 0.99` | best risk/reward when it lands | yes, but risky |
 | Selected-arm seed only | `81.495` R2 and part of `82.080` R3 | yes |
@@ -110,6 +115,7 @@ Do not rebuild from failed R4 branches.
 | `raw/sec` selector | `73.665`; likely overcounts noisy multi-EXFIL traces or rewards slow candidates. |
 | Fired-only `fill_unit` | SFE/blank; likely underestimates replay cost. |
 | Mixed `PROBE_REPS = 3` branches | SFE/blank happened when mixed with selected-bank / safety changes; exact `89.py` is not closed. |
+| `REPLAY_SAFE = 0.985` | R5 blanked; this is too close to `0.99` to be a real safety move. |
 | `REPLAY_SAFE = 0.985` as generic fix | did not save old plain; valid Pilkwang-safe branch scored lower. |
 | 1-hop search/fill with replay coefficients | `1.80` valid but only `75.285`; `1.43` and `1.60` blanked. Close direction. |
 | Extra Pilkwang templates: `call_syntax`, `inj_empty`, `inj_done` | `76.995`; valid but worse than control-quality branches. Close direction. |
@@ -125,18 +131,25 @@ Do not rebuild from failed R4 branches.
 
 ## Current Kaggle Watchlist
 
-Fresh public notebooks checked on 2026-07-23:
+Fresh public notebooks checked on 2026-07-25:
 
 - `pilkwang/ai-agent-v3-1-2-single-post-exfiltration`
+- `canqiang/aiagsec-ea-b-0721`
+- `foysalemonshanto/ai-agent-security-v12`
+- `dimong4/ai-agent-security`
+- `nikitagajbhiye30/ai-security-0011`
+- `tiktoktrendz/jed-submission`
 - `kaiwalyaatulraut/ai-agent-security-competition-solution`
 - `kaiwalyaatulraut/ai-agent-security-solution`
 - `tetsutani/ai-agent-sec-adaptive-uniform-three-probe-race`
 
 Notes:
 
-- Pilkwang is still the most relevant source because our best R3 branch confirms selected-seed + Pilkwang plain are compatible.
-- Tetsutani's three-probe idea did not transfer cleanly to our branch (`--r3-probe3-safe985` blanked), so it should not be copied blindly.
-- Kaiwalya's solution decodes to the same `uniform_three_probe` attack as Tetsutani: `PROBE_REPS=3`, old plain, all-bank seed, no selected-bank, no Pilkwang plain, no 1-hop. This exact branch has not been cleanly tested in our submissions.
+- Pilkwang v3.1.2, Canqiang, and Foysal are the same practical family: live validation-fill, latency split, `FRAME_TEMPLATE`, `REPLAY_SAFE_SIZING=True`, `REPLAY_SAFE_FRAC=0.97`, `PROBE_HOPS=0`, `REPLAY_COST_COEF=1.0`.
+- Kaiwalya and Nikita decode to the same `uniform_three_probe` attack: `PROBE_REPS=3`, `REPLAY_SAFE=0.99`, old plain, all-bank seed, no selected-bank, no Pilkwang plain, no 1-hop. Our R5 exact repeats blanked, so this is not a recovery default.
+- Dimong4 is another simplified `uniform_three_probe` branch with `PROBE_REPS=3`, `MARGIN_S=50`, `REPLAY_SAFE=0.99`; useful as reference, not as recovery after R5.
+- Tiktoktrendz is complex and not a direct copy target, but its safety settings are informative: `REPLAY_SAFE=0.90`, `MIN_FIRE_RATE=0.8`, `SLOWEST0=45`, `MARGIN_MULT=1.4`.
+- Current public-code signal favors real safety margins (`0.90`-`0.97`) and dual wall/replay caps, not our `0.99`/`0.985` high-cap repeats.
 - Any new public code needs source-level diffing, not just copying parameters.
 
 ## Next Useful Directions
@@ -144,9 +157,9 @@ Notes:
 Best practical next steps:
 
 1. Reset `attack.py` away from `--r4-hop1-coef160`.
-2. Rebuild from `/Users/flexonafft/Downloads/89.py` or another confirmed stable baseline.
-3. Stop spending attempts on Pilkwang extra templates, 1-hop accounting, raw/sec, fired-only fill, and mixed three-probe variants.
-4. Repeat exact `89.py` before trying new hybrids; run noise is large enough that repeats are useful.
+2. Rebuild from a conservative valid branch before trying more score-up variants.
+3. Stop spending attempts on high-cap `0.99` / `0.985` repeats until a lower cap proves valid again.
+4. Treat `0.91`-style replay caps as the recovery zone; `0.985` is not materially safer.
 5. Look for a genuinely new public mechanism or a safer replay-cap strategy before more speculative submissions.
 
 Today's planned R5 attempts:
@@ -158,6 +171,12 @@ Today's planned R5 attempts:
 | 3 | `--r5-89-probe2` | `89.py` | `PROBE_REPS=2` | one controlled upside test: less probe overhead, noisier selector |
 | 4 | `--r5-89-safe985` | `89.py` | `REPLAY_SAFE=0.985` | safer replay cap, likely slightly lower score |
 | 5 | `--r5-087705-control` | `/Users/flexonafft/Downloads/87.705.py` | none | old strong-control fallback |
+
+All R5 attempts blanked. Next day should start with recovery, not upside:
+
+- exact conservative pipeline branch from `ultra-optimized-agressive-pipeline/attack.py` (`REPLAY_SAFE=0.91`)
+- `89.py` with a real safety cap such as `0.90`-`0.93`
+- only after a valid score, climb cap upward in coarse steps
 
 Reasonable experiment candidates:
 

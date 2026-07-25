@@ -1,12 +1,11 @@
-# R1-009
+# R1-024
 # =====================================================================================
-# RELAY PUSH100 — parent: successful LB 83.88 notebook.
-# Actual active settings in this variant:
-#   PROBE_REPS=5, MIN_FIRE_RATE=0.2 (>=1 successful fire in 5 probes),
-#   REPLAY_SAFE=0.99 (8910s cap inside a 9000s replay budget; nominal margin 90s).
-# The submission shell, JED server startup, placeholder CSV, three-cell layout,
-# and replay-budget enforcement are inherited unchanged from the successful parent.
-# Variant: behavior-preserving correction of stale comments only
+# Parent: confirmed 87.705 notebook.
+# One essence only: fixed 70/30 mixture of the best and second-best validated templates.
+# Both templates must pass the original 5-probe / 20% fire-rate gate.
+# The mixture is fixed from the start (not adaptive switching).
+# Replay estimate uses the slower of the two medians to remain conservative.
+# REPLAY_SAFE=0.90 recovery cap; probe count/order, URLs, predicates, bank, and submission shell unchanged.
 # =====================================================================================
 from __future__ import annotations
 
@@ -85,7 +84,7 @@ SLOWEST0 = 24.0
 # returned candidates is a direct (not estimated) measure of their replay cost,
 # self-calibrating per model (gpt ~10s/cand -> ~770; gemma ~6s/cand -> ~1266).
 REPLAY_BUDGET_S = 9000.0
-REPLAY_SAFE = 0.99  # 8910s cap, leaving a nominal 90s replay margin
+REPLAY_SAFE = 0.90  # 8100s cap, recovery margin after R5 high-cap blanks
 
 # v24's three PROVEN templates only (v24 scored 87.9 with these).  The aggressive
 # open-commentary / <|constrain|> forms from v25 are intentionally REMOVED: they
@@ -246,17 +245,19 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 trial(template_index, probe_index)
                 probe_index += 1
 
-        selected_index = FALLBACK_INDEX
-        selected_cost = float("inf")
+        eligible: list[tuple[float, int]] = []
         for template_index in range(len(TEMPLATES)):
             sample_count = len(latencies[template_index])
             fire_rate = fires[template_index] / sample_count if sample_count else 0.0
             if sample_count < PROBE_REPS or fire_rate < MIN_FIRE_RATE:
                 continue
-            cost = _effective_cost(latencies[template_index], fires[template_index])
-            if cost < selected_cost:
-                selected_index = template_index
-                selected_cost = cost
+            eligible.append((_effective_cost(latencies[template_index], fires[template_index]), template_index))
+        eligible.sort()
+
+        selected_cost, selected_index = (
+            eligible[0] if eligible else (float("inf"), FALLBACK_INDEX)
+        )
+        second_index = eligible[1][1] if len(eligible) > 1 else selected_index
 
         # Seed the returned set with the fired probe candidates, accumulating the
         # replay cost they will incur.
@@ -273,14 +274,18 @@ class AttackAlgorithm(AttackAlgorithmBase):
         # A robust per-candidate replay estimate for the fill template: the median
         # firing latency (falls back to the slowest observed if unmeasured).
         selected_latencies = latencies[selected_index]
-        fill_unit = _median(selected_latencies) if selected_latencies else slowest
+        second_latencies = latencies[second_index]
+        selected_unit = _median(selected_latencies) if selected_latencies else slowest
+        second_unit = _median(second_latencies) if second_latencies else selected_unit
+        # Conservative estimate: the mixture never assumes either validated template
+        # is faster than the slower measured median.
+        fill_unit = max(selected_unit, second_unit)
         if fill_unit <= 0 or fill_unit == float("inf"):
             fill_unit = slowest
 
         fill_attempts = 0
         fill_fires = 0
         fill_index = 0
-        selected_template = TEMPLATES[selected_index][1]
         # Stop when the RETURNED set's replay cost reaches the safe cap, or we run
         # out of the (separate) search budget, or hit the hard candidate cap.
         while (
@@ -288,15 +293,20 @@ class AttackAlgorithm(AttackAlgorithmBase):
             and len(candidates) < MAX_CANDIDATES
             and search_time_left()
         ):
-            message = _message(selected_template, fill_index)
+            # Seven best-template candidates followed by three second-best candidates.
+            # If only one template passed the gate, second_index equals selected_index.
+            cycle_position = fill_index % 10
+            current_template_index = selected_index if cycle_position < 7 else second_index
+            current_template = TEMPLATES[current_template_index][1]
+            message = _message(current_template, fill_index)
             current_index = fill_index
             fill_index += 1
             if message in returned_seen:
                 continue
             fill_attempts += 1
-            fired, elapsed = trial(selected_index, current_index)
+            fired, elapsed = trial(current_template_index, current_index)
             if fired:
-                candidates.append(_candidate(selected_template, current_index))
+                candidates.append(_candidate(current_template, current_index))
                 returned_seen.add(message)
                 replay_cost += elapsed
                 fill_fires += 1
@@ -322,10 +332,11 @@ class AttackAlgorithm(AttackAlgorithmBase):
             for index in range(len(TEMPLATES))
         )
         print(
-            "[v26_replaysafe] selected=%s cost=%.3f fill_unit=%.2f banked=%d returned=%d "
+            "[r6_yusuke_mix90] selected=%s second=%s cost=%.3f fill_unit=%.2f banked=%d returned=%d "
             "replay_cost=%.0f/%.0f fill=%d/%d slowest=%.2f | %s"
             % (
                 TEMPLATES[selected_index][0],
+                TEMPLATES[second_index][0],
                 selected_cost,
                 fill_unit,
                 len(bank),

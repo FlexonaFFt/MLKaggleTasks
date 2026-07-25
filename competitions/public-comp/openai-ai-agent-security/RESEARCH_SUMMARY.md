@@ -8,7 +8,7 @@ Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`, but
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`, but its R4 same-logic control blanked. Treat it as useful evidence, not a stable default.
 
-Current code state: `attack.py` is old conservative pipeline with `REPLAY_SAFE = 0.91` for `--r6-pipeline091`.
+Current code state: `attack.py` is `89.py` family with `REPLAY_SAFE = 0.90` for `--r6-89-safe90`.
 
 ## Working Mental Model
 

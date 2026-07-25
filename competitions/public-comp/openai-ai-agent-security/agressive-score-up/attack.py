@@ -5,7 +5,7 @@
 # Both templates must pass the original 5-probe / 20% fire-rate gate.
 # The mixture is fixed from the start (not adaptive switching).
 # Replay estimate uses the slower of the two medians to remain conservative.
-# REPLAY_SAFE=0.90 recovery cap; probe count/order, URLs, predicates, bank, and submission shell unchanged.
+# REPLAY_SAFE=0.93 recovery cap; probe count/order, URLs, predicates, bank, and submission shell unchanged.
 # =====================================================================================
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ SLOWEST0 = 24.0
 # returned candidates is a direct (not estimated) measure of their replay cost,
 # self-calibrating per model (gpt ~10s/cand -> ~770; gemma ~6s/cand -> ~1266).
 REPLAY_BUDGET_S = 9000.0
-REPLAY_SAFE = 0.90  # 8100s cap, recovery margin after R5 high-cap blanks
+REPLAY_SAFE = 0.93  # 8370s cap, recovery margin after R5 high-cap blanks
 
 # v24's three PROVEN templates only (v24 scored 87.9 with these).  The aggressive
 # open-commentary / <|constrain|> forms from v25 are intentionally REMOVED: they
@@ -332,7 +332,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             for index in range(len(TEMPLATES))
         )
         print(
-            "[r6_yusuke_mix90] selected=%s second=%s cost=%.3f fill_unit=%.2f banked=%d returned=%d "
+            "[r6_yusuke_mix93] selected=%s second=%s cost=%.3f fill_unit=%.2f banked=%d returned=%d "
             "replay_cost=%.0f/%.0f fill=%d/%d slowest=%.2f | %s"
             % (
                 TEMPLATES[selected_index][0],

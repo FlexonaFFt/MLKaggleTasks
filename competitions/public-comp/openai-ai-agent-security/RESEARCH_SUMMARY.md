@@ -8,7 +8,7 @@ Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`, but
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`, but its R4 same-logic control blanked. Treat it as useful evidence, not a stable default.
 
-Current code state: `attack.py` is Yusuke 70/30 mix with `REPLAY_SAFE = 0.93` for `--r6-yusuke-mix93`.
+Current code state: `attack.py` is Pilkwang v3.1.2 family with `REPLAY_SAFE_FRAC = 0.90` for `--r6-pilkv312-safe90`.
 
 ## Working Mental Model
 

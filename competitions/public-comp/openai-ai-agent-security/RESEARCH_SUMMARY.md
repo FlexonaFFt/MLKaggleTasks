@@ -8,7 +8,7 @@ Current confirmed best: about `89` from `/Users/flexonafft/Downloads/89.py`, but
 
 Best recent valid research branch: `--r3-selected-seed-pilkplain` with `82.080`, but its R4 same-logic control blanked. Treat it as useful evidence, not a stable default.
 
-Current code state: `attack.py` is `89.py` family with `REPLAY_SAFE = 0.90` for `--r6-89-safe90`.
+Current code state: `attack.py` is `89.py` family with `REPLAY_SAFE = 0.90` from `--r6-89-safe90`.
 
 ## Working Mental Model
 
@@ -92,6 +92,11 @@ Do not rebuild from failed R4 branches.
 | 2026-07-24 | `--r5-89-probe2` | - | SFE/blank | lower probe overhead did not solve replay invalidation |
 | 2026-07-24 | `--r5-89-safe985` | - | SFE/blank | `0.985` only adds 45s margin vs `0.99`; insufficient |
 | 2026-07-24 | `--r5-087705-control` | - | SFE/blank | old control also blanked; current failure is systemic/high-cap replay risk |
+| 2026-07-25 | `--r6-yusuke-mix90` | 66.645 | valid | Yusuke 70/30 mix at `REPLAY_SAFE=0.90`; valid but too conservative / weak |
+| 2026-07-25 | `--r6-yusuke-mix93` | 69.885 | valid | cap lift helped, but Yusuke mix still worse than baseline family |
+| 2026-07-25 | `--r6-pilkv312-safe90` | 72.225 | valid | Pilkwang v3.1.2 family at `REPLAY_SAFE_FRAC=0.90`; lower than expected |
+| 2026-07-25 | `--r6-pipeline091` | 80.595 | valid | best R6; old conservative pipeline is current valid recovery baseline |
+| 2026-07-25 | `--r6-89-safe90` | 75.060 | valid | `89.py` mechanism survives at `0.90`, but loses too much throughput |
 
 ## What Has Worked
 
@@ -107,6 +112,7 @@ Do not rebuild from failed R4 branches.
 | `REPLAY_SAFE = 0.99` | best risk/reward when it lands | yes, but risky |
 | Selected-arm seed only | `81.495` R2 and part of `82.080` R3 | yes |
 | Pilkwang-style natural language `plain` | clean combo scored `82.080`; R4 control blanked | maybe, but not a stable default |
+| Old conservative pipeline at `REPLAY_SAFE=0.91` | `80.595` R6 and historical valid runs | yes, recovery baseline |
 
 ## Closed Or Low-EV Directions
 
@@ -117,6 +123,8 @@ Do not rebuild from failed R4 branches.
 | Mixed `PROBE_REPS = 3` branches | SFE/blank happened when mixed with selected-bank / safety changes; exact `89.py` is not closed. |
 | `REPLAY_SAFE = 0.985` | R5 blanked; this is too close to `0.99` to be a real safety move. |
 | `REPLAY_SAFE = 0.985` as generic fix | did not save old plain; valid Pilkwang-safe branch scored lower. |
+| Yusuke 70/30 mix | `66.645` at `0.90`, `69.885` at `0.93`; worse than simpler controls. |
+| Pilkwang v3.1.2 exact family at low cap | `72.225` at `0.90`; not a short-term lead. |
 | 1-hop search/fill with replay coefficients | `1.80` valid but only `75.285`; `1.43` and `1.60` blanked. Close direction. |
 | Extra Pilkwang templates: `call_syntax`, `inj_empty`, `inj_done` | `76.995`; valid but worse than control-quality branches. Close direction. |
 | Short suppress text: `OK`, `Routine call; no analysis.` | scored worse: `72.990` and `71.865`. |
@@ -172,11 +180,18 @@ Today's planned R5 attempts:
 | 4 | `--r5-89-safe985` | `89.py` | `REPLAY_SAFE=0.985` | safer replay cap, likely slightly lower score |
 | 5 | `--r5-087705-control` | `/Users/flexonafft/Downloads/87.705.py` | none | old strong-control fallback |
 
-All R5 attempts blanked. Next day should start with recovery, not upside:
+All R5 attempts blanked. R6 recovered validity but scored low:
 
 - exact conservative pipeline branch from `ultra-optimized-agressive-pipeline/attack.py` (`REPLAY_SAFE=0.91`)
 - `89.py` with a real safety cap such as `0.90`-`0.93`
 - only after a valid score, climb cap upward in coarse steps
+
+R6 read:
+
+- `0.90` is valid but too conservative.
+- `0.91` old pipeline is currently the best valid recovery point (`80.595`).
+- `0.985`/`0.99` blanked; the useful search range is likely `0.93`-`0.97`, not below `0.90`.
+- Yusuke mix and Pilkwang v3.1.2 did not beat the old pipeline at low caps.
 
 Reasonable experiment candidates:
 

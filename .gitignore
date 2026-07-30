@@ -41,6 +41,7 @@ featured_*.csv
 # Generated experiment and Kaggle run artifacts
 **/experiments/*/results/
 **/working/
+competitions/public-comp/wellbore-geology-prediction/experiments/rogii_frozen_targetfree_hybrid_v1/outputs/
 *.log
 
 # Large local archives and model binaries

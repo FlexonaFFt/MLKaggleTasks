@@ -4,6 +4,28 @@ Kaggle competition workspace. The source data stays in `datasets/` (local and
 ignored); generated experiment outputs stay next to the notebook that made
 them.
 
+## Competition status — 2026-07-30
+
+- Status: active; deadline is **2026-08-05 23:59**. Kaggle reports **5,964 teams**.
+- The visible `test/` directory contains authoring examples only. Kaggle replaces
+  it with the hidden test set when a submission runs; do not use same-ID
+  train/test matches from the visible files in model logic or validation.
+  [Official clarification](https://www.kaggle.com/competitions/rogii-wellbore-geology-prediction/discussion/729837#3503960).
+- The organizer previously excluded one private-test outlier during a rescore;
+  this does not change the public leaderboard.
+  [Official notice](https://www.kaggle.com/competitions/rogii-wellbore-geology-prediction/discussion/707695#3471420).
+
+### What matters now
+
+- Treat public-LB changes smaller than the pipeline's rerun variation as noise;
+  measure that variation with byte-identical reruns before choosing a branch.
+  [Community analysis](https://www.kaggle.com/competitions/rogii-wellbore-geology-prediction/discussion/728477).
+- Prefer target-free, well-grouped validation. Recent public notebooks are useful
+  implementation references, not evidence that their public score will transfer
+  to hidden wells.
+- The two fresh public notebook variants checked on 2026-07-30 both retain a
+  same-well contact override. Keep that branch disabled for hidden-test runs.
+
 ## Layout
 
 - `notebooks/` — Kaggle-ready notebooks.

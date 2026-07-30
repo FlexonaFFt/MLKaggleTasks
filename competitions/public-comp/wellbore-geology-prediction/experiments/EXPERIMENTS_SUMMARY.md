@@ -1,6 +1,18 @@
 # ROGII Wellbore Geology Prediction — experiment archive
 
-Последнее обновление: 2026-07-20.
+Последнее обновление: 2026-07-30.
+
+## Важная поправка после проверки Kaggle — 2026-07-30
+
+Организатор уточнил, что видимая папка `test/` содержит только примеры для
+создания submission; при запуске на Kaggle она заменяется скрытым test set.
+Следовательно, same-ID train/test совпадения из локально видимых файлов не
+характеризуют оцениваемый public или private набор. Все нижеупомянутые выводы,
+которые связывают same-ID overlap с leaderboard, следует читать только как
+forensic-анализ authoring-примеров, а не как объяснение Kaggle score. Новые
+решения должны исключать такой путь и валидироваться target-free по wells.
+
+Источник: [официальное разъяснение](https://www.kaggle.com/competitions/rogii-wellbore-geology-prediction/discussion/729837#3503960).
 
 ## Итог
 

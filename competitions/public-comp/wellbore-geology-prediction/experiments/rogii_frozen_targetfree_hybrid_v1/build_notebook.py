@@ -23,22 +23,26 @@ submission."""
         """from pathlib import Path
 import pandas as pd
 
-# V5 needs a file only to preserve its audit path; diagnostic mode never promotes it.
-_hybrid_work = Path('/kaggle/working')
-_hybrid_sample = pd.read_csv(CFG.dataset_path / 'sample_submission.csv')[['id']]
-_hybrid_sample.assign(tvt=0.0).to_csv(_hybrid_work / 'v5_input.csv', index=False)
+# Keep all intermediate artifacts out of Kaggle outputs. The source pipeline has
+# already written its target-free baseline to /kaggle/working/submission.csv.
+_hybrid_work = Path('/tmp/rogii_hybrid')
+_hybrid_work.mkdir(exist_ok=True)
+pd.read_csv('/kaggle/working/submission.csv').to_csv(_hybrid_work / 'v5_candidate.csv', index=False)
 """
     ),
 ]
 
 v5 = source_nb.cells[51].copy()
-v5.source = v5.source.replace("_V5_SUBMISSION = _V5_WORK / 'submission.csv'", "_V5_SUBMISSION = _V5_WORK / 'v5_input.csv'")
-v5.source = v5.source.replace("if _v5_viable:", "if False:  # diagnostic only: never write a candidate")
+v5.source = v5.source.replace("_V5_WORK = _V5Path('/kaggle/working') if _V5Path('/kaggle/working').exists() else _V5Path('.')", "_V5_WORK = _V5Path('/tmp/rogii_hybrid')")
+v5.source = v5.source.replace("_V5_SUBMISSION = _V5_WORK / 'submission.csv'", "_V5_SUBMISSION = _V5_WORK / 'v5_candidate.csv'")
 cells.append(v5)
-cells.append(source_nb.cells[53])
+
+v6 = source_nb.cells[53].copy()
+v6.source = v6.source.replace("assert _v6_changed == _v6_viable", "print('V6 candidate changed:', _v6_changed, 'viable:', _v6_viable)")
+cells.append(v6)
 cells.append(
     nbf.v4.new_code_cell(
-        """# Aligned fixed-weight hybrid: no learned selector, no test labels, no submission.
+        """# Aligned fixed-weight hybrid: no learned selector and no test labels.
 _HYBRID_WEIGHTS = (0.00, 0.25, 0.50, 0.75, 1.00)
 _hybrid_rows = []
 _hybrid_eval = _v5_eval.merge(_v6_wells[['well', 'spatial_fold']], on='well', how='left')
@@ -73,6 +77,26 @@ _hybrid_summary = pd.DataFrame(_hybrid_rows)
 _hybrid_summary.to_csv(_V5_WORK / 'hybrid_oof_summary.csv', index=False)
 print(_hybrid_summary.to_string(index=False))
 assert len(_hybrid_summary) == len(_HYBRID_WEIGHTS)
+
+# Publish exactly one file. A hybrid must beat Frozen by the predeclared gate;
+# otherwise retain the already validated Frozen candidate (or baseline fallback).
+_promoted = _hybrid_summary[_hybrid_summary['eligible']]
+if not _promoted.empty:
+    _selected = _promoted.sort_values('pooled_rmse').iloc[0]
+    _decision = 'promoted_hybrid'
+elif _v6_viable:
+    _selected = _hybrid_summary.loc[_hybrid_summary['frozen_weight'].eq(1.0)].iloc[0]
+    _decision = 'frozen_fallback'
+else:
+    _selected = _hybrid_summary.loc[_hybrid_summary['frozen_weight'].eq(0.0)].iloc[0]
+    _decision = 'baseline_fallback'
+
+_frozen_weight = float(_selected['frozen_weight'])
+_final = _v5_baseline_submission[['id']].copy()
+_final['tvt'] = _frozen_weight * _v6_final['tvt'].to_numpy(float) + (1.0 - _frozen_weight) * _v5_baseline_submission['tvt'].to_numpy(float)
+assert _final['tvt'].notna().all() and _v5_np.isfinite(_final['tvt']).all()
+_final.to_csv('/kaggle/working/submission.csv', index=False)
+print({'decision': _decision, 'frozen_weight': _frozen_weight, 'rows': len(_final)})
 """
     )
 )

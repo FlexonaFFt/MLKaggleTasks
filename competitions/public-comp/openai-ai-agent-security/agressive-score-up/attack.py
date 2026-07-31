@@ -37,7 +37,7 @@ FRAME_TEMPLATE = (
 # N=5 MEDIAN handles up to 2 outliers safely:
 #   [25, 20, 8, 8, 8] → median = 8 < 12 → TEMPLATE (correct)
 # Saves 3 trials vs N=8 average (≈ 27 s → ~ 3 extra Gemma candidates).
-SPLIT_CLASSIFY_N = 0
+SPLIT_CLASSIFY_N = 3
 SPLIT_THRESHOLD_S = 12.0
 
 # 0.97 → 0.975 adds 45 s of replay budget per run.
@@ -169,7 +169,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         idx = 0
         classify_n = 0
         classify_lats: list[float] = []
-        chosen_template = FRAME_TEMPLATE
+        chosen_template = TEMPLATE
 
         while len(cands) < HARD_N_CAP:
             next_wall = slowest * SLOWEST_MULT
@@ -188,8 +188,9 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 if time.monotonic() + max(next_wall, margin) >= deadline:
                     break
 
-            # r10 frame-all: skip split classification and use FRAME for every
-            # fill candidate. Warmup stays TEMPLATE to absorb cold-start safely.
+            # Classification: use TEMPLATE for the first SPLIT_CLASSIFY_N
+            # interactions to measure unbiased per-step latency.  Lock the
+            # template (FRAME for slow / TEMPLATE for fast) for all fill.
             classifying = classify_n < SPLIT_CLASSIFY_N
             template = TEMPLATE if classifying else chosen_template
             msg = _msg(idx, template)
@@ -220,7 +221,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         "FRAME_TEMPLATE" if chosen_template == FRAME_TEMPLATE else "TEMPLATE"
                     )
                     print(
-                        "[v38] classify done: n=%d median=%.2fs → %s"
+                        "[r10_v38_adaptive_classify3] classify done: n=%d median=%.2fs → %s"
                         % (classify_n, median_lat, tmpl_name),
                         file=sys.stderr,
                         flush=True,
@@ -232,7 +233,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                     replay_cost += elapsed * REPLAY_COST_COEF
 
         print(
-            "[r10_v38_frame_all] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
+            "[r10_v38_adaptive_classify3] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
             % (len(cands), replay_cost, replay_cap, slowest, warmup_fired),
             file=sys.stderr,
             flush=True,

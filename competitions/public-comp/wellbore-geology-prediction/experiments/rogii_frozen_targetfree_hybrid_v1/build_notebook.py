@@ -24,10 +24,12 @@ submission."""
 import pandas as pd
 
 # Keep all intermediate artifacts out of Kaggle outputs. The source pipeline has
-# already written its target-free baseline to /kaggle/working/submission.csv.
+# already calculated its target-free baseline as ``sub_1``.
 _hybrid_work = Path('/tmp/rogii_hybrid')
 _hybrid_work.mkdir(exist_ok=True)
-pd.read_csv('/kaggle/working/submission.csv').to_csv(_hybrid_work / 'v5_candidate.csv', index=False)
+assert list(sub_1.columns) == ['id', 'tvt']
+assert sub_1['tvt'].notna().all()
+sub_1.to_csv(_hybrid_work / 'v5_candidate.csv', index=False)
 """
     ),
 ]

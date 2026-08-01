@@ -44,7 +44,7 @@ SPLIT_THRESHOLD_S = 12.0
 # At ~8-9 s per candidate that is 5-6 extra candidates (~0.5 more score).
 # The 225-s safety margin (2.5 % of 9 000 s) still covers typical replay
 # variance; ea-b's 0.97 was deliberately conservative for an initial release.
-REPLAY_SAFE_FRAC = 0.975
+REPLAY_SAFE_FRAC = 0.97
 REPLAY_BUDGET_MULT = 1.0
 FILL_BUDGET_FRAC = 0.95
 REPLAY_SAFE_SIZING = True
@@ -221,7 +221,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         "FRAME_TEMPLATE" if chosen_template == FRAME_TEMPLATE else "TEMPLATE"
                     )
                     print(
-                        "[r10_v38_control_repeat] classify done: n=%d median=%.2fs → %s"
+                        "[r11_v38_safe970_control] classify done: n=%d median=%.2fs → %s"
                         % (classify_n, median_lat, tmpl_name),
                         file=sys.stderr,
                         flush=True,
@@ -233,7 +233,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                     replay_cost += elapsed * REPLAY_COST_COEF
 
         print(
-            "[r10_v38_control_repeat] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
+            "[r11_v38_safe970_control] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
             % (len(cands), replay_cost, replay_cap, slowest, warmup_fired),
             file=sys.stderr,
             flush=True,

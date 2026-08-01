@@ -47,7 +47,8 @@ cells.append(
         """# Aligned fixed-weight hybrid: no learned selector and no test labels.
 _HYBRID_WEIGHTS = (0.00, 0.25, 0.50, 0.75, 1.00)
 _hybrid_rows = []
-_hybrid_eval = _v5_eval.merge(_v6_wells[['well', 'spatial_fold']], on='well', how='left')
+_hybrid_eval = _v5_eval.copy()
+_hybrid_eval['spatial_fold'] = _hybrid_eval['well'].map(dict(zip(_v6_wells['well'], _v6_wells['spatial_fold'])))
 assert _hybrid_eval['spatial_fold'].notna().all()
 
 def _hybrid_metrics(frame, prediction):

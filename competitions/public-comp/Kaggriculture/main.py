@@ -1,188 +1,285 @@
-"""Deterministic Kaggriculture baseline.
-
-Submission entry point: agent(obs) -> {farmer, hands, market}.
-The policy intentionally keeps no cross-episode mutable state.
+"""
+Kaggriculture Policy v1.
 """
 from collections import deque
+from dataclasses import dataclass
 
 
-CROP_RULES = {
-    "WHEAT": {"seed": 10, "harvest_day": 4, "last_plant_day": 24},
-    "CARROT": {"seed": 20, "harvest_day": 3, "last_plant_day": 25},
-    "MELON": {"seed": 80, "harvest_day": 12, "last_plant_day": 17},
-    "STRAWBERRY": {"seed": 100, "harvest_day": 10, "last_plant_day": 17},
-}
-PRODUCT_BY_ANIMAL = {"COW": "MILK", "SHEEP": "WOOL", "GOOSE": "EGG"}
-SELL_PRIORITY = ("WOOL", "MILK", "MELON", "STRAWBERRY", "CARROT", "EGG", "FERTILIZER", "WHEAT")
+@dataclass(frozen=True)
+class GameState:
+    obs: dict
+    player: int
+    farm: dict
+    private: dict
+    day: int
+    hour: int
+    remaining: int
 
 
-def _distance(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+@dataclass(frozen=True)
+class Task:
+    priority: int
+    position: tuple
+    action: tuple
+    item: str | None = None
 
 
-def _walk(tiles, source, target):
-    """Return one legal move using BFS; never walks through LOCKED tiles."""
-    source, target = tuple(source), tuple(target)
-    if source == target:
-        return ["PASS"]
-    size = len(tiles)
-    queue = deque([source])
-    parent, move = {source: None}, {}
-    for_direction = ((1, 0, "EAST"), (-1, 0, "WEST"), (0, 1, "SOUTH"), (0, -1, "NORTH"))
-    while queue:
-        x, y = queue.popleft()
-        for dx, dy, name in for_direction:
-            nxt = (x + dx, y + dy)
-            if not (0 <= nxt[0] < size and 0 <= nxt[1] < size):
-                continue
-            if nxt in parent or tiles[nxt[1]][nxt[0]] == "LOCKED":
-                continue
-            parent[nxt], move[nxt] = (x, y), name
-            if nxt == target:
-                queue.clear()
-                break
-            queue.append(nxt)
-    if target not in parent:
-        return ["PASS"]
-    cursor = target
-    while parent[cursor] != source:
-        cursor = parent[cursor]
-    return [move[cursor]]
+class FarmPolicy:
+    """
+    A stateless policy keeps separate episodes isolated.
+    """
 
+    crop_order = ("WHEAT", "CARROT", "MELON", "STRAWBERRY")
+    crop_mix = ("WHEAT",) * 4 + ("CARROT",) * 4 + ("MELON",) * 6
+    crop_rules = {
+        "WHEAT": (4, 24),
+        "CARROT": (3, 25),
+        "MELON": (12, 17),
+        "STRAWBERRY": (10, 17),
+    }
+    product_for = {"COW": "MILK", "SHEEP": "WOOL", "GOOSE": "EGG"}
+    sell_order = ("WOOL", "MILK", "MELON", "STRAWBERRY", "CARROT", "EGG", "FERTILIZER", "WHEAT")
 
-def _shed_tiles(tiles):
-    mid = len(tiles) // 2
-    return [(x, y) for x, y in ((mid - 1, mid - 1), (mid, mid - 1), (mid - 1, mid), (mid, mid))
-            if 0 <= x < len(tiles) and 0 <= y < len(tiles) and tiles[y][x] != "LOCKED"]
+    def act(self, obs):
+        state = self.parse(obs)
+        phase = self.phase(state)
+        crop_plan = self.crop_plan(state)
+        herd_plan = self.herd_plan(state, phase)
+        tasks = self.build_tasks(state, phase, crop_plan, herd_plan)
+        farmer, hands = self.schedule(state, tasks)
+        market = self.market_orders(state, phase, crop_plan, herd_plan)
+        return {"farmer": farmer, "hands": hands, "market": market}
 
+    def parse(self, obs):
+        player = int(obs["player"])
+        day = int(obs["day"])
+        hour = int(obs["hour"])
+        return GameState(
+            obs=obs,
+            player=player,
+            farm=obs["farms"][player],
+            private=obs.get("private") or {},
+            day=day,
+            hour=hour,
+            remaining=719 - day * 24 - hour,
+        )
 
-def _nearest_shed(tiles, pos):
-    cells = _shed_tiles(tiles)
-    return min(cells, key=lambda cell: (_distance(pos, cell), cell)) if cells else tuple(pos)
+    def phase(self, state):
+        if state.remaining <= 60:
+            return "liquidation"
+        if state.day < 5:
+            return "opening"
+        if state.day < 17:
+            return "scale"
+        return "production"
 
+    def distance(self, a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-def _inventory_total(private, item):
-    total = int((private.get("shed") or {}).get(item, 0))
-    return total + sum(int((inventory or {}).get(item, 0)) for inventory in private.get("inventories", []))
-
-
-def _animal_count(farm, animal):
-    return sum(
-        1 for row in farm["tiles"] for tile in row
-        if isinstance(tile, dict) and tile.get("animal") == animal
-    )
-
-
-def _phase(day, remaining):
-    if remaining <= 48:
-        return "liquidation"
-    if day < 5:
-        return "opening"
-    if day < 17:
-        return "scale"
-    return "production"
-
-
-def _job(priority, pos, action, need=None):
-    return {"priority": priority, "pos": tuple(pos), "action": action, "need": need}
-
-
-def _jobs(obs, farm, private, phase):
-    """Generate jobs. Lower priority is more urgent."""
-    day, hour = int(obs["day"]), int(obs["hour"])
-    tiles, jobs = farm["tiles"], []
-    for y, row in enumerate(tiles):
-        for x, tile in enumerate(row):
-            pos = (x, y)
-            if not isinstance(tile, dict):
-                continue
-            if tile.get("kind") == "PLANT":
-                if tile.get("consecutive_unwatered", 0) >= 1 and not tile.get("watered_today"):
-                    jobs.append(_job(0, pos, ["WATER"]))
-                elif not tile.get("watered_today"):
-                    jobs.append(_job(4 if hour < 18 else 2, pos, ["WATER"]))
-                crop = tile.get("crop")
-                age = day - int(tile.get("planted_day", day))
-                held = int(tile.get("yield_units", 0))
-                ripe = CROP_RULES.get(crop, {}).get("harvest_day", 99)
-                if held and (age >= ripe or phase == "liquidation"):
-                    jobs.append(_job(1 if phase == "liquidation" else 3, pos, ["HARVEST"]))
-            elif tile.get("kind") in ("COOP", "PASTURE") and tile.get("animal"):
-                animal = tile["animal"]
-                if tile.get("consecutive_unfed", 0) >= 1 and not tile.get("fed_today"):
-                    jobs.append(_job(0, pos, ["FEED"], "WHEAT"))
-                elif not tile.get("fed_today"):
-                    jobs.append(_job(3, pos, ["FEED"], "WHEAT"))
-                if tile.get("fertilizer_available"):
-                    jobs.append(_job(4, pos, ["COLLECT_FERTILIZER"]))
-                if not tile.get("cared_today") and phase != "liquidation" and tile.get("pending_care_bonus", 0) < 4:
-                    jobs.append(_job(5, pos, ["CARE"]))
-                if tile.get("yield_units", 0) >= 3 or (phase == "liquidation" and tile.get("yield_units", 0)):
-                    jobs.append(_job(2, pos, ["HARVEST"]))
-    return jobs
-
-
-def _action_for_job(tiles, pos, inventory, shed, job):
-    need = job["need"]
-    if need and not inventory.get(need, 0):
-        if not shed.get(need, 0):
+    def walk(self, tiles, source, target):
+        """
+        A legal first step to target, avoiding locked land.
+        """
+        source, target = tuple(source), tuple(target)
+        if source == target:
             return ["PASS"]
-        shed_pos = _nearest_shed(tiles, pos)
-        if tuple(pos) == shed_pos:
-            return ["PICKUP", need, 4 if need == "WHEAT" else 1]
-        return _walk(tiles, pos, shed_pos)
-    return job["action"] if tuple(pos) == job["pos"] else _walk(tiles, pos, job["pos"])
+        size = len(tiles)
+        queue = deque([source])
+        parent, moves = {source: None}, {}
+        directions = ((1, 0, "EAST"), (-1, 0, "WEST"), (0, 1, "SOUTH"), (0, -1, "NORTH"))
+        while queue:
+            x, y = queue.popleft()
+            for dx, dy, name in directions:
+                nxt = (x + dx, y + dy)
+                if not (0 <= nxt[0] < size and 0 <= nxt[1] < size):
+                    continue
+                if nxt in parent or tiles[nxt[1]][nxt[0]] == "LOCKED":
+                    continue
+                parent[nxt], moves[nxt] = (x, y), name
+                if nxt == target:
+                    queue.clear()
+                    break
+                queue.append(nxt)
+        if target not in parent:
+            return ["PASS"]
+        cursor = target
+        while parent[cursor] != source:
+            cursor = parent[cursor]
+        return [moves[cursor]]
+
+    def shed_tiles(self, tiles):
+        middle = len(tiles) // 2
+        candidates = ((middle - 1, middle - 1), (middle, middle - 1), (middle - 1, middle), (middle, middle))
+        return [cell for cell in candidates if 0 <= cell[0] < len(tiles) and 0 <= cell[1] < len(tiles) and tiles[cell[1]][cell[0]] != "LOCKED"]
+
+    def nearest_shed(self, tiles, position):
+        cells = self.shed_tiles(tiles)
+        return min(cells, key=lambda cell: (self.distance(position, cell), cell)) if cells else tuple(position)
+
+    def total_item(self, state, item):
+        shed = int((state.private.get("shed") or {}).get(item, 0))
+        carried = sum(int((inventory or {}).get(item, 0)) for inventory in state.private.get("inventories", []))
+        return shed + carried
+
+    def animal_count(self, farm, animal):
+        return sum(1 for row in farm["tiles"] for tile in row if isinstance(tile, dict) and tile.get("animal") == animal)
+
+    def crop_plan(self, state):
+        """
+        Reserve central cells for livestock and fill reachable land with crops.
+        """
+        tiles = state.farm["tiles"]
+        middle = len(tiles) // 2
+        animal_cells = [(middle - 1, middle - 1), (middle - 2, middle - 1), (middle - 1, middle - 2), (middle - 2, middle - 2)]
+        excluded = set(self.shed_tiles(tiles) + animal_cells)
+        cells = [
+            (x, y)
+            for y, row in enumerate(tiles)
+            for x, tile in enumerate(row)
+            if tile != "LOCKED" and (x, y) not in excluded
+        ]
+        shed = self.nearest_shed(tiles, tuple(state.farm.get("farmer", (0, 0))))
+        cells.sort(key=lambda cell: (self.distance(cell, shed), cell[1], cell[0]))
+        crops = list(self.crop_mix) + ["STRAWBERRY"] * max(0, len(cells) - len(self.crop_mix))
+        return dict(zip(cells, crops))
+
+    def herd_plan(self, state, phase):
+        """
+        Core herd is mixed; extra slots react to current product prices.
+        """
+        tiles = state.farm["tiles"]
+        middle = len(tiles) // 2
+        slots = [(middle - 1, middle - 1), (middle - 2, middle - 1), (middle - 1, middle - 2), (middle - 2, middle - 2)]
+        if phase == "opening":
+            return dict(zip(slots[:2], ("COW", "SHEEP")))
+        prices = (state.obs.get("market") or {}).get("prices") or {}
+        extra = "SHEEP" if int(prices.get("WOOL", 0)) >= int(prices.get("MILK", 0)) else "COW"
+        return dict(zip(slots, ("COW", "SHEEP", extra, "COW")))
+
+    def build_tasks(self, state, phase, crop_plan, herd_plan):
+        """
+        Lower priority values are dispatched first.
+        """
+        tiles = state.farm["tiles"]
+        tasks = []
+        for position, crop in crop_plan.items():
+            x, y = position
+            tile = tiles[y][x]
+            if tile is None and phase != "liquidation" and state.day <= self.crop_rules[crop][1]:
+                tasks.append(Task(6, position, ("PLANT", crop)))
+            elif isinstance(tile, dict) and tile.get("kind") == "WEED":
+                tasks.append(Task(2, position, ("DIG",)))
+            elif isinstance(tile, dict) and tile.get("kind") == "PLANT":
+                crop_name = tile.get("crop", crop)
+                ripe_day = self.crop_rules.get(crop_name, (99, 0))[0]
+                age = state.day - int(tile.get("planted_day", state.day))
+                held = int(tile.get("yield_units", 0))
+                if not tile.get("watered_today") and tile.get("consecutive_unwatered", 0) >= 1:
+                    tasks.append(Task(0, position, ("WATER",)))
+                elif not tile.get("watered_today"):
+                    tasks.append(Task(3 if state.hour >= 17 else 5, position, ("WATER",)))
+                if held and (age >= ripe_day or phase == "liquidation"):
+                    tasks.append(Task(2, position, ("HARVEST",)))
+        for position, animal in herd_plan.items():
+            x, y = position
+            tile = tiles[y][x]
+            if tile is None and phase != "liquidation":
+                tasks.append(Task(5, position, ("BUILD_PASTURE",)))
+            elif isinstance(tile, dict) and tile.get("kind") == "PASTURE" and not tile.get("animal") and phase != "liquidation":
+                tasks.append(Task(5, position, ("PLACE", animal), animal))
+            elif isinstance(tile, dict) and tile.get("animal"):
+                if not tile.get("fed_today") and tile.get("consecutive_unfed", 0) >= 1:
+                    tasks.append(Task(0, position, ("FEED",), "WHEAT"))
+                elif not tile.get("fed_today"):
+                    tasks.append(Task(3, position, ("FEED",), "WHEAT"))
+                if tile.get("yield_units", 0) >= 3 or (phase == "liquidation" and tile.get("yield_units", 0)):
+                    tasks.append(Task(2, position, ("HARVEST",)))
+                if tile.get("fertilizer_available"):
+                    tasks.append(Task(4, position, ("COLLECT_FERTILIZER",)))
+                if phase != "liquidation" and not tile.get("cared_today") and tile.get("pending_care_bonus", 0) < 4:
+                    tasks.append(Task(6, position, ("CARE",)))
+        return tasks
+
+    def task_action(self, state, position, inventory, task):
+        tiles = state.farm["tiles"]
+        shed = state.private.get("shed") or {}
+        if task.item and not inventory.get(task.item, 0):
+            if not shed.get(task.item, 0):
+                return ["PASS"]
+            shed_position = self.nearest_shed(tiles, position)
+            if tuple(position) == shed_position:
+                amount = 4 if task.item == "WHEAT" else 1
+                return ["PICKUP", task.item, amount]
+            return self.walk(tiles, position, shed_position)
+        if tuple(position) == task.position:
+            return list(task.action)
+        return self.walk(tiles, position, task.position)
+
+    def schedule(self, state, tasks):
+        """
+        One distinct reachable task per farmer or hand.
+        """
+        positions = [tuple(state.farm.get("farmer", (0, 0)))] + [tuple(item) for item in state.farm.get("hands", [])]
+        inventories = [dict(item or {}) for item in state.private.get("inventories", [])]
+        inventories.extend({} for _ in range(max(0, len(positions) - len(inventories))))
+        available = list(tasks)
+        actions = []
+        for position, inventory in zip(positions, inventories):
+            ranked = sorted(available, key=lambda task: (task.priority, self.distance(position, task.position)))
+            chosen = next((task for task in ranked if self.task_action(state, position, inventory, task) != ["PASS"]), None)
+            if chosen is None:
+                actions.append(["PASS"])
+            else:
+                actions.append(self.task_action(state, position, inventory, chosen))
+                available.remove(chosen)
+        return actions[0], actions[1:]
+
+    def market_orders(self, state, phase, crop_plan, herd_plan):
+        """
+        Sell liquid inventory, finance planned production, then hire labor.
+        """
+        farm, private = state.farm, state.private
+        money = float(farm.get("money", 0))
+        shed = private.get("shed") or {}
+        seeds = private.get("seeds") or {}
+        prices = (state.obs.get("market") or {}).get("prices") or {}
+        orders = []
+        sale_caps = {"MELON": 8, "WOOL": 8, "MILK": 12, "STRAWBERRY": 12}
+        for item in self.sell_order:
+            quantity = int(shed.get(item, 0))
+            if quantity and (phase == "liquidation" or quantity >= 6):
+                orders.append(("SELL", item, min(quantity, sale_caps.get(item, quantity))))
+        if phase == "liquidation":
+            return [list(order) for order in orders[:10]]
+        empty_by_crop = {crop: 0 for crop in self.crop_order}
+        for position, crop in crop_plan.items():
+            x, y = position
+            if farm["tiles"][y][x] is None and state.day <= self.crop_rules[crop][1]:
+                empty_by_crop[crop] += 1
+        for crop in self.crop_order:
+            missing = max(0, empty_by_crop[crop] - int(seeds.get(crop, 0)))
+            if missing:
+                orders.append(("BUY_SEED", crop, missing))
+        wanted = list(herd_plan.values())
+        for animal in ("COW", "SHEEP"):
+            missing = max(0, wanted.count(animal) - self.total_item(state, animal))
+            if missing:
+                orders.append(("BUY_ANIMAL", animal, missing))
+        herd_size = sum(self.animal_count(farm, animal) for animal in self.product_for)
+        wheat_floor = max(8, 4 * max(1, herd_size))
+        wheat_missing = max(0, wheat_floor - self.total_item(state, "WHEAT"))
+        if wheat_missing and money >= int(prices.get("WHEAT", 25)) * wheat_missing:
+            orders.append(("BUY_PRODUCT", "WHEAT", wheat_missing))
+        workload = sum(1 for position in crop_plan if farm["tiles"][position[1]][position[0]] is not None) + len(herd_plan) * 3
+        desired_hands = min(8, max(2, (workload + 5) // 6))
+        hires = int(farm.get("hires_today", 0))
+        for _ in range(max(0, desired_hands - hires)):
+            orders.append(("HIRE",))
+        return [list(order) for order in orders[:10]]
 
 
-def _schedule(obs, farm, private, jobs):
-    """Greedily give each unit one reachable, unique highest-priority job."""
-    tiles = farm["tiles"]
-    positions = [tuple(farm.get("farmer", (0, 0)))] + [tuple(p) for p in farm.get("hands", [])]
-    inventories = [dict(x or {}) for x in private.get("inventories", [])]
-    inventories += [{} for _ in range(max(0, len(positions) - len(inventories)))]
-    remaining = list(jobs)
-    actions = []
-    for pos, inventory in zip(positions, inventories):
-        ranked = sorted(remaining, key=lambda job: (job["priority"], _distance(pos, job["pos"])))
-        selected = next((job for job in ranked if _action_for_job(tiles, pos, inventory, private.get("shed") or {}, job) != ["PASS"]), None)
-        if selected is None:
-            actions.append(["PASS"])
-        else:
-            actions.append(_action_for_job(tiles, pos, inventory, private.get("shed") or {}, selected))
-            remaining.remove(selected)
-    return actions[0], actions[1:]
-
-
-def _market(obs, farm, private, phase):
-    """Keep orders bounded; sales happen only for items already in the shed."""
-    day = int(obs["day"])
-    money = float(farm.get("money", 0))
-    shed = private.get("shed") or {}
-    seeds = private.get("seeds") or {}
-    orders = []
-    for item in SELL_PRIORITY:
-        quantity = int(shed.get(item, 0))
-        if quantity and (phase == "liquidation" or quantity >= 6):
-            orders.append(["SELL", item, quantity])
-    if phase != "liquidation":
-        wheat_needed = 2 * (_animal_count(farm, "COW") + _animal_count(farm, "SHEEP") + _animal_count(farm, "GOOSE"))
-        if _inventory_total(private, "WHEAT") < wheat_needed and money >= 30:
-            orders.append(["BUY_PRODUCT", "WHEAT", max(4, wheat_needed)])
-        if day <= 17 and seeds.get("STRAWBERRY", 0) < 4 and money >= 400:
-            orders.append(["BUY_SEED", "STRAWBERRY", 4])
-        if day <= 12 and seeds.get("MELON", 0) < 2 and money >= 240:
-            orders.append(["BUY_SEED", "MELON", 2])
-        hands = len(farm.get("hands", []))
-        if hands < 8 and money >= 250:
-            orders.append(["HIRE"])
-    return orders[:10]
+POLICY = FarmPolicy()
 
 
 def agent(obs):
-    player = int(obs["player"])
-    farm = obs["farms"][player]
-    private = obs.get("private") or {}
-    remaining = 719 - (int(obs["day"]) * 24 + int(obs["hour"]))
-    phase = _phase(int(obs["day"]), remaining)
-    farmer, hands = _schedule(obs, farm, private, _jobs(obs, farm, private, phase))
-    return {"farmer": farmer, "hands": hands, "market": _market(obs, farm, private, phase)}
+    return POLICY.act(obs)

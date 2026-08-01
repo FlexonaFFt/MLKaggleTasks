@@ -140,8 +140,10 @@ class FarmPolicy:
         ]
         shed = self.nearest_shed(tiles, tuple(state.farm.get("farmer", (0, 0))))
         cells.sort(key=lambda cell: (self.distance(cell, shed), cell[1], cell[0]))
-        crops = list(self.crop_mix) + ["STRAWBERRY"] * max(0, len(cells) - len(self.crop_mix))
-        return dict(zip(cells, crops))
+        unlocked = len(state.farm.get("unlocked_quadrants") or ["NW"])
+        capacity = min(len(cells), 12 + 8 * unlocked)
+        crops = list(self.crop_mix) + ["STRAWBERRY"] * max(0, capacity - len(self.crop_mix))
+        return dict(zip(cells[:capacity], crops[:capacity]))
 
     def herd_plan(self, state, phase):
         """
@@ -244,6 +246,12 @@ class FarmPolicy:
         seeds = private.get("seeds") or {}
         prices = (state.obs.get("market") or {}).get("prices") or {}
         orders = []
+        unlocked = len(farm.get("unlocked_quadrants") or ["NW"])
+        land_cost = 1000 * (2 ** max(0, unlocked - 1))
+        herd_size = sum(self.animal_count(farm, animal) for animal in self.product_for)
+        reserve = 700 + 150 * herd_size
+        if phase == "scale" and unlocked < 3 and money >= land_cost + reserve:
+            orders.append(("BUY_LAND",))
         sale_caps = {"MELON": 8, "WOOL": 8, "MILK": 12, "STRAWBERRY": 12}
         for item in self.sell_order:
             quantity = int(shed.get(item, 0))
@@ -265,7 +273,6 @@ class FarmPolicy:
             missing = max(0, wanted.count(animal) - self.total_item(state, animal))
             if missing:
                 orders.append(("BUY_ANIMAL", animal, missing))
-        herd_size = sum(self.animal_count(farm, animal) for animal in self.product_for)
         wheat_floor = max(8, 4 * max(1, herd_size))
         wheat_missing = max(0, wheat_floor - self.total_item(state, "WHEAT"))
         if wheat_missing and money >= int(prices.get("WHEAT", 25)) * wheat_missing:

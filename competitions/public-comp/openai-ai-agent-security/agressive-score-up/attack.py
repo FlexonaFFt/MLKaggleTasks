@@ -44,12 +44,12 @@ SPLIT_THRESHOLD_S = 12.0
 # At ~8-9 s per candidate that is 5-6 extra candidates (~0.5 more score).
 # The 225-s safety margin (2.5 % of 9 000 s) still covers typical replay
 # variance; ea-b's 0.97 was deliberately conservative for an initial release.
-REPLAY_SAFE_FRAC = 0.94
+REPLAY_SAFE_FRAC = 0.88
 REPLAY_BUDGET_MULT = 1.0
 FILL_BUDGET_FRAC = 0.95
 REPLAY_SAFE_SIZING = True
 REPLAY_COST_COEF = 1.0
-SLOW_MULTIPOST_N = 2
+SLOW_MULTIPOST_N = 4
 
 MARGIN_S = 47.0
 MARGIN_FLOOR_MIN = 4.0
@@ -243,7 +243,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         "FRAME_TEMPLATE" if chosen_template == FRAME_TEMPLATE else "TEMPLATE"
                     )
                     print(
-                        "[r11_cang_slow_multipost2_safe94] classify done: n=%d median=%.2fs → %s"
+                        "[r11_cang_slow_multipost4_safe88] classify done: n=%d median=%.2fs → %s"
                         % (classify_n, median_lat, tmpl_name),
                         file=sys.stderr,
                         flush=True,
@@ -255,7 +255,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                     replay_cost += elapsed * REPLAY_COST_COEF
 
         print(
-            "[r11_cang_slow_multipost2_safe94] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s multi_n=%d"
+            "[r11_cang_slow_multipost4_safe88] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s multi_n=%d"
             % (len(cands), replay_cost, replay_cap, slowest, warmup_fired, SLOW_MULTIPOST_N),
             file=sys.stderr,
             flush=True,

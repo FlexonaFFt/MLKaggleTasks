@@ -43,6 +43,7 @@ class FarmPolicy:
     fertilizer_reserve = 12
     max_animals_per_species = 9
     target_herd = 6
+    pasture_cost = 100
 
     def act(self, obs):
         state = self.parse(obs)
@@ -147,6 +148,13 @@ class FarmPolicy:
     def pays_back(self, state, cost, daily_value, setup_days=2):
         return max(0, state.remaining // 24 - setup_days) * daily_value >= cost
 
+    def herd_target(self, state, phase):
+        if phase == "opening":
+            return 2
+        if phase == "scale" and state.day < 9:
+            return 4
+        return self.target_herd
+
     def melon_target(self, state):
         """
         Start with eight melons, then react to price and visible rival supply.
@@ -177,7 +185,7 @@ class FarmPolicy:
         Reserve central cells for livestock and fill reachable land with crops.
         """
         tiles = state.farm["tiles"]
-        excluded = set(self.shed_tiles(tiles) + self.pasture_slots(state, self.target_herd))
+        excluded = set(self.shed_tiles(tiles) + self.pasture_slots(state, self.herd_target(state, self.phase(state))))
         cells = [
             (x, y)
             for y, row in enumerate(tiles)
@@ -196,9 +204,7 @@ class FarmPolicy:
         """
         Start mixed, then scale to six animals in the better product direction.
         """
-        slots = self.pasture_slots(state, self.target_herd)
-        if phase == "opening":
-            return dict(zip(slots[:2], ("COW", "SHEEP")))
+        slots = self.pasture_slots(state, self.herd_target(state, phase))
         prices = (state.obs.get("market") or {}).get("prices") or {}
         extra = "SHEEP" if int(prices.get("WOOL", 0)) >= int(prices.get("MILK", 0)) else "COW"
         return dict(zip(slots, ("COW", "SHEEP", "COW", "SHEEP", extra, extra)))
@@ -329,15 +335,17 @@ class FarmPolicy:
             orders.append(("BUY_PRODUCT", "WHEAT", wheat_missing))
             budget -= wheat_price * wheat_missing
         if state.day >= 3:
+            animal_orders = 0
             for animal in ("COW", "SHEEP"):
                 owned = self.total_item(state, animal)
                 missing = min(max(0, wanted.count(animal) - owned), max(0, self.max_animals_per_species - owned))
                 price = max(1, int(prices.get(animal, self.animal_price[animal])))
-                daily_value = int(prices.get(self.product_for[animal], 0))
-                quantity = min(missing, int(budget // price)) if self.pays_back(state, price, daily_value) else 0
+                daily_value = max(0, int(prices.get(self.product_for[animal], 0)) - wheat_price)
+                quantity = min(missing, 1, int(budget // price), 2 - animal_orders) if self.pays_back(state, price + self.pasture_cost, daily_value) else 0
                 if quantity:
                     orders.append(("BUY_ANIMAL", animal, quantity))
                     budget -= quantity * price
+                    animal_orders += quantity
         workload = sum(1 for position in crop_plan if farm["tiles"][position[1]][position[0]] is not None) + len(herd_plan) * 3
         crew_cap = 1 if phase == "opening" else 2 if phase == "scale" else 4
         desired_hands = min(crew_cap, max(1, (workload + 5) // 6))

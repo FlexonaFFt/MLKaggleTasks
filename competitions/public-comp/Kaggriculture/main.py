@@ -1,5 +1,5 @@
 """
-Kaggriculture Policy v1.
+Kaggriculture Hybrid-6 policy.
 """
 from collections import deque
 from dataclasses import dataclass
@@ -30,7 +30,6 @@ class FarmPolicy:
     """
 
     crop_order = ("WHEAT", "CARROT", "MELON", "STRAWBERRY")
-    crop_mix = ("WHEAT",) * 4 + ("CARROT",) * 4 + ("MELON",) * 6
     crop_rules = {
         "WHEAT": (4, 24),
         "CARROT": (3, 25),
@@ -39,6 +38,11 @@ class FarmPolicy:
     }
     product_for = {"COW": "MILK", "SHEEP": "WOOL", "GOOSE": "EGG"}
     sell_order = ("WOOL", "MILK", "MELON", "STRAWBERRY", "CARROT", "EGG", "FERTILIZER", "WHEAT")
+    seed_price = {"WHEAT": 25, "CARROT": 40, "MELON": 250, "STRAWBERRY": 150}
+    animal_price = {"COW": 600, "SHEEP": 500}
+    fertilizer_reserve = 12
+    max_animals_per_species = 9
+    target_herd = 6
 
     def act(self, obs):
         state = self.parse(obs)
@@ -124,14 +128,56 @@ class FarmPolicy:
     def animal_count(self, farm, animal):
         return sum(1 for row in farm["tiles"] for tile in row if isinstance(tile, dict) and tile.get("animal") == animal)
 
+    def pasture_slots(self, state, count):
+        """
+        Keep the closest unlocked cells around the shed for a scalable herd.
+        """
+        tiles = state.farm["tiles"]
+        shed = set(self.shed_tiles(tiles))
+        center = (len(tiles) // 2 - 1, len(tiles) // 2 - 1)
+        cells = [
+            (x, y)
+            for y, row in enumerate(tiles)
+            for x, tile in enumerate(row)
+            if tile != "LOCKED" and (x, y) not in shed
+        ]
+        cells.sort(key=lambda cell: (0 if isinstance(tiles[cell[1]][cell[0]], dict) and (tiles[cell[1]][cell[0]].get("kind") == "PASTURE" or tiles[cell[1]][cell[0]].get("animal")) else 1, self.distance(cell, center), cell[1], cell[0]))
+        return cells[:count]
+
+    def pays_back(self, state, cost, daily_value, setup_days=2):
+        return max(0, state.remaining // 24 - setup_days) * daily_value >= cost
+
+    def melon_target(self, state):
+        """
+        Start with eight melons, then react to price and visible rival supply.
+        """
+        if state.day < 3:
+            return 8
+        price = int(((state.obs.get("market") or {}).get("prices") or {}).get("MELON", 0))
+        rival_melons = sum(
+            1
+            for index, rival in enumerate(state.obs.get("farms") or [])
+            if index != state.player
+            for row in rival.get("tiles", [])
+            for tile in row
+            if isinstance(tile, dict) and tile.get("kind") == "PLANT" and tile.get("crop") == "MELON"
+        )
+        if rival_melons <= 4 and price >= 200:
+            return 12
+        if rival_melons >= 12 or price < 150:
+            return 8
+        return 10
+
+    def fertilizer_is_profitable(self, state, crop):
+        prices = (state.obs.get("market") or {}).get("prices") or {}
+        return crop in {"MELON", "STRAWBERRY", "TOMATO"} and int(prices.get(crop, 0)) > int(prices.get("FERTILIZER", 0))
+
     def crop_plan(self, state):
         """
         Reserve central cells for livestock and fill reachable land with crops.
         """
         tiles = state.farm["tiles"]
-        middle = len(tiles) // 2
-        animal_cells = [(middle - 1, middle - 1), (middle - 2, middle - 1), (middle - 1, middle - 2), (middle - 2, middle - 2)]
-        excluded = set(self.shed_tiles(tiles) + animal_cells)
+        excluded = set(self.shed_tiles(tiles) + self.pasture_slots(state, self.target_herd))
         cells = [
             (x, y)
             for y, row in enumerate(tiles)
@@ -142,21 +188,20 @@ class FarmPolicy:
         cells.sort(key=lambda cell: (self.distance(cell, shed), cell[1], cell[0]))
         unlocked = len(state.farm.get("unlocked_quadrants") or ["NW"])
         capacity = min(len(cells), 12 + 8 * unlocked)
-        crops = list(self.crop_mix) + ["STRAWBERRY"] * max(0, capacity - len(self.crop_mix))
+        crops = ("WHEAT",) * 4 + ("CARROT",) * 2 + ("MELON",) * self.melon_target(state)
+        crops += ("STRAWBERRY",) * max(0, capacity - len(crops))
         return dict(zip(cells[:capacity], crops[:capacity]))
 
     def herd_plan(self, state, phase):
         """
-        Core herd is mixed; extra slots react to current product prices.
+        Start mixed, then scale to six animals in the better product direction.
         """
-        tiles = state.farm["tiles"]
-        middle = len(tiles) // 2
-        slots = [(middle - 1, middle - 1), (middle - 2, middle - 1), (middle - 1, middle - 2), (middle - 2, middle - 2)]
+        slots = self.pasture_slots(state, self.target_herd)
         if phase == "opening":
             return dict(zip(slots[:2], ("COW", "SHEEP")))
         prices = (state.obs.get("market") or {}).get("prices") or {}
         extra = "SHEEP" if int(prices.get("WOOL", 0)) >= int(prices.get("MILK", 0)) else "COW"
-        return dict(zip(slots, ("COW", "SHEEP", extra, "COW")))
+        return dict(zip(slots, ("COW", "SHEEP", "COW", "SHEEP", extra, extra)))
 
     def build_tasks(self, state, phase, crop_plan, herd_plan):
         """
@@ -182,10 +227,12 @@ class FarmPolicy:
                     tasks.append(Task(3 if state.hour >= 17 else 5, position, ("WATER",)))
                 if held and (age >= ripe_day or phase == "liquidation"):
                     tasks.append(Task(2, position, ("HARVEST",)))
+                if self.total_item(state, "FERTILIZER") > self.fertilizer_reserve and tile.get("fertilized_until_day", -1) < state.day and self.fertilizer_is_profitable(state, crop_name):
+                    tasks.append(Task(4, position, ("FERTILIZE",), "FERTILIZER"))
         for position, animal in herd_plan.items():
             x, y = position
             tile = tiles[y][x]
-            if tile is None and phase != "liquidation":
+            if tile is None and phase != "liquidation" and state.day >= 3:
                 tasks.append(Task(5, position, ("BUILD_PASTURE",)))
             elif isinstance(tile, dict) and tile.get("kind") == "PASTURE" and not tile.get("animal") and phase != "liquidation":
                 tasks.append(Task(5, position, ("PLACE", animal), animal))
@@ -196,7 +243,7 @@ class FarmPolicy:
                     tasks.append(Task(3, position, ("FEED",), "WHEAT"))
                 if tile.get("yield_units", 0) >= 3 or (phase == "liquidation" and tile.get("yield_units", 0)):
                     tasks.append(Task(2, position, ("HARVEST",)))
-                if tile.get("fertilizer_available"):
+                if tile.get("fertilizer_available") and phase != "liquidation":
                     tasks.append(Task(4, position, ("COLLECT_FERTILIZER",)))
                 if phase != "liquidation" and not tile.get("cared_today") and tile.get("pending_care_bonus", 0) < 4:
                     tasks.append(Task(6, position, ("CARE",)))
@@ -238,7 +285,7 @@ class FarmPolicy:
 
     def market_orders(self, state, phase, crop_plan, herd_plan):
         """
-        Sell liquid inventory, finance planned production, then hire labor.
+        Finance seed and feed first; defer land, livestock, and larger crews.
         """
         farm, private = state.farm, state.private
         money = float(farm.get("money", 0))
@@ -249,16 +296,19 @@ class FarmPolicy:
         unlocked = len(farm.get("unlocked_quadrants") or ["NW"])
         land_cost = 1000 * (2 ** max(0, unlocked - 1))
         herd_size = sum(self.animal_count(farm, animal) for animal in self.product_for)
-        reserve = 700 + 150 * herd_size
-        if phase == "scale" and unlocked < 3 and money >= land_cost + reserve:
-            orders.append(("BUY_LAND",))
+        reserve = 1500 + 200 * herd_size
         sale_caps = {"MELON": 8, "WOOL": 8, "MILK": 12, "STRAWBERRY": 12}
         for item in self.sell_order:
             quantity = int(shed.get(item, 0))
+            if item == "FERTILIZER" and phase != "liquidation":
+                quantity = max(0, quantity - self.fertilizer_reserve)
             if quantity and (phase == "liquidation" or quantity >= 6):
                 orders.append(("SELL", item, min(quantity, sale_caps.get(item, quantity))))
         if phase == "liquidation":
             return [list(order) for order in orders[:10]]
+        if phase == "scale" and state.day >= 8 and unlocked < 3 and money >= land_cost + reserve:
+            orders.append(("BUY_LAND",))
+        budget = max(0, money - (land_cost if orders and orders[-1] == ("BUY_LAND",) else 0) - reserve)
         empty_by_crop = {crop: 0 for crop in self.crop_order}
         for position, crop in crop_plan.items():
             x, y = position
@@ -266,19 +316,31 @@ class FarmPolicy:
                 empty_by_crop[crop] += 1
         for crop in self.crop_order:
             missing = max(0, empty_by_crop[crop] - int(seeds.get(crop, 0)))
-            if missing:
-                orders.append(("BUY_SEED", crop, missing))
+            price = max(1, int(prices.get(f"{crop}_SEED", prices.get(crop, self.seed_price[crop]))))
+            quantity = min(missing, int(budget // price))
+            if quantity:
+                orders.append(("BUY_SEED", crop, quantity))
+                budget -= quantity * price
         wanted = list(herd_plan.values())
-        for animal in ("COW", "SHEEP"):
-            missing = max(0, wanted.count(animal) - self.total_item(state, animal))
-            if missing:
-                orders.append(("BUY_ANIMAL", animal, missing))
         wheat_floor = max(8, 4 * max(1, herd_size))
         wheat_missing = max(0, wheat_floor - self.total_item(state, "WHEAT"))
-        if wheat_missing and money >= int(prices.get("WHEAT", 25)) * wheat_missing:
+        wheat_price = int(prices.get("WHEAT", 25))
+        if wheat_missing and budget >= wheat_price * wheat_missing:
             orders.append(("BUY_PRODUCT", "WHEAT", wheat_missing))
+            budget -= wheat_price * wheat_missing
+        if state.day >= 3:
+            for animal in ("COW", "SHEEP"):
+                owned = self.total_item(state, animal)
+                missing = min(max(0, wanted.count(animal) - owned), max(0, self.max_animals_per_species - owned))
+                price = max(1, int(prices.get(animal, self.animal_price[animal])))
+                daily_value = int(prices.get(self.product_for[animal], 0))
+                quantity = min(missing, int(budget // price)) if self.pays_back(state, price, daily_value) else 0
+                if quantity:
+                    orders.append(("BUY_ANIMAL", animal, quantity))
+                    budget -= quantity * price
         workload = sum(1 for position in crop_plan if farm["tiles"][position[1]][position[0]] is not None) + len(herd_plan) * 3
-        desired_hands = min(8, max(2, (workload + 5) // 6))
+        crew_cap = 1 if phase == "opening" else 2 if phase == "scale" else 4
+        desired_hands = min(crew_cap, max(1, (workload + 5) // 6))
         hires = int(farm.get("hires_today", 0))
         for _ in range(max(0, desired_hands - hires)):
             orders.append(("HIRE",))

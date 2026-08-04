@@ -43,7 +43,7 @@ SPLIT_THRESHOLD_S = 12.0
 # Use the safe cap until model latency is classified. Fast rows get a tighter
 # replay margin; slow rows stay at the stable r11 control cap.
 REPLAY_SAFE_FRAC = 0.970
-FAST_REPLAY_SAFE_FRAC = 0.985
+FAST_REPLAY_SAFE_FRAC = 0.987
 SLOW_REPLAY_SAFE_FRAC = 0.970
 REPLAY_BUDGET_MULT = 1.0
 FILL_BUDGET_FRAC = 0.95
@@ -51,9 +51,9 @@ REPLAY_SAFE_SIZING = True
 REPLAY_COST_COEF = 1.0
 PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
-PREDICT_LAT_MULT = 1.07
+PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "r14_v38_dyncap_p70_lat107_safe985"
+RUN_LABEL = "r14_v38_dyncap_p70_original_safe987"
 
 MARGIN_S = 47.0
 MARGIN_FLOOR_MIN = 4.0

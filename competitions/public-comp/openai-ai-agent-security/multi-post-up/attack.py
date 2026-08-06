@@ -53,8 +53,8 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "r14_mp1_k4_no_poison"
-MULTI_POST_K = 4
+RUN_LABEL = "r14_mp1_k3_late_no_poison"
+MULTI_POST_K = 3
 MULTI_POST_MIN_POSTS = 3
 MULTI_POST_PROBES = 1
 MULTI_POST_MAX_RETURNED = 1
@@ -190,6 +190,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         slowest = float(SLOWEST0)
         replay_cost = 0.0
         replay_lats: list[float] = []
+        candidate_costs: list[float] = []
 
         # Warmup URL (WARMUP_IDX) is disjoint from fill indices; its replay
         # cost was already subtracted from replay_cap, so keeping a fired
@@ -203,6 +204,8 @@ class AttackAlgorithm(AttackAlgorithmBase):
         classify_lats: list[float] = []
         chosen_template = TEMPLATE
         cap_locked = False
+        frame_fill_lats = 0
+        multi_done = False
 
         while len(cands) < HARD_N_CAP:
             if len(replay_lats) >= PREDICT_MIN_N:
@@ -274,7 +277,16 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         file=sys.stderr,
                         flush=True,
                     )
-                    if chosen_template == FRAME_TEMPLATE:
+
+            if fired:
+                replay_lat = elapsed * REPLAY_COST_COEF
+                if REPLAY_SAFE_SIZING:
+                    replay_lats.append(replay_lat)
+                    replay_cost += replay_lat
+                if not classifying and chosen_template == FRAME_TEMPLATE:
+                    frame_fill_lats += 1
+                    if not multi_done and frame_fill_lats >= PREDICT_MIN_N:
+                        multi_done = True
                         multi_returned = 0
                         for probe in range(MULTI_POST_PROBES):
                             if multi_returned >= MULTI_POST_MAX_RETURNED:
@@ -306,18 +318,15 @@ class AttackAlgorithm(AttackAlgorithmBase):
                                 and replay_cost + multi_replay <= replay_cap
                             ):
                                 cands.append(_make_candidate(multi_msg))
+                                candidate_costs.append(multi_replay)
                                 replay_cost += multi_replay
                                 multi_returned += 1
-
-            if fired:
                 cands.append(_make_candidate(msg))
                 if REPLAY_SAFE_SIZING:
-                    replay_lat = elapsed * REPLAY_COST_COEF
-                    replay_lats.append(replay_lat)
-                    replay_cost += replay_lat
+                    candidate_costs.append(replay_lat)
 
-        while replay_cost > replay_cap and replay_lats:
-            replay_cost -= replay_lats.pop()
+        while replay_cost > replay_cap and candidate_costs:
+            replay_cost -= candidate_costs.pop()
             cands.pop()
 
         print(

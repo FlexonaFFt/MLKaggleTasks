@@ -53,7 +53,7 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "r15_v38_dyncap_p70_drop_slow_probes_slow975"
+RUN_LABEL = "r14_v38_dyncap_p70_original_slow975"
 
 MARGIN_S = 47.0
 MARGIN_FLOOR_MIN = 4.0
@@ -163,11 +163,10 @@ class AttackAlgorithm(AttackAlgorithmBase):
             return []
 
         warmup_elapsed = time.monotonic() - run_start
-        warmup_reserved = warmup_elapsed
         # Reserve the warmup's replay cost in the cap so our fill candidates
         # are guaranteed to fit in the remaining gateway budget.
         active_safe_frac = REPLAY_SAFE_FRAC
-        replay_cap = max(0.0, active_safe_frac * replay_budget - warmup_reserved)
+        replay_cap = max(0.0, active_safe_frac * replay_budget - warmup_elapsed)
         wall_deadline = run_start + active_safe_frac * budget
         deadline = time.monotonic() + budget * FILL_BUDGET_FRAC
 
@@ -175,9 +174,9 @@ class AttackAlgorithm(AttackAlgorithmBase):
         replay_cost = 0.0
         replay_lats: list[float] = []
 
-        # Warmup URL (WARMUP_IDX) is disjoint from fill indices. Keep it on the
-        # fast TEMPLATE path; drop it on the slow FRAME path where frame posts
-        # are denser than the warmup/classification probes.
+        # Warmup URL (WARMUP_IDX) is disjoint from fill indices; its replay
+        # cost was already subtracted from replay_cap, so keeping a fired
+        # warmup candidate is free.
         cands: list[AttackCandidate] = []
         if warmup_fired:
             cands.append(_make_candidate(_msg(WARMUP_IDX)))
@@ -218,7 +217,6 @@ class AttackAlgorithm(AttackAlgorithmBase):
             template = TEMPLATE if classifying else chosen_template
             msg = _msg(idx, template)
             idx += 1
-            keep_fired = True
 
             t0 = time.monotonic()
             try:
@@ -247,15 +245,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                             if chosen_template == TEMPLATE
                             else SLOW_REPLAY_SAFE_FRAC
                         )
-                        if chosen_template == FRAME_TEMPLATE:
-                            # Slow-row probes are intentionally not returned:
-                            # spend replay budget on the cheaper frame form.
-                            cands.clear()
-                            replay_lats.clear()
-                            replay_cost = 0.0
-                            warmup_reserved = 0.0
-                            keep_fired = False
-                        replay_cap = max(0.0, active_safe_frac * replay_budget - warmup_reserved)
+                        replay_cap = max(0.0, active_safe_frac * replay_budget - warmup_elapsed)
                         wall_deadline = run_start + active_safe_frac * budget
                         cap_locked = True
                     tmpl_name = (
@@ -268,7 +258,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                         flush=True,
                     )
 
-            if fired and keep_fired:
+            if fired:
                 cands.append(_make_candidate(msg))
                 if REPLAY_SAFE_SIZING:
                     replay_lat = elapsed * REPLAY_COST_COEF

@@ -43,8 +43,8 @@ SPLIT_THRESHOLD_S = 12.0
 # Use the safe cap until model latency is classified. Fast rows get a tighter
 # replay margin; slow rows stay at the stable r11 control cap.
 REPLAY_SAFE_FRAC = 0.990
-FAST_REPLAY_SAFE_FRAC = 0.987
-SLOW_REPLAY_SAFE_FRAC = 0.970
+FAST_REPLAY_SAFE_FRAC = 0.995
+SLOW_REPLAY_SAFE_FRAC = 0.985
 REPLAY_BUDGET_MULT = 1.0
 FILL_BUDGET_FRAC = 0.95
 REPLAY_SAFE_SIZING = True
@@ -53,9 +53,9 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "density07_burst4_overfill_partial"
+RUN_LABEL = "legacy89_partial_overfill"
 BURST_TARGET_POSTS = 4
-BURST_PROBES = 2
+BURST_PROBES = 0
 BURST_MIN_POSTS = 4
 BURST_START_IDX = 12000
 
@@ -225,7 +225,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             burst_lats.append(replay_lat)
             burst_cost += replay_lat
 
-        if len(burst_lats) == BURST_PROBES:
+        if BURST_PROBES > 0 and len(burst_lats) == BURST_PROBES:
             cands.extend(_make_candidate(msg) for msg in burst_msgs)
             replay_lats.extend(burst_lats)
             replay_cost += burst_cost

@@ -17,7 +17,7 @@ score estimates.
 
 Current code state is not the best artifact:
 
-- `agressive-score-up/attack.py`: `density07_burst4_overfill_partial`
+- `agressive-score-up/attack.py`: `legacy89_partial_overfill`
 - `multi-post-up/attack.py`: `r14_mp1_k2_late_no_poison`
 
 Restore or rebuild from `density02_burst4_probe_fallback`, not current local

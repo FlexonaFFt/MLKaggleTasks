@@ -42,7 +42,7 @@ SPLIT_THRESHOLD_S = 12.0
 
 # Use the safe cap until model latency is classified. Fast rows get a tighter
 # replay margin; slow rows stay at the stable r11 control cap.
-REPLAY_SAFE_FRAC = 0.970
+REPLAY_SAFE_FRAC = 0.990
 FAST_REPLAY_SAFE_FRAC = 0.987
 SLOW_REPLAY_SAFE_FRAC = 0.970
 REPLAY_BUDGET_MULT = 1.0
@@ -53,10 +53,10 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "density05_burst2_one_probe_fallback"
-BURST_TARGET_POSTS = 2
-BURST_PROBES = 1
-BURST_MIN_POSTS = 2
+RUN_LABEL = "density07_burst4_overfill_partial"
+BURST_TARGET_POSTS = 4
+BURST_PROBES = 2
+BURST_MIN_POSTS = 4
 BURST_START_IDX = 12000
 
 MARGIN_S = 47.0

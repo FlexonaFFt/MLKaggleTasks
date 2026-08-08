@@ -1,21 +1,69 @@
 # AI Agent Security - Research Summary
 
-Last updated: 2026-08-07.
+Last updated: 2026-08-08.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
-Near-term goal: reach a stable `90+` first, then push toward `100+`.
+Near-term goal: beat the current post-reset baseline `84.690`.
 
-Current confirmed best: `89.415` from `r14_v38_dyncap_p70_original_safe987`.
+Current confirmed post-reset best: `84.690` from `density02_burst4_probe_fallback`.
 
-Best current baseline: r14/v38 dynamic-cap `p70`, original probe behavior, `safe987`.
+Old best before reset: `89.415` from `r14_v38_dyncap_p70_original_safe987`.
+
+Important: the old `89.415` is no longer a valid target/baseline. Kaggle changed
+the evaluator, invalidated the current leaderboard, and reruns only selected
+submissions. Treat all pre-reset scores as directional evidence, not absolute
+score estimates.
 
 Current code state is not the best artifact:
 
-- `agressive-score-up/attack.py`: `r14_v38_dyncap_p70_original_slow975`
+- `agressive-score-up/attack.py`: `density07_burst4_overfill_partial`
 - `multi-post-up/attack.py`: `r14_mp1_k2_late_no_poison`
 
-Restore `r14_v38_dyncap_p70_original_safe987` before building the next serious score-up branch.
+Restore or rebuild from `density02_burst4_probe_fallback`, not current local
+`density05`, before the next `agressive-score-up` branch.
+
+Do not blindly restore `r14_v38_dyncap_p70_original_safe987` as "the best" after
+the reset. It is useful as a control family, but the new evaluator changes the
+risk/reward of replay timeouts and Gemma multi-tool parsing.
+
+## 2026-08-08 Leaderboard Reset
+
+Kaggle reset the leaderboard because old and new scores are not comparable.
+
+Evaluator changes:
+
+- Gemma tool-call parsing is normalized; some tool-call responses wrapped in
+  `{}` should now parse consistently.
+- Replay timeout no longer returns `0.0`; public/private replay keeps partial
+  score accumulated before timeout.
+- Timeout inside `attack.py` still kills the submission.
+- Only 2 submissions per team can be rerun; if not selected manually, Kaggle
+  reruns the top 2 from the old public leaderboard.
+- Updated framework/dataset was released on 2026-08-05 at 10:49 AM PT.
+
+Strategic consequence:
+
+- Old SFE/blank branches may now be valid partial-score branches if the failure
+  was replay timeout.
+- Old multi-post/Gemma branches deserve one clean retest only if they target the
+  parser fix directly.
+- Harness-specific tricks are higher private-score risk; prefer documented tool
+  calls and reproducible traces.
+
+Post-reset density results from 2026-08-08:
+
+| Label | Public score | Read |
+|---|---:|---|
+| `density01_burst2_probe_fallback` | 82.215 | useful, but below burst4 |
+| `density02_burst4_probe_fallback` | 84.690 | current post-reset best |
+| `density03_burst3_probe_fallback` | 79.290 | worse; not monotonic with k |
+| `density04_burst2_list_probe_fallback` | 44.165 | list-style burst2 wording failed badly |
+| `density05_burst2_one_probe_fallback` | 43.625 | one-probe gate failed badly |
+
+Read: `burst4` is the only current lead. The parser/replay reset did not make
+cheap `burst2` variants good. The one-probe gate is too trusting and likely
+switches into a bad dense mode after a noisy first success.
 
 ## Working Mental Model
 
@@ -23,13 +71,16 @@ This competition is mostly a replay-throughput problem.
 
 - A clean single-post EXFIL candidate scores about `18 raw = 16 severity + 2 novelty`.
 - Normalized contribution is about `18 / 200 = 0.09` public score per fired candidate.
-- `89.415` is roughly `993` fired-candidate equivalents.
-- Score `90` needs roughly `1000` fired-candidate equivalents.
-- Score `100` needs roughly `1112` fired-candidate equivalents.
-- The gap from `89.415` to `90` is about `+7` clean fired candidates.
-- The gap from `89.415` to `100` is about `+119` clean fired candidates.
+- Pre-reset `89.415` was roughly `993` fired-candidate equivalents under the
+  old public scorer.
+- Score `90` used to need roughly `1000` fired-candidate equivalents.
+- Score `100` used to need roughly `1112` fired-candidate equivalents.
+- These thresholds are historical only until new post-reset scores land.
 
-The replay wall is the main constraint. Too many candidates, too slow candidates, or underestimated replay cost can blank the whole submission instead of giving partial credit. Kaggle API may show these runs as `complete` with no public score; the UI shows `Submission Format Error`.
+The replay wall is still the main constraint, but replay timeout now gives
+partial credit instead of forcing `0.0`. Too many candidates or underestimated
+replay cost can still waste tail candidates; timeout inside `attack.py` still
+kills the submission.
 
 ## Active Files
 
@@ -49,9 +100,10 @@ Before every Kaggle submission:
 5. Dry-run `AttackAlgorithm().run(None, config)` and check 5 one-message candidates.
 6. Use a descriptive submission label.
 
-## Current Recovery Baseline
+## Current Control Family
 
-Use this as the next starting point unless a new public notebook gives a stronger reason:
+Use this as the conservative control family unless a new public notebook or
+post-reset score gives a stronger reason:
 
 - single-message candidates only
 - single-post EXFIL with `SECRET_MARKER` in `http.post` data
@@ -62,10 +114,12 @@ Use this as the next starting point unless a new public notebook gives a stronge
 - `FRAME_TEMPLATE` only for the slow/reasoning model path
 - warmup candidate kept when it fires
 - dynamic-cap `p70`
-- `safe987` settings from `r14_v38_dyncap_p70_original_safe987`
+- `safe987` settings from pre-reset `r14_v38_dyncap_p70_original_safe987`
 - `FILL_BUDGET_FRAC = 0.95`
 
-Do not rebuild from failed R4/R5/R8 branches, `/Users/flexonafft/Downloads/89.py`, or the latest `multi-post-up` attempts unless the purpose is a diagnostic repeat.
+Do not rebuild from failed R4/R5/R8 branches, `/Users/flexonafft/Downloads/89.py`,
+or the latest `multi-post-up` attempts unless the purpose is a diagnostic
+repeat under the new scorer.
 
 ## Submission History
 
@@ -125,7 +179,7 @@ Do not rebuild from failed R4/R5/R8 branches, `/Users/flexonafft/Downloads/89.py
 | 2026-08-05 | `r14_v38_dyncap_p68_original_safe985` | 87.390 | valid | `p68` below best |
 | 2026-08-05 | `r14_v38_dyncap_p69_original_safe985` | 87.750 | valid | `p69` below best |
 | 2026-08-05 | `r14_v38_dyncap_p70_original_safe986` | 87.525 | valid | near-best family but lower than `safe987` |
-| 2026-08-05 | `r14_v38_dyncap_p70_original_safe987` | 89.415 | valid | current best; preserve this baseline |
+| 2026-08-05 | `r14_v38_dyncap_p70_original_safe987` | 89.415 | valid pre-reset | old best; no longer a confirmed baseline |
 | 2026-08-05 | `r14_v38_dyncap_p70_lat107_safe985` | - | SFE | submission format error |
 | 2026-08-06 | `r15-drop-slow-probes` | 79.695 | valid | dropping slow probes hurt badly |
 | 2026-08-06 | `r15_v38_dyncap_p70_drop_slow_probes_slow975` | 85.320 | valid | partial recovery, still below r14 best |
@@ -147,10 +201,10 @@ Do not rebuild from failed R4/R5/R8 branches, `/Users/flexonafft/Downloads/89.py
 | Short `.co` URLs | baseline and Pilkwang branches | yes |
 | Live template probing | adapts across replay models | yes |
 | Replay-safe sizing by measured latency | necessary for non-blank runs | yes |
-| Dimong v38/r14 latency split + `FRAME_TEMPLATE` | r9 hit `85.365`; r14/p70/safe987 hit `89.415` | yes, current baseline |
-| Median classification with `SPLIT_CLASSIFY_N=5` | part of the `89.415` r14 family | yes |
-| Warmup/probe candidates kept when fired | dropping slow probes scored `79.695` / `85.320`; original r14 scored `89.415` | yes |
-| Dynamic-cap `p70` + `safe987` | `89.415`; nearby `p68`, `p69`, `safe986` were lower | yes, preserve first |
+| Dimong v38/r14 latency split + `FRAME_TEMPLATE` | r9 hit `85.365`; r14/p70/safe987 hit `89.415` pre-reset | yes, control family |
+| Median classification with `SPLIT_CLASSIFY_N=5` | part of the old `89.415` r14 family | yes |
+| Warmup/probe candidates kept when fired | dropping slow probes scored `79.695` / `85.320`; original r14 scored `89.415` pre-reset | yes |
+| Dynamic-cap `p70` + `safe987` | old `89.415`; nearby `p68`, `p69`, `safe986` were lower pre-reset | yes, control only |
 | `PROBE_REPS = 3` in the exact uniform branch | external `89.py` improved over `87.705`, but R5 repeats blanked | only with safer replay cap |
 | `PROBE_REPS = 5` | still useful as older stability control | control only |
 | `REPLAY_SAFE = 0.99` | external/public branch landed elsewhere but repeatedly blanked here | no short-term |
@@ -183,7 +237,7 @@ Do not rebuild from failed R4/R5/R8 branches, `/Users/flexonafft/Downloads/89.py
 | Adaptive early-accept probe | blank / no score, likely filled too aggressively. |
 | Multi-message candidates | format/0-byte risk. Do not use. |
 | Dropping slow probes | `79.695`; slow975 variant recovered only to `85.320`. Original probes are useful. |
-| `slow975` cap-only variants | `r14_slow975_only` scored `84.420`; below the `89.415` r14 best. |
+| `slow975` cap-only variants | `r14_slow975_only` scored `84.420`; below the old `89.415` r14 best. |
 | Compact multi-post prompt | `r16_mp4_compact_one` scored `80.190`; valid but weak. |
 | No-poison multi-post fan-out | `k2 late = 77.890`, `k3 = 83.105`, `k3 late = 84.005`, `k4 = 77.610`; all below single-post r14. Close for now. |
 | Batch/multi-post fan-out | current evidence says it burns hops/replay and lowers score, even when no-poison and late-gated. |
@@ -225,29 +279,37 @@ Notes:
 
 Best practical next steps:
 
-1. Restore `r14_v38_dyncap_p70_original_safe987` locally before any new branch.
-2. Stop spending attempts on `89.py`, Hermes, continuation, slow-probe dropping, `slow975`, and current multi-post fan-out.
-3. Only modify one r14 variable per attempt.
-4. Prefer tests that preserve the `89` floor; a valid `80`-`84` branch is not progress.
-5. Treat any SFE as a failed branch unless a same-day known-good r14-family control also blanks.
+1. Restore/rebuild from `density02_burst4_probe_fallback`; current local
+   `density05` is a dead branch.
+2. Stop spending attempts on `density04`/`density05`-style `burst2` variants.
+3. Only modify one `density02` variable per attempt: probe count, cap, or
+   wording, not all at once.
+4. Keep one conservative single-post control for sanity; do not assume old
+   `89.415` still maps to `90`.
 
 Reasonable next experiment candidates:
 
 | Candidate | Change | Expected read |
 |---|---|---|
-| `r14-best-restore` | restore exact `r14_v38_dyncap_p70_original_safe987` source/notebook locally | file hygiene only; do not spend a submit just to repeat control |
-| `r14-p70-nearby-microsearch` | only tiny `p70`-family predictor/cap changes, one variable at a time | tries for the missing `+7` fired-candidate equivalent without changing mechanism |
-| `r14-combo-probe-only` | rebuild combo on r14 fallback, return combo only if strict live success is high | tests `CONFUSED_DEPUTY` without 89-family or multi-post confound |
-| `public-code-diff` | diff fresh public notebooks after 2026-08-07 before coding | needed because cap/multi tweaks have mostly saturated |
+| `density02_restore` | restore current best `burst4` code locally | file hygiene; submit only if no selected rerun covers it |
+| `density02_overfill` | same `burst4`, slightly looser replay cap | tests partial replay-timeout credit |
+| `density02_probe3` | same `burst4`, 3-probe gate instead of 2 | tests if stricter gate avoids low-quality dense mode |
+| `postreset_control_single` | conservative r14/v38 single-post control family | anchors the new scorer |
+| `public-code-diff` | diff fresh public notebooks after 2026-08-08 before coding | needed because the scorer changed |
 
 What we may be missing:
 
 - A genuinely faster high-fire template, not another replay cap tweak.
-- A validated multi-hit trace that beats single-post. Current no-poison/late/compact multi-post variants all failed to beat `89.415`.
+- A validated multi-hit trace that beats single-post under the new Gemma parser.
 - A clean `CONFUSED_DEPUTY` combo that passes live predicates and replay. Current combo attempt blanked and was confounded by 89-family fallback.
 
 ## Strategic Read
 
-R9 changed the baseline to `85.365`, then r14/p70/original/safe987 pushed it to `89.415`. The useful gain came from v38/r14 model-latency classification, frame selection, warmup/probe handling, and careful dynamic-cap sizing, not from simply raising replay cap.
+R9 changed the old baseline to `85.365`, then r14/p70/original/safe987 pushed it
+to pre-reset `89.415`. The useful gain came from v38/r14 model-latency
+classification, frame selection, warmup/probe handling, and careful dynamic-cap
+sizing, not from simply raising replay cap.
 
-To reach `90`, the current baseline needs only about `+7` clean fired-candidate equivalents. To reach `100`, it still needs about `+119`. Recent evidence is blunt: `slow975`, dropped probes, compact multi-post, and no-poison late multi-post all regressed. The next useful work should restore the r14 best locally, then either find a genuinely faster single-post path or a strictly validated non-EXFIL predicate path.
+The reset removes the old `90` threshold math. The current post-reset baseline
+is `84.690`, and the only lead from the density batch is `burst4`. Next work
+should restore `density02`, then test one small `burst4` change at a time.

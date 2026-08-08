@@ -17,7 +17,7 @@ score estimates.
 
 Current code state is not the best artifact:
 
-- `agressive-score-up/attack.py`: `density06_burst5_probe_fallback`
+- `agressive-score-up/attack.py`: `legacy89_safe987_exact`
 - `multi-post-up/attack.py`: `r14_mp1_k2_late_no_poison`
 
 Restore or rebuild from `density02_burst4_probe_fallback`, not current local

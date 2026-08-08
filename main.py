@@ -757,13 +757,11 @@ def _kaggle_submission_entrypoint(obs):
 '''
 
 import copy
-
 _V22_NS = {}
 _PREMIUM_NS = {}
 exec(V22_SOURCE, _V22_NS)
 exec(PREMIUM_SOURCE, _PREMIUM_NS)
 _ROUTE = {0: None, 1: None}
-
 
 def _get(value, key, default=None):
     if isinstance(value, dict):
@@ -773,28 +771,15 @@ def _get(value, key, default=None):
         return getter(key, default)
     return getattr(value, key, default)
 
-
 def _choose_route(obs):
-    prices = _get(_get(obs, "market", {}) or {}, "prices", {}) or {}
-    melon = float(_get(prices, "MELON", 0) or 0)
-    strawberry = float(_get(prices, "STRAWBERRY", 0) or 0)
-    farms = list(_get(obs, "farms", []) or [])
-    if len(farms) != 2:
-        return "v22_base"
-    if melon >= 200 or strawberry >= 150:
-        return "premium_control"
-    return "v22_base"
-
+    player = int(_get(obs, "player", 0) or 0)
+    return "premium_control" if player == 1 else "v22_base"
 
 def agent(obs):
     seat = 1 if int(_get(obs, "player", 0) or 0) == 1 else 0
-    step = int(_get(obs, "step", 0) or 0)
-    if step == 0 or _ROUTE[seat] not in ("v22_base", "premium_control"):
+    if int(_get(obs, "step", 0) or 0) == 0 or _ROUTE[seat] not in ("v22_base", "premium_control"):
         _ROUTE[seat] = _choose_route(obs)
-    if _ROUTE[seat] == "premium_control":
-        return _PREMIUM_NS["agent"](obs)
-    return _V22_NS["agent"](obs)
-
+    return (_PREMIUM_NS if _ROUTE[seat] == "premium_control" else _V22_NS)["agent"](obs)
 
 def _kaggle_submission_entrypoint(obs):
     return agent(obs)

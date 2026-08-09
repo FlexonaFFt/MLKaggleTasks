@@ -484,3 +484,72 @@ def agent(obs):
 
 def _kaggle_submission_entrypoint(obs):
     return agent(obs)
+
+
+# ===================== TUNED PREEMPTION (v6) =====================
+_PREEMPT_FRACTION = 2.0
+_PREEMPT_MAX_BATCH = 30
+_PREEMPT_MIN_FUTURE_QUANTITY = 4
+_PREEMPT_START = 120
+_PREEMPT_MAX_CLONE_DISTANCE = 6
+_PREMIUM = ('STRAWBERRY', 'MELON', 'MILK', 'WOOL')
+_PREEMPT_HORIZONS = (6, 5, 4, 3, 2, 1)
+
+_V6_BASE_PREEMPT = _preempt_shift
+
+
+def _preempt_shift(obs, action, step):
+    """Same borrow-and-repay logic, but over a configurable horizon ladder."""
+    if not _PREEMPT_ENABLED or not (_PREEMPT_START <= step < _PREEMPT_STOP):
+        return action
+    state = _shift_state(obs, step)
+    if state.get("due") or _clone_distance(obs) > _PREEMPT_MAX_CLONE_DISTANCE:
+        return action
+    market = list(action.get("market") or [])
+    if len(market) >= 10:
+        return action
+    remaining = _projected_shed(obs, action)
+    for raw in market:
+        if len(raw) >= 3 and raw[0] == "SELL":
+            item = raw[1]
+            remaining[item] = max(0, int(remaining.get(item, 0) or 0) - max(0, int(raw[2])))
+    prices = _get(_get(obs, "market", {}) or {}, "prices", {}) or {}
+
+    for horizon in _PREEMPT_HORIZONS:
+        future = _future_sells_at(step, horizon)
+        if not future:
+            continue
+        shifted = {}
+        trial_market = list(market)
+        trial_remaining = dict(remaining)
+        for item in _PREMIUM:
+            future_quantity = max(0, int(future.get(item, 0) or 0))
+            if future_quantity < _PREEMPT_MIN_FUTURE_QUANTITY:
+                continue
+            base_price = float(_MARKET_PARAMS[item][0])
+            current_price = float(_get(prices, item, 0) or 0)
+            if current_price <= _PRICE_FLOOR:
+                continue
+            if current_price < base_price * _PREEMPT_MIN_PRICE_RATIO:
+                continue
+            target = min(
+                max(0, int(trial_remaining.get(item, 0) or 0)),
+                future_quantity,
+                _PREEMPT_MAX_BATCH,
+                max(1, int(round(future_quantity * _PREEMPT_FRACTION))),
+            )
+            if target <= 0 or len(trial_market) >= 10:
+                continue
+            trial_market.append(["SELL", item, target])
+            trial_remaining[item] = max(0, int(trial_remaining.get(item, 0) or 0) - target)
+            shifted[item] = target
+        if shifted:
+            action["market"] = trial_market[:10]
+            state["due_step"] = step + horizon
+            state["due"] = shifted
+            return action
+    return action
+
+
+def _v6_entrypoint(obs):
+    return agent(obs)

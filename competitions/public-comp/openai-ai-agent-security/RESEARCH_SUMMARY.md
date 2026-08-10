@@ -1,12 +1,14 @@
 # AI Agent Security - Research Summary
 
-Last updated: 2026-08-08.
+Last updated: 2026-08-10.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
-Near-term goal: beat the current post-reset baseline `84.690`.
+Near-term goal: beat the current post-reset baseline `85.995`.
 
-Current confirmed post-reset best: `84.690` from `density02_burst4_probe_fallback`.
+Current confirmed post-reset best: `85.995` from `legacy89_partial_overfill`.
+
+Current strategy report: `research/strategy-report-2026-08-10.md`.
 
 Old best before reset: `89.415` from `r14_v38_dyncap_p70_original_safe987`.
 

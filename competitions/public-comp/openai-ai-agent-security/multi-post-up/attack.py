@@ -58,9 +58,10 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "pred02_confused_deputy_probe"
+RUN_LABEL = "pred03_exfil_deputy_router"
 DEPUTY_TARGET_SENDS = 4
-DEPUTY_PROBES = 3
+DEPUTY_PROBES = 2
+DEPUTY_PREFIX_N = 64
 DEPUTY_MIN_HITS = 2
 DEPUTY_START_IDX = 30000
 BURST_TARGET_POSTS = 4
@@ -251,7 +252,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             replay_lats.extend(deputy_lats)
             replay_cost += deputy_cost
             idx = DEPUTY_START_IDX + DEPUTY_PROBES
-            while len(cands) < HARD_N_CAP:
+            while len(cands) < HARD_N_CAP and len(deputy_lats) < DEPUTY_PROBES + DEPUTY_PREFIX_N:
                 next_wall = max(
                     PREDICT_LAT_FLOOR_S,
                     _percentile_of(replay_lats, PREDICT_LAT_Q) * PREDICT_LAT_MULT,
@@ -287,7 +288,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 cands.pop()
 
             print(
-                "[%s] deputy%d returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
+                "[%s] deputy%d prefix=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
                 % (
                     RUN_LABEL,
                     DEPUTY_TARGET_SENDS,
@@ -300,7 +301,6 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 file=sys.stderr,
                 flush=True,
             )
-            return cands
 
         burst_lats: list[float] = []
         burst_msgs: list[str] = []

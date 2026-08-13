@@ -53,7 +53,8 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "legacy89_safe987_exact"
+RUN_LABEL = "edge01_partial_replay_ladder"
+OVERFILL_TO_CAP = True
 BURST_TARGET_POSTS = 5
 BURST_PROBES = 0
 BURST_MIN_POSTS = 5
@@ -369,9 +370,24 @@ class AttackAlgorithm(AttackAlgorithmBase):
             replay_cost -= replay_lats.pop()
             cands.pop()
 
+        if OVERFILL_TO_CAP and cands:
+            tail_template = chosen_template if classify_n >= SPLIT_CLASSIFY_N else TEMPLATE
+            while len(cands) < HARD_N_CAP:
+                cands.append(_make_candidate(_msg(idx, tail_template)))
+                idx += 1
+
         print(
-            "[%s] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s cap=%.3f"
-            % (RUN_LABEL, len(cands), replay_cost, replay_cap, slowest, warmup_fired, active_safe_frac),
+            "[%s] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s cap=%.3f overfill=%s"
+            % (
+                RUN_LABEL,
+                len(cands),
+                replay_cost,
+                replay_cap,
+                slowest,
+                warmup_fired,
+                active_safe_frac,
+                OVERFILL_TO_CAP,
+            ),
             file=sys.stderr,
             flush=True,
         )

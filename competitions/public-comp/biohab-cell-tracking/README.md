@@ -38,6 +38,11 @@ V31 standard, global-shift relinking, and the ILP-1.4 continuity variant. It
 promotes the highest patched holdout score to `submission.csv`; without a
 `biohub_candidate_scores.json` artifact it safely falls back to V31 standard.
 
+`biohub_dual_seed_ensemble.ipynb` is the next experiment: it averages two
+independent model logits before point extraction, then runs one graph optimizer.
+Build it with `python3 scripts/sync_dual_seed_ensemble.py` and attach the two
+datasets named in its first cell. It refuses to write a partial submission.
+
 ## Files
 
 - `scripts/sync_public_anchor.py`: downloads and pins the public notebook,
@@ -45,6 +50,8 @@ promotes the highest patched holdout score to `submission.csv`; without a
 - `scripts/validate_submission.py`: validates schema and lineage invariants.
 - `scripts/build_three_candidate_notebook.py`: reproducibly builds the clean
   three-candidate Kaggle notebook from the scored V31 anchor.
+- `scripts/sync_dual_seed_ensemble.py`: pins the public dual-seed ensemble and
+  adds a submission-completeness guard.
 - `notebooks/biohub_anchor.ipynb`: generated runnable Kaggle notebook.
 - `notebooks/biohub_patched_three_candidate_selector.ipynb`: patched-metric
   production notebook and validated-candidate selector.

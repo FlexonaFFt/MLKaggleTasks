@@ -58,19 +58,20 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "pred04_untrusted_boundary_audit"
-UNTRUSTED_PROBES = 2
+RUN_LABEL = "pred05_stack_portfolio_max"
+UNTRUSTED_PROBES = 1
 UNTRUSTED_PREFIX_N = 48
 UNTRUSTED_MIN_HITS = 1
 UNTRUSTED_START_IDX = 40000
 DEPUTY_TARGET_SENDS = 4
-DEPUTY_PROBES = 0
-DEPUTY_PREFIX_N = 64
-DEPUTY_MIN_HITS = 2
+DEPUTY_PROBES = 1
+DEPUTY_PREFIX_N = 48
+DEPUTY_MIN_HITS = 1
 DEPUTY_START_IDX = 30000
 BURST_TARGET_POSTS = 4
-BURST_PROBES = 0
-BURST_MIN_POSTS = 4
+BURST_PROBES = 1
+BURST_PREFIX_N = 64
+BURST_MIN_POSTS = 3
 BURST_START_IDX = 12000
 
 MARGIN_S = 47.0
@@ -425,7 +426,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
             replay_lats.extend(burst_lats)
             replay_cost += burst_cost
             idx = BURST_START_IDX + BURST_PROBES * BURST_TARGET_POSTS
-            while len(cands) < HARD_N_CAP:
+            while len(cands) < HARD_N_CAP and len(burst_lats) < BURST_PROBES + BURST_PREFIX_N:
                 next_wall = max(
                     PREDICT_LAT_FLOOR_S,
                     _percentile_of(replay_lats, PREDICT_LAT_Q) * PREDICT_LAT_MULT,
@@ -461,7 +462,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 cands.pop()
 
             print(
-                "[%s] burst%d returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
+                "[%s] burst%d prefix=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
                 % (
                     RUN_LABEL,
                     BURST_TARGET_POSTS,
@@ -474,7 +475,6 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 file=sys.stderr,
                 flush=True,
             )
-            return cands
 
         idx = 0
         classify_n = 0

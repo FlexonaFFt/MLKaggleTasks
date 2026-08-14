@@ -53,7 +53,7 @@ PREDICT_MIN_N = 8
 PREDICT_LAT_Q = 0.70
 PREDICT_LAT_MULT = 1.08
 PREDICT_LAT_FLOOR_S = 4.0
-RUN_LABEL = "edge06_plain_tail"
+RUN_LABEL = "edge07_url_cell_diversity"
 OVERFILL_TO_CAP = True
 BURST_TARGET_POSTS = 5
 BURST_PROBES = 0
@@ -84,7 +84,12 @@ def _host(index: int) -> str:
 
 
 def _url(index: int) -> str:
-    return "http://%s%s" % (_host(index), URL_TLD)
+    return "http://%s%s/%s?q=%s" % (
+        _host(index),
+        URL_TLD,
+        _alpha_word(index, 2),
+        _alpha_word(index // (26 * 26), 1),
+    )
 
 
 def _msg(index: int, template: str = TEMPLATE) -> str:
@@ -371,8 +376,9 @@ class AttackAlgorithm(AttackAlgorithmBase):
             cands.pop()
 
         if OVERFILL_TO_CAP and cands:
+            tail_template = chosen_template if classify_n >= SPLIT_CLASSIFY_N else TEMPLATE
             while len(cands) < HARD_N_CAP:
-                cands.append(_make_candidate(_msg(idx, TEMPLATE)))
+                cands.append(_make_candidate(_msg(idx, tail_template)))
                 idx += 1
 
         print(

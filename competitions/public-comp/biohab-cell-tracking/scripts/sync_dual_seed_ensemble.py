@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KERNEL = "hiranorm/new-lb-0-916-infer-ensemble-lf-exp002"
+KERNEL = "pilkwang/biohub-cell-tracking-two-seeds-logit-blend"
 API_URL = f"https://www.kaggle.com/api/v1/kernels/pull/{KERNEL}"
 OUTPUT = ROOT / "notebooks" / "biohub_dual_seed_ensemble.ipynb"
 LOCK = ROOT / "dual_seed_ensemble.lock.json"
@@ -34,8 +34,10 @@ def validate_notebook(notebook: dict) -> None:
     required = (
         "biohub-temporal-unet3d-seed314159-v1",
         "biohub-tracking-support-pack-50ep-v1",
-        "'det_threshold': 0.90",
-        "predict_video(models, zp, mc)",
+        "BIOHUB_SECONDARY_WEIGHTS",
+        "secondary_model",
+        "secondary_detection_weight",
+        "missing_datasets",
     )
     missing = [needle for needle in required if needle not in source]
     if missing:
@@ -50,12 +52,16 @@ def strip_notebook_notes(notebook: dict) -> None:
         source = cell_source(cell)
         tokens = tokenize.generate_tokens(io.StringIO(source).readline)
         source = tokenize.untokenize(token for token in tokens if token.type != tokenize.COMMENT)
+        source = source.replace(")  # (1, n_src, n_tgt)", ")")
         set_cell_source(cell, CJK.sub("", source))
         cells.append(cell)
     notebook["cells"] = cells
 
 
 def add_partial_submission_guard(notebook: dict) -> None:
+    source = "\n".join(cell_source(cell) for cell in notebook["cells"])
+    if "missing_datasets" in source and "extra_datasets" in source:
+        return
     marker = "n_rows = write_submission(results, OUT)"
     guard = """if skipped:
     raise RuntimeError(f\"Refusing partial submission; failed datasets: {skipped}\")
@@ -70,7 +76,7 @@ if len(results) != len(zpaths):
             source = source.replace(marker, guard + marker, 1)
             set_cell_source(cell, source)
         return
-    raise RuntimeError("Could not add the submission-completeness guard")
+    raise RuntimeError("Upstream notebook has no submission-completeness guard")
 
 
 def fetch() -> tuple[dict, dict]:

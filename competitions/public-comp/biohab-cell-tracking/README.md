@@ -41,7 +41,7 @@ promotes the highest patched holdout score to `submission.csv`; without a
 `biohub_dual_seed_ensemble.ipynb` is the next experiment: it averages two
 independent model logits before point extraction, then runs one graph optimizer.
 Build it with `python3 scripts/sync_dual_seed_ensemble.py` and attach the two
-datasets named in its first cell. It refuses to write a partial submission.
+weight datasets plus the competition data. It refuses to write a partial submission.
 
 ## Files
 

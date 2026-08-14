@@ -17,8 +17,10 @@ class DualSeedSyncTest(unittest.TestCase):
         notebook = {"cells": [{"source": "\n".join((
             "biohub-temporal-unet3d-seed314159-v1",
             "biohub-tracking-support-pack-50ep-v1",
-            "'det_threshold': 0.90",
-            "predict_video(models, zp, mc)",
+            "BIOHUB_SECONDARY_WEIGHTS",
+            "secondary_model",
+            "secondary_detection_weight",
+            "missing_datasets",
             "n_rows = write_submission(results, OUT)",
         ))}]}
         validate_notebook(notebook)

@@ -1,5 +1,5 @@
 {
-  "kernel": "hiranorm/new-lb-0-916-infer-ensemble-lf-exp002",
-  "version": 5,
-  "api_url": "https://www.kaggle.com/api/v1/kernels/pull/hiranorm/new-lb-0-916-infer-ensemble-lf-exp002"
+  "kernel": "pilkwang/biohub-cell-tracking-two-seeds-logit-blend",
+  "version": 40,
+  "api_url": "https://www.kaggle.com/api/v1/kernels/pull/pilkwang/biohub-cell-tracking-two-seeds-logit-blend"
 }

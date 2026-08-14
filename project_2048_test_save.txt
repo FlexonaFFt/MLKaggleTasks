@@ -1,0 +1,6 @@
+score: 6
+status: playing
+2 4 0 0
+0 0 0 0
+0 0 0 0
+0 0 0 0

@@ -34,8 +34,8 @@ REPLAY_COST_COEF = 1.0
 SLOWEST0 = 25.0
 SLOWEST_MULT = 1.35
 LAT_FLOOR_S = 0.001
-RUN_LABEL = "pub91_n5_median_no_overfill"
-OVERFILL_TO_CAP = False
+RUN_LABEL = "pub91_n5_median_safe_tail"
+OVERFILL_TO_CAP = True
 
 _ALPHA = string.ascii_lowercase
 

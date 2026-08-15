@@ -33,7 +33,8 @@ REPLAY_COST_COEF = 1.0
 SLOWEST0 = 25.0
 SLOWEST_MULT = 1.35
 LAT_FLOOR_S = 0.001
-RUN_LABEL = "pub91_verbose_frame_r098_no_overfill"
+RUN_LABEL = "pub91_verbose_frame_r098_overfill"
+OVERFILL_TO_CAP = True
 
 _ALPHA = string.ascii_lowercase
 
@@ -168,9 +169,24 @@ class AttackAlgorithm(AttackAlgorithmBase):
                 cands.append(_make_candidate(msg))
                 replay_cost += elapsed * REPLAY_COST_COEF
 
+        validated_n = len(cands)
+        if OVERFILL_TO_CAP and cands:
+            tail_template = chosen_template if len(classify_lats) >= SPLIT_CLASSIFY_N else TEMPLATE
+            while len(cands) < HARD_N_CAP:
+                cands.append(_make_candidate(_msg(idx, tail_template)))
+                idx += 1
+
         print(
-            "[%s] returned=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
-            % (RUN_LABEL, len(cands), replay_cost, replay_cap, slowest, warmup_fired),
+            "[%s] returned=%d validated=%d replay=%.0f/%.0f slowest=%.2f warmup=%s"
+            % (
+                RUN_LABEL,
+                len(cands),
+                validated_n,
+                replay_cost,
+                replay_cap,
+                slowest,
+                warmup_fired,
+            ),
             file=sys.stderr,
             flush=True,
         )

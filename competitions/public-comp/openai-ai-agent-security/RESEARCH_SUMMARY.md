@@ -1,6 +1,6 @@
 # AI Agent Security - Research Summary
 
-Last updated: 2026-08-14.
+Last updated: 2026-08-16.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
@@ -22,7 +22,9 @@ score estimates.
 
 Current code state:
 
-- `agressive-score-up/attack.py`: `edge01_partial_replay_ladder` (`86.805`, current best)
+- `agressive-score-up/attack.py`: `exact91_v15_cap982_tail1200` (pending result)
+- `agressive-score-up/public91-up.ipynb`: active submit notebook for the current
+  `exact91` series
 - `multi-post-up/attack.py`: `edge02_selector_overfill_hybrid` (`85.590`, not best)
 
 Use `edge01_partial_replay_ladder` as the next implementation base unless a new
@@ -95,6 +97,67 @@ Read:
   Direct output-suppression attempts already scored `47-72`; use suppression
   only if it is validated live and does not replace the reliable template.
 
+## 2026-08-15 Edge Follow-Ups
+
+These were follow-ups around the `edge01` / public-code boundary after public
+notebooks showed visible `90+` scores.
+
+| Label | Public score | Read |
+|---|---:|---|
+| `edge03_supp_gate_slow_only` | 84.015 | suppression gate did not beat `edge01`; extra logic likely costs more than it saves |
+| `edge04_fastcap_front993` | 79.740 | aggressive fast cap is too risky / low-value |
+| `edge05_slow_frame_v2` | 86.580 | close to `edge01`, but still below `86.805` |
+| `edge06_plain_tail` | 78.435 | plain tail hurts; chosen-template tail is useful |
+| `edge07_url_cell_diversity` | 59.490 | path/query URL diversity destroys quality; keep host-only URLs |
+
+Read: the only near-positive result was another slow-frame variant, but it did
+not beat `edge01`. Close fast-cap, plain-tail, and URL path/query diversity.
+
+## 2026-08-16 Public-91 Reproduction Attempt
+
+Goal: check whether the visible public `90/91` notebooks can be reproduced by
+the advertised public-V15 mechanics.
+
+| Label | Public score | Read |
+|---|---:|---|
+| `pub91_verbose_frame_r098_overfill` | 86.130 | public-style frame plus full overfill is valid but below `edge01` |
+| `pub91_verbose_frame_r097_no_overfill` | 78.120 | `0.970` without tail is too conservative |
+| `reload` | 83.970 | valid, but not a lead; exact identity unclear from submission label |
+| `pub91_n5_median_no_overfill` | 80.775 | `N=5 median` without tail is weak |
+| `pub91_n5_median_safe_tail` | 86.265 | best of this group, still below `edge01` |
+
+Read:
+
+- Overfill/tail still matters; no-overfill variants are weak.
+- The simplified public-91 rewrite did not reproduce `90+`.
+- Do not spend more attempts on cap/median micro-changes in rewritten code.
+  Next test must be source-exact public V15 code.
+
+## 2026-08-16 Exact Public V15 Series
+
+Source pulled from `foysalemonshanto/ai-agent-security-v15`. Extracted
+`attack.py` SHA256 for the exact original:
+
+`614176a339e71b80a71c9cf5035c6bab486b5c5a82c4f14d9e8a1e1417424f9f`
+
+Pending submissions:
+
+| Label | Status | What it tests |
+|---|---|---|
+| `exact91_v15_original` | pending | byte-for-byte public V15 source with public overrides |
+| `exact91_v15_tail1200` | pending | exact V15 plus limited tail to `1200` |
+| `exact91_v15_tail1600` | pending | exact V15 plus larger limited tail to `1600` |
+| `exact91_v15_cap982` | pending | exact V15 with `REPLAY_SAFE_FRAC = 0.982`, no tail |
+| `exact91_v15_cap982_tail1200` | pending | moderate cap lift plus limited tail |
+
+Decision rule:
+
+- If `exact91_v15_original` lands near `90`, continue ablations from exact V15.
+- If it lands near `86`, visible public `90/91` code is not a reliable current
+  path; return to `edge01`-style ordered overfill and search for a new mechanism.
+- If tail variants beat original, tune tail size; if they underperform, stop
+  blind tail on public V15.
+
 ## Working Mental Model
 
 This competition is mostly a replay-throughput problem.
@@ -119,6 +182,7 @@ kills the submission.
 
 - `agressive-score-up/attack.py`
 - `agressive-score-up/ultra-optimized-agressive.ipynb`
+- `agressive-score-up/public91-up.ipynb`
 - `multi-post-up/attack.py`
 - `multi-post-up/multi-post-up.ipynb`
 

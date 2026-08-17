@@ -1,0 +1,41 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "title": "ARC Prize 2026: реалистичность бронзовой медали",
+    "blocks": [
+      {"id":"title","type":"markdown","body":"# ARC Prize 2026: реалистичность бронзовой медали"},
+      {"id":"summary","type":"markdown","body":"## Executive Summary\n\n- **Короткий ответ:** при вашем текущем уровне Kaggle это реалистичная, но очень агрессивная цель — не на одну попытку и не как solo-проект «с нуля». Для ARC-AGI-2 шанс бронзы низкий; для ARC-AGI-3 — низкий, но это более оправданная ставка.\n- **ARC-AGI-2 уже имеет узкий верх:** 3-е место public leaderboard — 36.39%, а 1-е — 65.83%. «Качественный baseline» недостаточен: нужна исследовательская идея плюс надёжная Kaggle-реализация.\n- **Рекомендация:** сделать ARC-AGI-3 основной ставкой, а ARC-AGI-2 — коротким feasibility-спринтом. После первой недели оставить лишь трек, где локальная валидированная метрика превосходит сильный открытый baseline."},
+      {"id":"cutoff","type":"markdown","body":"## Порог конкурентности уже высок\n\nВ ARC-AGI-2 около 1,226 команд. Показанные Kaggle-медали ставят бронзу примерно в область top-10% (ориентир — около 123-го места), но точный score cut-off публичная выдача не раскрывает. Как минимум, текущий уровень серебра уже около 32.64%, а top-3 — 36.39%+.\n\n65.83% — не порог бронзы, а выброс лидера. Вывод: система должна устойчиво превосходить открытые baselines и иметь запас против private split, а не оптимизироваться под один public score."},
+      {"id":"chart-block","type":"chart","chartId":"agi2_public_landmarks"},
+      {"id":"fit","type":"markdown","body":"## Что говорит ваш текущий профиль\n\nВ workspace есть не только учебные табличные модели: воспроизводимые Kaggle-пайплайны, контроль версий публичных baseline-ноутбуков, проверки submission и one-variable experiment ledger. Последние результаты включают 97.7%, 96.6% и 90.0% команд, которых удалось обойти в крупных соревнованиях. Это сильная база для инженерной части — воспроизводимости, ведения экспериментов и безопасной подачи.\n\n**Пробел не в Kaggle-инженерии.** Нет доказательства уже работающего ARC solver, program synthesis / test-time training или агента, который систематически строит модель неизвестной среды. Этот research gap будет определять медаль."},
+      {"id":"choice","type":"markdown","body":"## Какой трек выбрать\n\n### ARC-AGI-2 — понятнее, но crowded\n\nНужно по демонстрациям вывести grid-трансформацию и дать два точных ответа на каждый test input. Baseline на открытых решениях 2025 поднимается быстро, но bronze потребует нового прироста в test-time adaptation, candidate generation/selection либо нейро-символьной проверке. Плюс: доступны 1,000 training и 120 public-evaluation задач. Минус: сильные research-команды и риск переобучения на public половину.\n\n### ARC-AGI-3 — научно сложнее, но ближе к вашему профилю\n\nНужен агент без инструкций: исследовать среду, вывести смысл действий, запомнить динамику, выбрать цель и пройти уровни. Метрика квадратично штрафует лишние действия относительно human baseline. Нужны agent loop, event log, replay и защита от таймаутов — это похоже на дисциплину, уже видимую в вашем agentic Kaggle проекте. Но benchmark frontier: на запуске сильные модели были ниже 1%, а submission plumbing остаётся отдельной инженерной задачей.\n\n**Выбор:** для первой ARC-медали — AGI-3. Для контролируемого изучения ARC — AGI-2, но без ожидания медали до прохождения gate ниже."},
+      {"id":"gates","type":"markdown","body":"## Gates до 2 ноября\n\n1. **Неделя 1 — контроль.** AGI-2: повторить открытый baseline и оценить без подгонки. AGI-3: пройти public games через официальный starter, получить детерминированные replay/logs. Нестабильный baseline — ещё не медальная гонка.\n2. **Недели 2–3 — собственный сигнал.** Оставить трек только если AGI-2 даёт повторяемый lift на замороженном holdout, либо AGI-3 решает ранее невидимые public environments с приемлемой action efficiency.\n3. **Недели 4–7 — private-risk hardening.** Только one-variable ablations; фиксировать seeds/runtime/артефакты; public score — подтверждение, не функция обучения.\n4. **Недели 8–10 — medal decision.** Продолжать лишь при видимом лидерборд-сигнале и локальной корреляции. Иначе выпустить чистое open-source решение и сменить цель на paper track / следующий цикл."},
+      {"id":"resources","type":"markdown","body":"## Реалистичная стоимость\n\nЗакладывайте 12–20 сфокусированных часов в неделю: примерно 140–220 часов до дедлайна. AGI-2 требует research/ML времени; AGI-3 добавляет интеграционные и compute-риски. Официальный AGI-3 starter поддерживает T4×2, P100 и RTX 6000, а организатор фиксирует частые провалы из-за GPU-конфигурации, зависаний и таймаутов.\n\nКоманда из 2–3 человек полезнее ещё одного ensemble: разделите representation/solver, evaluation/replay и Kaggle packaging. В solo-режиме нельзя параллельно гнаться за обоими треками после второго gate."},
+      {"id":"recommendation","type":"markdown","body":"## Рекомендованное действие\n\n**Ставка: AGI-3 как основной трек; AGI-2 — один 7-дневный разведочный спринт.** Ваше преимущество — не готовая ARC-теория, а умение превращать публичный anchor в воспроизводимый, измеряемый и безопасный submission. Это особенно ценно в AGI-3.\n\nНе начинайте с универсальной архитектуры. Сначала официальный harness, журналируемый baseline и маленький отложенный набор public games. Затем по одному измеримому модулю: exploration policy, memory/world-model, planner. Медаль появится из подтверждённого generalization lift, не из размера модели или количества действий."},
+      {"id":"questions","type":"markdown","body":"## Further Questions\n\n- Сколько часов в неделю и какой бюджет GPU вы готовы выделить?\n- Вы идёте solo или готовы собрать 2–3 человека?\n- Бронза означает Kaggle medal, денежный prize или сильную open-source работу? Для этих целей оптимальны разные стратегии."},
+      {"id":"caveats","type":"markdown","body":"## Caveats and assumptions\n\nОценка основана на текущих правилах и public leaderboard, не на private test set. Public leaderboard ARC-AGI-2 покрывает примерно половину тестовых задач, поэтому финальная расстановка изменится. Я предполагаю, что вы начинаете без готового ARC-AGI solver, но с опытом reproducible Kaggle experimentation. Если уже есть ARC/agent prototype, оценку надо пересчитать по его blinded score и runtime."}
+    ],
+    "cards": [],
+    "charts": [
+      {
+        "id":"agi2_public_landmarks",
+        "title":"ARC-AGI-2 public leaderboard: ориентиры score",
+        "subtitle":"Public split; значения не являются гарантированными private cut-offs",
+        "type":"bar",
+        "dataset":"agi2_public_landmarks",
+        "encodings":{"x":{"field":"label"},"y":{"field":"public_score"}},
+        "source":{"query":{"sql":"SELECT label, public_score, rank, interpretation FROM manually_transcribed_kaggle_arc_agi_2_public_leaderboard_2026_08_17","description":"Ручная фиксация видимых строк public leaderboard ARC Prize 2026 – ARC-AGI-2; используется только как ориентир конкурентности.","engine":"manual-research","url":"https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-2/leaderboard","tables_used":["Kaggle public leaderboard, accessed 2026-08-17"],"filters":["Public leaderboard only"]}}
+      }
+    ],
+    "tables": [],
+    "sources": []
+  },
+  "snapshot":{"version":1,"status":"ready","datasets":{"agi2_public_landmarks":[
+    {"label":"Leader","public_score":65.83,"rank":1,"interpretation":"outlier leader"},
+    {"label":"Top-3 boundary","public_score":36.39,"rank":3,"interpretation":"current third place"},
+    {"label":"Gold tail","public_score":33.06,"rank":12,"interpretation":"last visible gold"},
+    {"label":"Silver band","public_score":32.64,"rank":18,"interpretation":"repeated silver score"}
+  ]}},
+  "sources":[]
+}

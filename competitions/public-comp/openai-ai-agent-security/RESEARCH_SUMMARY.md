@@ -6,7 +6,7 @@ Goal: push public score above 100 while avoiding replay timeout / blank submissi
 
 Near-term goal: beat the current post-reset baseline `86.805`, then cross `90`.
 
-Current confirmed post-reset best: `86.805` from `edge01_partial_replay_ladder`.
+Current confirmed post-reset best: `88.020` from `exact91_v15_tail1600`.
 
 Current strategy reports:
 
@@ -22,13 +22,13 @@ score estimates.
 
 Current code state:
 
-- `agressive-score-up/attack.py`: `exact91_v15_cap982_tail1200` (pending result)
+- `agressive-score-up/attack.py`: `exact91_v15_tail1800` (pending result)
 - `agressive-score-up/public91-up.ipynb`: active submit notebook for the current
   `exact91` series
 - `multi-post-up/attack.py`: `edge02_selector_overfill_hybrid` (`85.590`, not best)
 
-Use `edge01_partial_replay_ladder` as the next implementation base unless a new
-result beats it. Do not rebuild from `density02`, `pred*`, or old
+Use the exact V15 + tail-size family as the next implementation base unless a
+new result beats it. Do not rebuild from `density02`, `pred*`, cap982, or old
 `r14_v38_dyncap_p70_original_safe987` as the default. The old `89.415` remains
 directional only; it is not a valid post-reset target/baseline.
 
@@ -140,23 +140,36 @@ Source pulled from `foysalemonshanto/ai-agent-security-v15`. Extracted
 
 `614176a339e71b80a71c9cf5035c6bab486b5c5a82c4f14d9e8a1e1417424f9f`
 
+Results:
+
+| Label | Public score | Read |
+|---|---:|---|
+| `exact91_v15_original` | 76.140 | exact public V15 alone does not reproduce visible public `90/91` |
+| `exact91_v15_tail1200` | 87.120 | tail clearly helps |
+| `exact91_v15_tail1600` | **88.020** | new post-reset best; tail-size is the current useful lever |
+| `exact91_v15_cap982` | 84.105 | cap lift without tail is bad |
+| `exact91_v15_cap982_tail1200` | 86.040 | cap982 plus tail is worse than plain tail; close cap982 |
+
+Decision rule:
+
+- Public code exactness was not enough; the visible `90/91` public notebook score
+  is not reproducible as-is.
+- Plain tail-size tuning is the only live lever that improved the baseline.
+- `REPLAY_SAFE_FRAC = 0.982` is closed for now.
+
+## 2026-08-17 Exact V15 Tail Sweep
+
+Goal: find the tail-size sweet spot around the new best `tail1600 = 88.020`.
+
 Pending submissions:
 
 | Label | Status | What it tests |
 |---|---|---|
-| `exact91_v15_original` | pending | byte-for-byte public V15 source with public overrides |
-| `exact91_v15_tail1200` | pending | exact V15 plus limited tail to `1200` |
-| `exact91_v15_tail1600` | pending | exact V15 plus larger limited tail to `1600` |
-| `exact91_v15_cap982` | pending | exact V15 with `REPLAY_SAFE_FRAC = 0.982`, no tail |
-| `exact91_v15_cap982_tail1200` | pending | moderate cap lift plus limited tail |
-
-Decision rule:
-
-- If `exact91_v15_original` lands near `90`, continue ablations from exact V15.
-- If it lands near `86`, visible public `90/91` code is not a reliable current
-  path; return to `edge01`-style ordered overfill and search for a new mechanism.
-- If tail variants beat original, tune tail size; if they underperform, stop
-  blind tail on public V15.
+| `exact91_v15_tail1500` | pending | lower bound around the best; checks if `1600` slightly overfills |
+| `exact91_v15_tail1700` | pending | nearest upward neighbor to `1600` |
+| `exact91_v15_tail1800` | pending | moderate aggression toward `90` |
+| `exact91_v15_tail2000` | pending | full tail cap; high risk but tests whether partial replay scoring tolerates it |
+| `exact91_v15_tail1600_keep_warmup` | pending | same tail target as best, but includes the live-fired warmup candidate |
 
 ## Working Mental Model
 

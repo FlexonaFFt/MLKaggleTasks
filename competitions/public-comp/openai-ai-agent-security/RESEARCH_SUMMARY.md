@@ -6,7 +6,7 @@ Goal: push public score above 100 while avoiding replay timeout / blank submissi
 
 Near-term goal: beat the current post-reset baseline `86.805`, then cross `90`.
 
-Current confirmed post-reset best: `88.020` from `exact91_v15_tail1600`.
+Current confirmed post-reset best: `89.640` from `exact91_v15_tail1500`.
 
 Current strategy reports:
 
@@ -22,7 +22,7 @@ score estimates.
 
 Current code state:
 
-- `agressive-score-up/attack.py`: `exact91_v15_tail1800` (pending result)
+- `agressive-score-up/attack.py`: `exact91_v15_tail1475` (pending result)
 - `agressive-score-up/public91-up.ipynb`: active submit notebook for the current
   `exact91` series
 - `multi-post-up/attack.py`: `edge02_selector_overfill_hybrid` (`85.590`, not best)
@@ -161,15 +161,38 @@ Decision rule:
 
 Goal: find the tail-size sweet spot around the new best `tail1600 = 88.020`.
 
+Results:
+
+| Label | Public score | Read |
+|---|---:|---|
+| `exact91_v15_tail1500` | **89.640** | new post-reset best; current peak |
+| `exact91_v15_tail1700` | 85.635 | worse; overfill/noise |
+| `exact91_v15_tail1800` | 87.435 | worse than 1500; larger tail trends down |
+| `exact91_v15_tail2000` | 82.170 | full cap is harmful |
+| `exact91_v15_tail1600_keep_warmup` | 88.065 | keep-warmup is worse than tail1500 |
+
+Read:
+
+- The local peak is around `TAIL_N ~= 1500`.
+- `TAIL_N >= 1600` is not a reliable path up.
+- Keep-warmup and cap982 are closed.
+- Remaining path to `90` is last-mile tail search around `1425-1550` and one
+  attempt to increase live-fired share without increasing total `TAIL_N`.
+
+## 2026-08-20 Exact V15 Last-Mile Tail Search
+
+Goal: close the remaining `0.36` gap to `90` without changing wording, URL
+scheme, cap, or predicate surface.
+
 Pending submissions:
 
 | Label | Status | What it tests |
 |---|---|---|
-| `exact91_v15_tail1500` | pending | lower bound around the best; checks if `1600` slightly overfills |
-| `exact91_v15_tail1700` | pending | nearest upward neighbor to `1600` |
-| `exact91_v15_tail1800` | pending | moderate aggression toward `90` |
-| `exact91_v15_tail2000` | pending | full tail cap; high risk but tests whether partial replay scoring tolerates it |
-| `exact91_v15_tail1600_keep_warmup` | pending | same tail target as best, but includes the live-fired warmup candidate |
+| `exact91_v15_tail1425` | pending | lower side of peak; checks if `1500` slightly overfills |
+| `exact91_v15_tail1475` | pending | near-left neighbor of the current best |
+| `exact91_v15_tail1525` | pending | near-right neighbor of the current best |
+| `exact91_v15_tail1550` | pending | upper edge before the bad `1600` zone |
+| `exact91_v15_tail1500_slowest130` | pending | same total tail as best, but slightly more live-fill via `SLOWEST_MULT = 1.30` |
 
 ## Working Mental Model
 
@@ -184,7 +207,7 @@ This competition is mostly a replay-throughput problem.
 - Normalized contribution is about `18 / 200 = 0.09` public score per fired candidate.
 - Score `90` needs roughly `1000` clean fired-candidate equivalents.
 - Score `100` needs roughly `1112` clean fired-candidate equivalents.
-- Current `86.805` is roughly `964` clean fired-candidate equivalents.
+- Current `89.640` is roughly `996` clean fired-candidate equivalents.
 
 The replay wall is still the main constraint, but replay timeout now gives
 partial credit instead of forcing `0.0`. Too many candidates or underestimated

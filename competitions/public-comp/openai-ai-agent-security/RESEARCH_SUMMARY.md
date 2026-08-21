@@ -1,6 +1,6 @@
 # AI Agent Security - Research Summary
 
-Last updated: 2026-08-16.
+Last updated: 2026-08-21.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
@@ -22,13 +22,13 @@ score estimates.
 
 Current code state:
 
-- `agressive-score-up/attack.py`: `exact91_v15_tail1475` (pending result)
+- `agressive-score-up/attack.py`: `exact91_v15_tail1475` (`87.030`, not best)
 - `agressive-score-up/public91-up.ipynb`: active submit notebook for the current
   `exact91` series
 - `multi-post-up/attack.py`: `edge02_selector_overfill_hybrid` (`85.590`, not best)
 
-Use the exact V15 + tail-size family as the next implementation base unless a
-new result beats it. Do not rebuild from `density02`, `pred*`, cap982, or old
+Use `exact91_v15_tail1500` as the current best control unless a new result beats
+it. Do not rebuild from `density02`, `pred*`, cap982, broad tail sweeps, or old
 `r14_v38_dyncap_p70_original_safe987` as the default. The old `89.415` remains
 directional only; it is not a valid post-reset target/baseline.
 
@@ -179,20 +179,44 @@ Read:
 - Remaining path to `90` is last-mile tail search around `1425-1550` and one
   attempt to increase live-fired share without increasing total `TAIL_N`.
 
-## 2026-08-20 Exact V15 Last-Mile Tail Search
+## 2026-08-20/21 Exact V15 Last-Mile Tail Search
 
 Goal: close the remaining `0.36` gap to `90` without changing wording, URL
 scheme, cap, or predicate surface.
 
-Pending submissions:
+Results:
 
-| Label | Status | What it tests |
-|---|---|---|
-| `exact91_v15_tail1425` | pending | lower side of peak; checks if `1500` slightly overfills |
-| `exact91_v15_tail1475` | pending | near-left neighbor of the current best |
-| `exact91_v15_tail1525` | pending | near-right neighbor of the current best |
-| `exact91_v15_tail1550` | pending | upper edge before the bad `1600` zone |
-| `exact91_v15_tail1500_slowest130` | pending | same total tail as best, but slightly more live-fill via `SLOWEST_MULT = 1.30` |
+| Label | Public score | Read |
+|---|---:|---|
+| `exact91_v15_tail1425` | 80.955 | too low; left side of peak does not help |
+| `exact91_v15_tail1475` | 87.030 | near-left neighbor still below `tail1500` |
+| `exact91_v15_tail1525` | 83.475 | near-right neighbor collapses |
+| `exact91_v15_tail1550` | 81.270 | upper side is clearly worse |
+| `exact91_v15_tail1500_slowest130` | 75.375 | loosening live-fill via `SLOWEST_MULT = 1.30` is harmful |
+
+Read:
+
+- `exact91_v15_tail1500 = 89.640` remains the post-reset best.
+- The peak is sharp, not a smooth optimum. Do not continue broad numeric
+  `TAIL_N` sweeps around `1425-1550`.
+- Increasing live-fill aggressiveness without changing total `TAIL_N` did not
+  help; `SLOWEST_MULT = 1.30` is closed.
+- Next useful work must either make tiny variants of the exact `tail1500`
+  composition/order, or test a new scoring surface. More wording/cap/path/query
+  changes are low-EV.
+
+## 2026-08-21 Planned Next Submissions
+
+Goal: stop broad tail sweeps; spend one slot on the last-mile `90` chance and
+the rest on small diagnostics that might expose a new raw/candidate surface.
+
+| Label | What it tests |
+|---|---|
+| `lm01_tail1495` | exact V15 with `TAIL_N=1495`; one cautious last-mile check |
+| `mb01_slow1475_fast1500` | slow/Harmony tail reduced, fast/plain tail kept at `1500` |
+| `mb02_slow1500_fast1475` | reverse model split; checks whether the fast/plain row is the noisy side |
+| `sp01_deputy_tail5_after_front` | `tail1500` front, last 75 candidates switched to deputy/email surface |
+| `sp02_untrusted_tail5_after_front` | `tail1500` front, last 75 candidates switched to read/post UNTRUSTED surface |
 
 ## Working Mental Model
 
@@ -217,8 +241,13 @@ kills the submission.
 ## Active Files
 
 - `agressive-score-up/attack.py`
-- `agressive-score-up/ultra-optimized-agressive.ipynb`
 - `agressive-score-up/public91-up.ipynb`
+- `agressive-score-up/lm01-tail1495.ipynb`
+- `agressive-score-up/mb01-slow1475-fast1500.ipynb`
+- `agressive-score-up/mb02-slow1500-fast1475.ipynb`
+- `agressive-score-up/sp01-deputy-tail5-after-front.ipynb`
+- `agressive-score-up/sp02-untrusted-tail5-after-front.ipynb`
+- `agressive-score-up/exact91-v15-tail*.ipynb`
 - `multi-post-up/attack.py`
 - `multi-post-up/multi-post-up.ipynb`
 

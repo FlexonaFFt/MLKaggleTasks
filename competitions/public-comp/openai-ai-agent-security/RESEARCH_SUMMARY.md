@@ -1,6 +1,6 @@
 # AI Agent Security - Research Summary
 
-Last updated: 2026-08-21.
+Last updated: 2026-08-22.
 
 Goal: push public score above 100 while avoiding replay timeout / blank submissions.
 
@@ -22,9 +22,9 @@ score estimates.
 
 Current code state:
 
-- `agressive-score-up/attack.py`: `exact91_v15_tail1475` (`87.030`, not best)
+- `agressive-score-up/attack.py`: `ctl01_clean_tail1500_repeat` (pending)
 - `agressive-score-up/public91-up.ipynb`: active submit notebook for the current
-  `exact91` series
+  `ctl/ff` series
 - `multi-post-up/attack.py`: `edge02_selector_overfill_hybrid` (`85.590`, not best)
 
 Use `exact91_v15_tail1500` as the current best control unless a new result beats
@@ -205,18 +205,36 @@ Read:
   composition/order, or test a new scoring surface. More wording/cap/path/query
   changes are low-EV.
 
-## 2026-08-21 Planned Next Submissions
+## 2026-08-21 Tail / Surface Diagnostics
 
 Goal: stop broad tail sweeps; spend one slot on the last-mile `90` chance and
 the rest on small diagnostics that might expose a new raw/candidate surface.
 
+| Label | Public score | Read |
+|---|---:|---|
+| `lm01_tail1495` | 83.610 | micro-tail around `1500` failed; do not continue `1495/1505/1510` |
+| `mb01_slow1475_fast1500` | 75.060 | slow/fast tail split broke balance badly |
+| `mb02_slow1500_fast1475` | 85.320 | reverse split still below best |
+| `sp01_deputy_tail5_after_front` | 84.375 | deputy tail does not add useful raw/sec |
+| `sp02_untrusted_tail5_after_front` | 87.840 | closest of the diagnostics, still below best; UNTRUSTED not a lead |
+
+Read: close tail tuning, model-tail branching, deputy, and UNTRUSTED. The only
+remaining low-risk lever near `tail1500` is the `EnvInteractionResult` fire
+check diagnostic.
+
+## 2026-08-22 Planned `ctl/ff` Submissions
+
+Goal: test whether replacing `export_trace_dict()` with `EnvInteractionResult`
+for the live-fill fire check can recover a few candidates without changing the
+attack primitive.
+
 | Label | What it tests |
 |---|---|
-| `lm01_tail1495` | exact V15 with `TAIL_N=1495`; one cautious last-mile check |
-| `mb01_slow1475_fast1500` | slow/Harmony tail reduced, fast/plain tail kept at `1500` |
-| `mb02_slow1500_fast1475` | reverse model split; checks whether the fast/plain row is the noisy side |
-| `sp01_deputy_tail5_after_front` | `tail1500` front, last 75 candidates switched to deputy/email surface |
-| `sp02_untrusted_tail5_after_front` | `tail1500` front, last 75 candidates switched to read/post UNTRUSTED surface |
+| `ctl01_clean_tail1500_repeat` | clean current best control: `TAIL_N=1500`, trace-based `_fired()` |
+| `ff01_no_export_exact1_tail1500` | fired iff exactly one successful tool call and no failed calls |
+| `ff02_no_export_any_tail1500` | fired iff any successful tool call was recorded |
+| `ff03_no_export_exact1_safe982_tail1500` | exact1 fire check plus `REPLAY_SAFE_FRAC=0.982` |
+| `ff04_no_export_exact1_safe985_tail1500` | exact1 fire check plus `REPLAY_SAFE_FRAC=0.985` |
 
 ## Working Mental Model
 
@@ -242,12 +260,11 @@ kills the submission.
 
 - `agressive-score-up/attack.py`
 - `agressive-score-up/public91-up.ipynb`
-- `agressive-score-up/lm01-tail1495.ipynb`
-- `agressive-score-up/mb01-slow1475-fast1500.ipynb`
-- `agressive-score-up/mb02-slow1500-fast1475.ipynb`
-- `agressive-score-up/sp01-deputy-tail5-after-front.ipynb`
-- `agressive-score-up/sp02-untrusted-tail5-after-front.ipynb`
-- `agressive-score-up/exact91-v15-tail*.ipynb`
+- `agressive-score-up/ctl01-clean-tail1500-repeat.ipynb`
+- `agressive-score-up/ff01-no-export-exact1-tail1500.ipynb`
+- `agressive-score-up/ff02-no-export-any-tail1500.ipynb`
+- `agressive-score-up/ff03-no-export-exact1-safe982-tail1500.ipynb`
+- `agressive-score-up/ff04-no-export-exact1-safe985-tail1500.ipynb`
 - `multi-post-up/attack.py`
 - `multi-post-up/multi-post-up.ipynb`
 

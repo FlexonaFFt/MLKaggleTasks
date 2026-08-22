@@ -52,9 +52,19 @@ weight datasets plus the competition data. It refuses to write a partial submiss
   three-candidate Kaggle notebook from the scored V31 anchor.
 - `scripts/sync_dual_seed_ensemble.py`: pins the public dual-seed ensemble and
   adds a submission-completeness guard.
+- `scripts/sync_harmonic_fusion_v17.py`: pins `yunusgmsoy/kimi-notebook-v17`
+  (harmonic bidirectional fusion over the 0.913 dual-seed baseline), verifies
+  its checksum guards, and disables the held-out train validator for scored
+  reruns (`BIOHUB_VALIDATOR_ENABLE=1` re-enables it).
 - `notebooks/biohub_anchor.ipynb`: generated runnable Kaggle notebook.
 - `notebooks/biohub_patched_three_candidate_selector.ipynb`: patched-metric
   production notebook and validated-candidate selector.
+- `notebooks/biohub_harmonic_fusion_v17.ipynb`: generated all-in fusion
+  notebook (pin: `harmonic_fusion_v17.lock.json`). Attach the competition data
+  plus `pilkwang/biohub-tracking-support-pack-50ep-v1`,
+  `pilkwang/biohub-temporal-unet3d-seed314159-v1`, and
+  `pilkwang/biohub-deepcenter-unet3d-center-prior-v1`; run on GPU T4 x2 with
+  Internet off.
 - `experiments.csv`: experiment ledger.
 
 The original notebook and support artifact belong to their respective Kaggle

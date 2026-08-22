@@ -92,7 +92,6 @@ def strip_notebook_notes(notebook: dict) -> None:
         source = tokenize.untokenize(
             token for token in tokens if token.type != tokenize.COMMENT
         )
-        source = source.replace(")  # (1, n_src, n_tgt)", ")")
         set_cell_source(cell, CJK.sub("", source))
         cells.append(cell)
     notebook["cells"] = cells
@@ -194,14 +193,59 @@ def require_input_guard(notebook: dict) -> None:
             raise RuntimeError(f"Preset input guard missing dataset {item!r}")
 
 
+PATCH_STAGE_MARKER = '_ps = REPO_DIR / "scripts" / "predict_unet_transformer.py"'
+SELF_HEAL = (
+    "# Self-heal: restore the pristine support-repo script so the sealed patch\n"
+    '# sequence below always applies exactly once, even after a partial run\n'
+    "# left an already-patched copy in /kaggle/working.\n"
+    "materialize_inference_repo(ARTIFACTS)\n"
+)
+
+
+def make_patch_stage_self_healing(notebook: dict) -> None:
+    for cell in notebook["cells"]:
+        source = cell_source(cell)
+        if PATCH_STAGE_MARKER not in source:
+            continue
+        if "materialize_inference_repo(ARTIFACTS)\n_ps = REPO_DIR" in (
+            source.replace("'\n", '"\n').replace('"', "'")
+        ):
+            return
+        patched = source.replace(
+            PATCH_STAGE_MARKER, SELF_HEAL + PATCH_STAGE_MARKER, 1
+        )
+        if patched == source:
+            break
+        set_cell_source(cell, patched)
+        return
+    raise RuntimeError("Patch stage marker not found; upstream layout changed")
+
+
 def build(notebook: dict, version: int) -> dict:
     validate_notebook(notebook)
     strip_notebook_notes(notebook)
     fix_guard_print(notebook)
+    make_patch_stage_self_healing(notebook)
     notebook["cells"].insert(0, preset_cell(version))
     require_preset_disables_validator(notebook)
     require_input_guard(notebook)
+    require_self_healing_patch_stage(notebook)
     return notebook
+
+
+def require_self_healing_patch_stage(notebook: dict) -> None:
+    for cell in notebook["cells"]:
+        source = cell_source(cell)
+        if PATCH_STAGE_MARKER not in source:
+            continue
+        restore = source.find("materialize_inference_repo(ARTIFACTS)")
+        stage = source.find(PATCH_STAGE_MARKER)
+        if not (0 <= restore < stage):
+            raise RuntimeError(
+                "Patch stage must restore the pristine script before patching"
+            )
+        return
+    raise RuntimeError("Patch stage marker not found")
 
 
 def fetch() -> tuple[dict, dict]:

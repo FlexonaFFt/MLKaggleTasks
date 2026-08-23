@@ -206,7 +206,7 @@ EXPERIMENT_CELL = '''\
 # official-metric sample scorer from the validator cell.
 from collections import defaultdict
 
-FILL_SISTER_MAX_UM = 5.0
+FILL_SISTER_MAX_UM = 12.0
 FILL_PARENT_MAX_UM = 14.0
 FILL_MAX_PER_DATASET = 500
 
@@ -234,51 +234,40 @@ def fill_divisions(pred_nodes, pred_edges):
     fills = 0
     new_forks = set()
     used = set()
-    for m in sorted(nodes):
-        tm, mz, my, mx = nodes[m]
-        ps = parents.get(m, [])
-        if len(ps) != 1:
+    for p in sorted(nodes):
+        tp_, pz, py, px = nodes[p]
+        cs = children.get(p, [])
+        if len(cs) != 1:
             continue
-        p = ps[0]
-        cs = children.get(m, [])
-        if len(cs) != 1 or len(children.get(p, [])) != 1:
+        c = cs[0]
+        tc, cz, cy, cx = nodes[c]
+        if int(tc) != int(tp_) + 1:
             continue
-        a = cs[0]
-        ta, az, ay, ax = nodes[a]
-        if int(ta) != int(tm) + 1:
-            continue
-        best = (None, 1e9)
-        for b in by_t.get(int(ta), ()):
-            if b in (a, m, p) or b in used:
+        best = (None, 1e9, None)
+        for b in by_t.get(int(tp_) + 1, ()):
+            if b == c or b == p or b in used:
                 continue
-            if m in parents.get(b, ()) or p in parents.get(b, ()):
+            d_cb = point_distance_um((cz, cy, cx), (nodes[b][1], nodes[b][2], nodes[b][3]))
+            if d_cb > FILL_SISTER_MAX_UM:
                 continue
-            d = point_distance_um((az, ay, ax), (nodes[b][1], nodes[b][2], nodes[b][3]))
-            if d <= FILL_SISTER_MAX_UM and d < best[1]:
-                best = (b, d)
-        b = best[0]
+            qs = parents.get(b, [])
+            if len(qs) != 1 or qs[0] == p:
+                continue
+            q = qs[0]
+            d_pb = point_distance_um((pz, py, px), (nodes[b][1], nodes[b][2], nodes[b][3]))
+            d_qb = point_distance_um((nodes[q][1], nodes[q][2], nodes[q][3]), (nodes[b][1], nodes[b][2], nodes[b][3]))
+            if d_pb > FILL_PARENT_MAX_UM:
+                continue
+            # adopt when P is not meaningfully worse than the current parent
+            if d_pb <= d_qb + 2.0 and d_cb < best[1]:
+                best = (b, d_cb, q)
+        b, d_cb, q = best
         if b is None:
             continue
-        pz, py, px = nodes[p][1], nodes[p][2], nodes[p][3]
-        if point_distance_um((pz, py, px), (nodes[b][1], nodes[b][2], nodes[b][3])) > FILL_PARENT_MAX_UM:
-            continue
-        # v2: the sister is usually already tracked from a wrong parent Q.
-        # Re-parent B to the new synthetic node S instead of giving B two
-        # parents (the official scorer rejects merged branches).
-        reparented = False
-        for q in parents.get(b, ()):
-            edge = (q, b)
-            if edge in edges:
-                edges.remove(edge)
-                reparented = True
-        if reparented:
-            parents = _fill_parents(edges)
-            children = _fill_children(edges)
-        s = next_id
-        next_id += 1
-        nodes[s] = (int(tm) + 1, nodes[b][1], nodes[b][2], nodes[b][3])
-        edges.append((p, s))
-        edges.append((s, b))
+        edges.remove((q, b))
+        parents = _fill_parents(edges)
+        children = _fill_children(edges)
+        edges.append((p, b))
         used.add(b)
         new_forks.add(p)
         fills += 1
@@ -374,7 +363,7 @@ else:
         dividers = [g2 for g2, kids in ((n, gt_succ.get(n, [])) for n in gt_nodes) if len(kids) >= 2]
         print(f"TOPO {stem}: {len(dividers)} gt divisions")
         for d in sorted(dividers, key=lambda n: gt_nodes[n][0]):
-            td, dz, dy, dx = gt_nodes[d]
+            t_div, dz, dy, dx = gt_nodes[d]
             dpos = (dz, dy, dx)
             daughters = gt_succ.get(d, [])
             lin = set([d])
@@ -390,7 +379,7 @@ else:
                 print(f"    GT {g} t={gt_t} pos=({gz:.1f},{gy:.1f},{gx:.1f})")
             near = []
             for pid, (pt, pz, py, px) in pred_nodes.items():
-                if abs(int(pt) - int(td)) > 3:
+                if abs(int(pt) - int(t_div)) > 3:
                     continue
                 dist = point_distance_um(dpos, (pz, py, px))
                 if dist <= 12.0:

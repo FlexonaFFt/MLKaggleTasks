@@ -167,13 +167,15 @@ class DivisionLabTest(unittest.TestCase):
                 5: _node(7, 98.6, 99.3, 100.0),
             }
             gt_edges = [(1, 2), (1, 3), (2, 4), (3, 5)]
+            # Adoption scenario: daughter2 (12) is tracked from the WRONG
+            # parent 13; node 10 has a single child and adopts 12.
             pred = {
                 10: _node(5, 100.0, 100.0, 100.0),
                 11: _node(6, 101.0, 100.4, 100.0),
-                12: _node(7, 101.5, 100.8, 100.0),
-                13: _node(7, 98.6, 99.3, 100.0),
+                12: _node(6, 99.0, 99.6, 100.0),
+                13: _node(5, 100.0, 100.0, 100.0),
             }
-            pred_edges = [(10, 11), (11, 12)]
+            pred_edges = [(10, 11), (13, 12)]
 
             def graph_from_geff(path):
                 class S:

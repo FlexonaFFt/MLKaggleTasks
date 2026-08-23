@@ -347,6 +347,60 @@ else:
         print("FILL rows written to", WORKING_DIR / "fill_experiment.csv")
 '''
 
+TOPOLOGY_CELL = '''\
+# Topology dump: local prediction subgraph around every GT division.
+# Purpose: see the ACTUAL node/edge structure near divisions so the fill
+# signature is designed from facts, not guesses.
+if not val_stems:
+    print("TOPO: no validator videos.")
+else:
+    _topo_dirs = sorted((REPO_DIR / "predictions").glob("*/unet_transformer_val/split_0"))
+    _topo_dir = _topo_dirs[0]
+    for stem in val_stems:
+        try:
+            gt_nodes, gt_edges = graph_to_plain(graph_from_geff(TRAIN_DIR / f"{stem}.geff"))
+            pred_nodes, pred_edges = graph_to_plain(graph_from_geff(_topo_dir / f"{stem}.geff"))
+        except Exception as err:
+            print(f"TOPO {stem}: load failed: {err!r}")
+            continue
+        gt_succ = defaultdict(list)
+        for s2, t2 in gt_edges:
+            gt_succ[s2].append(t2)
+        pred_parents = defaultdict(list)
+        pred_children = defaultdict(list)
+        for s2, t2 in pred_edges:
+            pred_parents[t2].append(s2)
+            pred_children[s2].append(t2)
+        dividers = [g2 for g2, kids in ((n, gt_succ.get(n, [])) for n in gt_nodes) if len(kids) >= 2]
+        print(f"TOPO {stem}: {len(dividers)} gt divisions")
+        for d in sorted(dividers, key=lambda n: gt_nodes[n][0]):
+            td, dz, dy, dx = gt_nodes[d]
+            dpos = (dz, dy, dx)
+            daughters = gt_succ.get(d, [])
+            lin = set([d])
+            for ch in daughters:
+                lin.add(ch)
+                for gc in gt_succ.get(ch, []):
+                    lin.add(gc)
+            print(f"  == GT div {d} t={td} pos=({dz:.1f},{dy:.1f},{dx:.1f}) daughters={daughters}")
+            for g in sorted(lin):
+                if g == d:
+                    continue
+                gt_t, gz, gy, gx = gt_nodes[g]
+                print(f"    GT {g} t={gt_t} pos=({gz:.1f},{gy:.1f},{gx:.1f})")
+            near = []
+            for pid, (pt, pz, py, px) in pred_nodes.items():
+                if abs(int(pt) - int(td)) > 3:
+                    continue
+                dist = point_distance_um(dpos, (pz, py, px))
+                if dist <= 12.0:
+                    near.append((int(pt), dist, pid))
+            for pt, dist, pid in sorted(near):
+                pars = [f"{q}@t{pred_nodes[q][0]}" for q in pred_parents.get(pid, [])]
+                kids = [f"{c}@t{pred_nodes[c][0]}" for c in pred_children.get(pid, [])]
+                pz, py, px = pred_nodes[pid][1], pred_nodes[pid][2], pred_nodes[pid][3]
+                print(f"    PRED {pid} t={pt} d_div={dist:.2f}um pos=({pz:.1f},{py:.1f},{px:.1f}) parents={pars} children={kids}")
+'''
 
 def cell_source(cell: dict) -> str:
     source = cell.get("source", "")
@@ -394,6 +448,15 @@ def build(notebook: dict) -> dict:
     }
     diag_index = find_cell_index(notebook, "division_diagnostics.csv")
     notebook["cells"].insert(diag_index + 1, experiment)
+    topology = {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": TOPOLOGY_CELL.splitlines(keepends=True),
+    }
+    exp_index = find_cell_index(notebook, "fill_experiment.csv")
+    notebook["cells"].insert(exp_index + 1, topology)
     return notebook
 
 

@@ -118,15 +118,15 @@ else:
             rec = {
                 "dataset": stem, "gt_divider": d, "t": t_div,
                 "n_daughters": len(daughters),
-                "d1_detected": None, "d1_min_um": None, "d1_dt": None,
-                "d2_detected": None, "d2_min_um": None, "d2_dt": None,
+                "d1_detected": None, "d1_min_um": None, "d1_dt": None, "d1_split_um": None,
+                "d2_detected": None, "d2_min_um": None, "d2_dt": None, "d2_split_um": None,
                 "fork_found": False, "fork_dist_um": None, "fork_dt": None,
                 "fork_same_comp_as_d1": None, "fork_same_comp_as_d2": None,
                 "branch_coverage": 0, "verdict": "",
             }
             lineages = []
             for k, ch in enumerate(daughters[:2], start=1):
-                lin = _lab_lineage(gt_succ, ch, t_div)
+                lin = _lab_lineage(gt_succ, ch, t_div, depth=1)
                 lineages.append(lin)
                 best = (None, 1e9, None)
                 for g in lin:
@@ -137,6 +137,9 @@ else:
                 rec[f"d{k}_detected"] = best[0] is not None and best[1] <= LAB_MAX_DIST_UM
                 rec[f"d{k}_min_um"] = None if best[0] is None else round(best[1], 2)
                 rec[f"d{k}_dt"] = best[2]
+                st, sz, sy, sx = gt_nodes[ch]
+                spid, sdist = _lab_nearest_pred(pred_by_t, int(st), (sz, sy, sx))
+                rec[f"d{k}_split_um"] = None if spid is None else round(sdist, 2)
             fork_best = (None, 1e9, None)
             for fid in forks:
                 ft, fz, fy, fx = pred_nodes[fid]
@@ -193,6 +196,158 @@ else:
 '''
 
 
+EXPERIMENT_CELL = '''\
+# Division-aware fill experiment: synthesize the missing sister at t+1.
+# Signature of an unfilled division in the raw ILP graph:
+#   P(t) -> M(t+1) -> A(t+2), with a sister B(t+2) near A whose parent is
+#   not M (daughters merged/missed at t+1, resolved one frame later).
+# Surgery: insert S(t+1) at B's position, add edges P->S and S->B so P
+# becomes a fork with both daughter branches. Then rescore A/B with the
+# official-metric sample scorer from the validator cell.
+from collections import defaultdict
+
+FILL_SISTER_MAX_UM = 5.0
+FILL_PARENT_MAX_UM = 14.0
+FILL_MAX_PER_DATASET = 500
+
+def _fill_parents(edges):
+    par = defaultdict(list)
+    for s, t in edges:
+        par[t].append(s)
+    return par
+
+def _fill_children(edges):
+    ch = defaultdict(list)
+    for s, t in edges:
+        ch[s].append(t)
+    return ch
+
+def fill_divisions(pred_nodes, pred_edges):
+    nodes = dict(pred_nodes)
+    edges = list(pred_edges)
+    parents = _fill_parents(edges)
+    children = _fill_children(edges)
+    by_t = defaultdict(list)
+    for nid, (t, z, y, x) in nodes.items():
+        by_t[int(t)].append(nid)
+    next_id = max(nodes) + 1 if nodes else 1
+    fills = 0
+    new_forks = set()
+    used = set()
+    for m in sorted(nodes):
+        tm, mz, my, mx = nodes[m]
+        ps = parents.get(m, [])
+        if len(ps) != 1:
+            continue
+        p = ps[0]
+        cs = children.get(m, [])
+        if len(cs) != 1 or len(children.get(p, [])) != 1:
+            continue
+        a = cs[0]
+        ta, az, ay, ax = nodes[a]
+        if int(ta) != int(tm) + 1:
+            continue
+        best = (None, 1e9)
+        for b in by_t.get(int(ta), ()):
+            if b in (a, m, p) or b in used:
+                continue
+            if m in parents.get(b, ()) or p in parents.get(b, ()):
+                continue
+            d = point_distance_um((az, ay, ax), (nodes[b][1], nodes[b][2], nodes[b][3]))
+            if d <= FILL_SISTER_MAX_UM and d < best[1]:
+                best = (b, d)
+        b = best[0]
+        if b is None:
+            continue
+        pz, py, px = nodes[p][1], nodes[p][2], nodes[p][3]
+        if point_distance_um((pz, py, px), (nodes[b][1], nodes[b][2], nodes[b][3])) > FILL_PARENT_MAX_UM:
+            continue
+        # v2: the sister is usually already tracked from a wrong parent Q.
+        # Re-parent B to the new synthetic node S instead of giving B two
+        # parents (the official scorer rejects merged branches).
+        reparented = False
+        for q in parents.get(b, ()):
+            edge = (q, b)
+            if edge in edges:
+                edges.remove(edge)
+                reparented = True
+        if reparented:
+            parents = _fill_parents(edges)
+            children = _fill_children(edges)
+        s = next_id
+        next_id += 1
+        nodes[s] = (int(tm) + 1, nodes[b][1], nodes[b][2], nodes[b][3])
+        edges.append((p, s))
+        edges.append((s, b))
+        used.add(b)
+        new_forks.add(p)
+        fills += 1
+        if fills >= FILL_MAX_PER_DATASET:
+            break
+    return nodes, edges, fills, new_forks
+
+if not val_stems:
+    print("FILL: no validator videos; skipping experiment.")
+else:
+    _fill_dirs = sorted((REPO_DIR / "predictions").glob("*/unet_transformer_val/split_0"))
+    if not _fill_dirs:
+        raise FileNotFoundError("FILL: no unet_transformer_val predictions found")
+    _fill_dir = _fill_dirs[0]
+    _fill_rows = []
+    for stem in val_stems:
+        try:
+            gt_nodes, gt_edges = graph_to_plain(graph_from_geff(TRAIN_DIR / f"{stem}.geff"))
+            pred_nodes, pred_edges = graph_to_plain(graph_from_geff(_fill_dir / f"{stem}.geff"))
+            t_true = read_estimated_true_node_count(TRAIN_DIR / f"{stem}.geff")
+        except Exception as err:
+            print(f"FILL {stem}: load failed: {err!r}")
+            continue
+        before = score_sample(pred_nodes, pred_edges, gt_nodes, gt_edges, t_true)
+        filled_nodes, filled_edges, fills, new_forks = fill_divisions(pred_nodes, pred_edges)
+        after = score_sample(filled_nodes, filled_edges, gt_nodes, gt_edges, t_true)
+        gt_out = defaultdict(list)
+        for s2, t2 in gt_edges:
+            gt_out[s2].append(t2)
+        gt_dividers = [g2 for g2, kids in gt_out.items() if len(kids) >= 2]
+        covered = 0
+        for gd in gt_dividers:
+            gt_t, gz, gy, gx = gt_nodes[gd]
+            hit = False
+            for fid in new_forks:
+                ft, fz, fy, fx = filled_nodes[fid]
+                if abs(int(ft) - int(gt_t)) <= 1 and point_distance_um(
+                    (gz, gy, gx), (fz, fy, fx)
+                ) <= 7.0:
+                    hit = True
+                    break
+            covered += 1 if hit else 0
+        cover_text = f"{covered}/{len(gt_dividers)}"
+        _fill_rows.append({
+            "dataset": stem, "fills": fills, "gt_div_covered": cover_text,
+            "div_tp_before": before["div_tp"], "div_tp_after": after["div_tp"],
+            "div_fp_before": before["div_fp"], "div_fp_after": after["div_fp"],
+            "div_fn_before": before["div_fn"], "div_fn_after": after["div_fn"],
+            "edge_jac_before": round(before["edge_jaccard"], 4),
+            "edge_jac_after": round(after["edge_jaccard"], 4),
+            "adj_before": round(before["adjusted_edge_jaccard"], 4),
+            "adj_after": round(after["adjusted_edge_jaccard"], 4),
+        })
+    import pandas as pd
+    exp_df = pd.DataFrame(_fill_rows)
+    if exp_df.empty:
+        print("FILL: no samples scored.")
+    else:
+        print(exp_df.to_string(index=False))
+        tp_a = int(exp_df.div_tp_after.sum()); fp_a = int(exp_df.div_fp_after.sum()); fn_a = int(exp_df.div_fn_after.sum())
+        tp_b = int(exp_df.div_tp_before.sum()); den_b = int((exp_df.div_tp_before + exp_df.div_fp_before + exp_df.div_fn_before).sum())
+        print(f"FILL divisions micro: before {tp_b}/{den_b} (jac={tp_b / max(1, den_b):.3f}) "
+              f"after {tp_a}/{tp_a + fp_a + fn_a} (jac={tp_a / max(1, tp_a + fp_a + fn_a):.3f})")
+        print(f"FILL mean adj_edge_jaccard: before={exp_df.adj_before.mean():.4f} after={exp_df.adj_after.mean():.4f}")
+        exp_df.to_csv(WORKING_DIR / "fill_experiment.csv", index=False)
+        print("FILL rows written to", WORKING_DIR / "fill_experiment.csv")
+'''
+
+
 def cell_source(cell: dict) -> str:
     source = cell.get("source", "")
     return "".join(source) if isinstance(source, list) else source
@@ -230,6 +385,15 @@ def build(notebook: dict) -> dict:
         "source": DIAGNOSTIC_CELL.splitlines(keepends=True),
     }
     notebook["cells"].insert(validator_index + 1, diagnostic)
+    experiment = {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": EXPERIMENT_CELL.splitlines(keepends=True),
+    }
+    diag_index = find_cell_index(notebook, "division_diagnostics.csv")
+    notebook["cells"].insert(diag_index + 1, experiment)
     return notebook
 
 
@@ -238,6 +402,7 @@ def validate(notebook: dict) -> None:
     for needle in (
         "BIOHUB_VALIDATOR_ENABLE'] = '1'",
         "division_diagnostics.csv",
+        "fill_experiment.csv",
         "kimi_v17_harmonic_division_lab",
     ):
         if needle not in source_all:
@@ -251,11 +416,11 @@ def validate(notebook: dict) -> None:
             ast.parse(cell_source(cell))
         except SyntaxError as error:
             raise RuntimeError(f"Cell {index} does not parse: {error}") from error
-    diag = next(cell_source(c) for c in notebook["cells"] if "DIVLAB" in cell_source(c))
     diag_idx = [i for i, c in enumerate(notebook["cells"]) if "DIVLAB" in cell_source(c)][0]
+    exp_idx = [i for i, c in enumerate(notebook["cells"]) if "FILL" in cell_source(c)][0]
     validator_idx = find_cell_index(notebook, INSERT_AFTER_MARKER)
-    if diag_idx < validator_idx:
-        raise RuntimeError("Diagnostics must run after the validator metrics cell")
+    if diag_idx < validator_idx or exp_idx <= diag_idx:
+        raise RuntimeError("Diagnostics and fill experiment must run after validator metrics")
 
 
 def main() -> None:
@@ -266,7 +431,7 @@ def main() -> None:
     notebook = build(notebook)
     validate(notebook)
     OUTPUT.write_text(json.dumps(notebook, indent=1, ensure_ascii=False) + "\n")
-    print(f"Wrote {OUTPUT} (upstream v{version}, validator on + division diagnostics)")
+    print(f"Wrote {OUTPUT} (upstream v{version}, validator on + diagnostics + fill experiment)")
 
 
 if __name__ == "__main__":

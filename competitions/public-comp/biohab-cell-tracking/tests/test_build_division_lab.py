@@ -146,5 +146,117 @@ class DivisionLabTest(unittest.TestCase):
             self.assertNotEqual(row["verdict"], "local_tp_conditions_met")
 
 
+    def test_fill_experiment_creates_fork_and_division_tp(self):
+        import tempfile
+        from build_division_lab import EXPERIMENT_CELL
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            val_dir = tmp / "repo" / "predictions" / "unknown" / "unet_transformer_val" / "split_0"
+            train_dir = tmp / "train"
+            train_dir.mkdir(parents=True)
+            val_dir.mkdir(parents=True)
+            for stem in ("s1",):
+                (val_dir / f"{stem}.geff").write_bytes(b"x")
+                (train_dir / f"{stem}.geff").write_bytes(b"x")
+
+            gt = {
+                1: _node(5, 100.0, 100.0, 100.0),
+                2: _node(6, 101.0, 100.4, 100.0),
+                3: _node(6, 99.0, 99.6, 100.0),
+                4: _node(7, 101.5, 100.8, 100.0),
+                5: _node(7, 98.6, 99.3, 100.0),
+            }
+            gt_edges = [(1, 2), (1, 3), (2, 4), (3, 5)]
+            pred = {
+                10: _node(5, 100.0, 100.0, 100.0),
+                11: _node(6, 101.0, 100.4, 100.0),
+                12: _node(7, 101.5, 100.8, 100.0),
+                13: _node(7, 98.6, 99.3, 100.0),
+            }
+            pred_edges = [(10, 11), (11, 12)]
+
+            def graph_from_geff(path):
+                class S:
+                    pass
+                s = S()
+                s.path = str(path)
+                return s
+
+            def graph_to_plain(graph):
+                if "train" in graph.path:
+                    return dict(gt), list(gt_edges)
+                return dict(pred), list(pred_edges)
+
+            def forks_children(edges, f):
+                return [t2 for s, t2 in edges if s == f]
+
+            def nearest(nid_pos_by_t, t, pos):
+                best = (None, 1e9)
+                for pid, pos2 in nid_pos_by_t.get(int(t), ()):
+                    d = sum(((pos[i] - pos2[i]) * SCALE[i]) ** 2 for i in range(3)) ** 0.5
+                    if d < best[1]:
+                        best = (pid, d)
+                return best
+
+            def mini_score(pn, pe, gn, ge, t_true):
+                p_by_t = {}
+                for pid, (t, z, y, x) in pn.items():
+                    p_by_t.setdefault(int(t), []).append((pid, (z, y, x)))
+                g_out = {}
+                for s, t2 in ge:
+                    g_out.setdefault(s, set()).add(t2)
+                p2g = {}
+                for gid, (t, gz, gy, gx) in gn.items():
+                    pid, d = nearest(p_by_t, t, (gz, gy, gx))
+                    if pid is not None and d <= 7.0 and gid not in p2g.values():
+                        p2g[pid] = gid
+                out_deg = {}
+                for s, t2 in pe:
+                    out_deg[s] = out_deg.get(s, 0) + 1
+                forks = [n for n, k in out_deg.items() if k >= 2]
+                n_gt_div = sum(1 for k in g_out.values() if len(k) >= 2)
+                div_tp = 0
+                for gd, kids in g_out.items():
+                    if len(kids) < 2:
+                        continue
+                    gd_t, gdz, gdy, gdx = gn[gd]
+                    pf, pd_ = nearest(p_by_t, int(gd_t), (gdz, gdy, gdx))
+                    if pf is None or pd_ > 7.0 or out_deg.get(pf, 0) < 2:
+                        continue
+                    matched_kids = {p2g[c] for c in forks_children(pe, pf) if c in p2g}
+                    if matched_kids & set(kids):
+                        div_tp += 1
+                te = {tuple(sorted(e)) for e in ge}
+                pe_set = {tuple(sorted(e)) for e in pe}
+                etp = len(pe_set & te)
+                efp = len(pe_set - te)
+                efn = len(te - pe_set)
+                jac = etp / max(1, etp + efp + efn)
+                adj = max(0.0, jac * (1 - 0.1 * (len(pn) - t_true) / t_true))
+                djac = div_tp / max(1, n_gt_div)
+                return {"div_tp": div_tp, "div_fp": 0, "div_fn": n_gt_div - div_tp,
+                        "edge_jaccard": jac, "adjusted_edge_jaccard": adj,
+                        "div_jaccard": djac}
+
+            ns = {
+                "val_stems": ["s1"],
+                "REPO_DIR": tmp / "repo",
+                "TRAIN_DIR": train_dir,
+                "WORKING_DIR": tmp,
+                "graph_from_geff": graph_from_geff,
+                "graph_to_plain": graph_to_plain,
+                "point_distance_um": lambda a, b: sum(
+                    ((a[i] - b[i]) * SCALE[i]) ** 2 for i in range(3)
+                ) ** 0.5,
+                "score_sample": mini_score,
+                "read_estimated_true_node_count": lambda p: 100.0,
+            }
+            exec(EXPERIMENT_CELL, ns)  # noqa: S102 - trusted local test
+            row = ns["exp_df"].iloc[0]
+            self.assertEqual(row["fills"], 1)
+            self.assertEqual(int(row["div_tp_before"]), 0)
+            self.assertGreaterEqual(int(row["div_tp_after"]), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

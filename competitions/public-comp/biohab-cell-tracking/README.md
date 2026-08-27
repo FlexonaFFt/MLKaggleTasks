@@ -43,6 +43,9 @@ independent model logits before point extraction, then runs one graph optimizer.
 Build it with `python3 scripts/sync_dual_seed_ensemble.py` and attach the two
 weight datasets plus the competition data. It refuses to write a partial submission.
 
+`biohub_harmonic_safe_div_veto.ipynb` is a one-shot Harmonic Fusion variant:
+it uses DeepCenter `best.pt` (epoch 2) and enables its safe-division veto.
+
 ## Files
 
 - `scripts/sync_public_anchor.py`: downloads and pins the public notebook,
@@ -52,6 +55,8 @@ weight datasets plus the competition data. It refuses to write a partial submiss
   three-candidate Kaggle notebook from the scored V31 anchor.
 - `scripts/sync_dual_seed_ensemble.py`: pins the public dual-seed ensemble and
   adds a submission-completeness guard.
+- `scripts/build_harmonic_safe_div_veto.py`: builds the DeepCenter safe-division
+  veto variant from the live Harmonic Fusion notebook.
 - `scripts/sync_harmonic_fusion_v17.py`: pins `yunusgmsoy/kimi-notebook-v17`
   (harmonic bidirectional fusion over the 0.913 dual-seed baseline), verifies
   its checksum guards, and disables the held-out train validator for scored

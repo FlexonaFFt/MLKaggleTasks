@@ -1,0 +1,130 @@
+[
+  {
+    "seed": 280903,
+    "opponent": "c95",
+    "seat": 0,
+    "variant": "baseline",
+    "cash": 74262.0,
+    "margin": 29579.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "c95",
+    "seat": 0,
+    "variant": "window2",
+    "cash": 74104.0,
+    "margin": 29282.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "c95",
+    "seat": 1,
+    "variant": "baseline",
+    "cash": 74262.0,
+    "margin": 29579.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "c95",
+    "seat": 1,
+    "variant": "window2",
+    "cash": 74104.0,
+    "margin": 29282.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "v38",
+    "seat": 0,
+    "variant": "baseline",
+    "cash": 75319.0,
+    "margin": 10092.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "v38",
+    "seat": 0,
+    "variant": "window2",
+    "cash": 75319.0,
+    "margin": 10092.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "v38",
+    "seat": 1,
+    "variant": "baseline",
+    "cash": 75319.0,
+    "margin": 10092.0
+  },
+  {
+    "seed": 280903,
+    "opponent": "v38",
+    "seat": 1,
+    "variant": "window2",
+    "cash": 75319.0,
+    "margin": 10092.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "c95",
+    "seat": 0,
+    "variant": "baseline",
+    "cash": 114950.0,
+    "margin": 28124.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "c95",
+    "seat": 0,
+    "variant": "window2",
+    "cash": 115169.0,
+    "margin": 28371.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "c95",
+    "seat": 1,
+    "variant": "baseline",
+    "cash": 114950.0,
+    "margin": 28124.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "c95",
+    "seat": 1,
+    "variant": "window2",
+    "cash": 115169.0,
+    "margin": 28371.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "v38",
+    "seat": 0,
+    "variant": "baseline",
+    "cash": 160016.0,
+    "margin": 9793.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "v38",
+    "seat": 0,
+    "variant": "window2",
+    "cash": 160043.0,
+    "margin": 9818.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "v38",
+    "seat": 1,
+    "variant": "baseline",
+    "cash": 160016.0,
+    "margin": 9793.0
+  },
+  {
+    "seed": 280904,
+    "opponent": "v38",
+    "seat": 1,
+    "variant": "window2",
+    "cash": 160043.0,
+    "margin": 9818.0
+  }
+]

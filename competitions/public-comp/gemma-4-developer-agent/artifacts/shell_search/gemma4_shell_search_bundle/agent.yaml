@@ -1,0 +1,12 @@
+name: gemma4_single_agent
+model: gemma-4-31b-it-qat-w4a16-ct
+description: Resolve repository issues with focused patches and bounded verification.
+instruction: !include prompts/system.md
+generate_content_config: !include configs/sampling.yaml
+tools:
+- run_command
+- edit_file
+- write_file
+- get_status
+- submit_patch
+- get_code_neighbors

@@ -1,0 +1,4 @@
+Configuration and workflow reference: happyc0der/gemma-swe-agent
+Commit: ba5b80fe77b0ed018af919fb148977c1504623c0
+Our prompt implements the discussed workflow with corrected submission semantics.
+No leaderboard score has been measured for this candidate.

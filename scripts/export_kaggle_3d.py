@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
+import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -293,6 +295,14 @@ def write_readme_chart(rows: list[dict[str, str]]) -> None:
     figure.tight_layout()
     figure.savefig(PNG_PATH, bbox_inches="tight", pad_inches=0.2)
     plt.close(figure)
+
+    version = hashlib.sha256(CSV_PATH.read_bytes()).hexdigest()[:12]
+    for path, asset in ((ROOT / "docs" / "index.html", "kaggle_3d.html"),
+                        (ROOT / "README.md", "assets/kaggle_3d.png")):
+        content = path.read_text(encoding="utf-8")
+        content = re.sub(r'(src="' + re.escape(asset) + r')(?:\?[^" ]*)?"',
+                         lambda match: f'{match[1]}?v={version}"', content)
+        path.write_text(content, encoding="utf-8")
 
 
 def self_check() -> None:

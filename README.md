@@ -10,7 +10,7 @@ solution is structured.
 
 <p align="center">
   <a href="https://flexonafft.github.io/MLKaggleTasks/">
-    <img src="assets/kaggle_3d.png" alt="Kaggle submission trajectories" width="78%" />
+    <img src="assets/kaggle_3d.png?v=a03d78694538" alt="Kaggle submission trajectories" width="78%" />
   </a>
 </p>
 <p align="center">

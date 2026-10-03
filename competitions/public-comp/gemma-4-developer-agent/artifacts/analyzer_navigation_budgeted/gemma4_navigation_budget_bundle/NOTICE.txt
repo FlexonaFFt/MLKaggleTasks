@@ -1,0 +1,6 @@
+Adapted from GEMMA: EDA, Baseline for a start | LB TOP 1 by Roman Rozen.
+Source: https://www.kaggle.com/code/romanrozen/gemma-eda-baseline-for-a-start-lb-top-1
+Published source version: 352222392. Source notebook license: Apache-2.0.
+Changes: notebook formatting, removal of EDA, local analyzer include paths,
+coder navigation tools, explicit task limits, deterministic packaging, package checks.
+Original published agent prompts and sampling are preserved.

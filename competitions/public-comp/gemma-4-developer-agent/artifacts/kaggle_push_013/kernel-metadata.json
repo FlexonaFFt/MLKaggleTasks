@@ -1,0 +1,16 @@
+{
+  "id": "flexonafft/gemma-4-baseline-013-adapted",
+  "title": "Gemma 4 Baseline 013 Adapted",
+  "code_file": "gemma4_013_baseline_adapted.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": [
+    "gemma-4-developer-agent"
+  ],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

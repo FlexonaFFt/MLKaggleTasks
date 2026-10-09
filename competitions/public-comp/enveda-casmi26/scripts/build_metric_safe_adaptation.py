@@ -14,6 +14,32 @@ DOWNLOAD = Path('/Users/flexonafft/Downloads/casmi26-v1-1-metric-audit-and-safe-
 SOURCE = ROOT / 'archive/public-sources-2026-10-09/obstacledeveloper_v1_356393001.ipynb'
 URL = 'https://www.kaggle.com/code/obstacledeveloper/casmi26-v1-1-metric-audit-and-safe-tail?scriptVersionId=356393001'
 
+SIMULATOR_WHEEL = '''
+def simulator_rdkit_wheel(pkg):
+    from pip._vendor.packaging.tags import sys_tags
+    from pip._vendor.packaging.utils import parse_wheel_filename
+    compatible = set(sys_tags())
+    bundled = sorted(glob.glob(os.path.join(pkg, 'wheels', 'rdkit-2025.3.6-*.whl*')))
+    external = sorted(glob.glob('/kaggle/input/**/rdkit-2025.3.6-*.whl', recursive=True))
+    for path in bundled + external:
+        name = os.path.basename(path).removesuffix('.ice')
+        _, version, _, tags = parse_wheel_filename(name)
+        if str(version) == '2025.3.6' and compatible.intersection(tags):
+            return path
+    raise FileNotFoundError(
+        f'RDKit 2025.3.6 wheel compatible with Python {sys.version_info.major}.{sys.version_info.minor} '
+        f'and this platform is required for ICEBERG/GLACIER; candidates: {bundled + external}')
+
+_simulator_pkg = os.path.dirname(find('casmi26-iceberg/**/ice_runner.py'))
+print('Simulator RDKit wheel:', simulator_rdkit_wheel(_simulator_pkg))
+'''
+
+
+def compatible_simulator_setup(value):
+    start = value.index('    # ...and add the cp313 build')
+    end = value.index('    keep = keep + new[:1]', start)
+    return value[:start] + "    new = [simulator_rdkit_wheel(pkg)]\n" + value[end:]
+
 
 def comments(value):
     lines = value.splitlines(keepends=True)
@@ -118,9 +144,15 @@ def build():
         if cell['cell_type'] == 'markdown':
             cell.update(code_cell(prose(value.replace('\\', '\\\\'))))
         else:
+            if 'def _claw_preseed_site(' in value:
+                value = compatible_simulator_setup(value)
             rewritten = comments(value)
             assert computational_ast(value) == computational_ast(rewritten)
             cell.update(code_cell(rewritten))
+    nb['cells'][2]['source'] += ('\n' + prose('Compatibility repair: select the simulator RDKit 2025.3.6 wheel '
+        'by interpreter and platform tags, including bundled .whl.ice files. Fail before inference '
+        'when no compatible build exists; preserve the main RDKit 2026.03.3 environment.')
+        + SIMULATOR_WHEEL).splitlines(keepends=True)
     credits = prose('Credits & Attribution\n'
         '@obstacledeveloper — direct source: CASMI26 V1.1 Metric Audit and Safe Tail, version 1, '
         'scriptVersionId 356393001. Source: ' + URL + '\n'
@@ -147,16 +179,18 @@ def build():
     nb['cells'].insert(0, code_cell(prose('CASMI26: Metric-Audited Safe Tail — Public Adaptation\n'
         'Faithful computational adaptation of @obstacledeveloper V1.1 (public 0.433). '
         'English narrative is displayed as triple-quoted code-cell comments. '
-        'All original computational ASTs and embedded modules are preserved. '
+        'Ranking computations and embedded modules are preserved; the inherited cp313-only '
+        'simulator installer is repaired to select a compatible RDKit 2025.3.6 build. '
         'No preceding 0.420 experiment is enabled.\n'
         'Use GPU T4 x2, Internet OFF and the original 17 input sources. '
-        'The source simulator setup is cp313-specific: retain Python 3.13 and its RDKit 2025.3.6 cp313 wheel. '
+        'Python 3.12 uses the bundled RDKit 2025.3.6 cp312 wheel; Python 3.13 requires its cp313 build. '
         'The main metric environment requires RDKit 2026.03.3. '
         'Visible 12-molecule smoke is not a validation score.')))
     nb['cells'].insert(1, code_cell(credits))
     nb['metadata']['casmi_experiment'] = dict(source_url=URL, script_version_id=356393001,
         source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(), source_public_score=0.433,
-        measured_score=None, validation='AST parity and local focused tests; full Kaggle run pending')
+        measured_score=None, compatibility_fix='runtime-tagged simulator RDKit 2025.3.6 wheel',
+        validation='AST parity except simulator compatibility repair; focused tests; full Kaggle run pending')
     validate(nb)
     experiment = copy.deepcopy(nb)
     experiment['cells'][0] = code_cell(prose('CASMI26: Metric-Safe Wide Mass Tail\n'

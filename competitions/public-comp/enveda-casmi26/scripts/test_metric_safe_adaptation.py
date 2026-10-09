@@ -10,13 +10,12 @@ import numpy as np
 
 from build_flow_experiments import ROOT, validate
 from build_metric_safe_adaptation import (SOURCE, WIDE_HELPER, SIMULATOR_WHEEL,
-                                         compatible_simulator_setup, computational_ast)
+                                         compatible_simulator_setup, computational_ast, build)
 
 
 if __name__ == '__main__':
     original = json.loads(SOURCE.read_text())
-    adaptation = json.loads((ROOT / 'experiments/casmi26_0433_metric_safe_adaptation.ipynb').read_text())
-    experiment = json.loads((ROOT / 'experiments/casmi26_0433_safe_wide_mass_tail.ipynb').read_text())
+    adaptation, experiment = build()
     for nb in (adaptation, experiment):
         validate(nb)
         assert nb['metadata']['kaggle'] == original['metadata']['kaggle']

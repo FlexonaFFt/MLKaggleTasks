@@ -38,14 +38,10 @@ class SourceStage:
 class InputRegistry(SourceStage):
     def run(self, scope):
         import sys
-        if sys.version_info[:2] != (3, 12):
+        if sys.version_info[:2] not in ((3, 12), (3, 13)):
             raise RuntimeError(
-                f'Expected the source Python 3.12 runtime; got {sys.version_info.major}.{sys.version_info.minor}. '
-                'Kaggle may ignore dockerImageVersionId when importing an ipynb. '
-                'Copy & Edit a successful Python 3.12 version of the 0.440/v7c notebook, '
-                'select Pin to original environment in its Environment preferences, '
-                'then import this notebook code and restart the session. '
-                'Do not install a cp312 wheel into Python 3.13 or replace simulator RDKit with 2026.')
+                f'Supported runtimes: Python 3.12/3.13; got {sys.version_info.major}.{sys.version_info.minor}. '
+                'Use a compatible runtime and RDKit 2025.3.6 simulator wheel; never substitute RDKit 2026.')
         return super().run(scope)
 
 class CandidateRetriever(SourceStage):
@@ -286,6 +282,10 @@ def router_method(original):
 def build():
     original = json.loads(SOURCE.read_text())
     sources = {i: ''.join(c['source']) for i, c in enumerate(original['cells']) if c['cell_type'] == 'code'}
+    old_guard = "assert platform.python_version_tuple()[:2] == ('3', '12')"
+    assert sources[8].count(old_guard) == 1
+    sources[8] = sources[8].replace(old_guard,
+        "assert platform.python_version_tuple()[:2] in (('3', '12'), ('3', '13')), 'Python 3.12/3.13 required'", 1)
     base_credits = sources[3]
     setup = '''
 stages = [
@@ -307,11 +307,12 @@ reference_route = SourceStage('Unmodified v7c routing oracle', [(33, SOURCE_CELL
             'Authors: @ahmedberatozer (v7c header attribution; uploaded file has no verified direct notebook URL), '
             '@canqiang (E006), @flexonafft (metric fusion), @samanyu1808 (ICE fallback), '
             'Huseyin Emre Aksoy (fragment-rescorer), and the upstream contributors credited below.\n'
-            'Python 3.12, GPU T4, Internet OFF. Retain the uploaded source inputs. '
-            'Importing an ipynb may not apply its dockerImageVersionId=31430. '
-            'Start from Copy & Edit of a successful Python 3.12 version and select Pin to original '
-            'environment before importing this code. A fresh Python 3.13 notebook is incompatible '
-            'with the bundled simulator cp312 wheel. The runtime guard stops before model setup. '
+            'Python 3.12 or 3.13, GPU T4, Internet OFF. Retain the uploaded source inputs. '
+            'For Python 3.13 also attach https://www.kaggle.com/datasets/eveliaveldrine/rdkit-wheels '
+            '(RDKit 2025.3.6 cp313 Linux x86_64). Keep metric/rdkit-2026-3-3-wheel for the main '
+            'RDKit 2026.03.3 environment. The existing runtime-tagged selector installs RDKit 2025.3.6 '
+            'only into the isolated simulator site. Both Python guards now accept 3.12/3.13; '
+            'all wheel, GPU and RDKit checks remain enabled. Python 3.13 score parity is unverified. '
             'Source numerical kernels and subprocess modules are preserved. Our author-written orchestration, '
             'routing, group fallback, submission checks and reporting are object-oriented. '
             'Credited source stages remain procedural adapters, not a claim that upstream code was rewritten.')),
@@ -347,7 +348,8 @@ reference_route = SourceStage('Unmodified v7c routing oracle', [(33, SOURCE_CELL
                 'are excluded. The paired reference is submission_v7c_control.csv; raw per-molecule '
                 'routes and changes remain inspectable in research_routing_audit.csv/json.') + REPORTING),
             code_cell(prose('4. Preserved numerical source pack\n'
-                'These source cells, including embedded upstream modules, are kept verbatim. '
+                'Source arithmetic and embedded upstream modules are kept verbatim. The source preflight '
+                'Python-version assertion alone is widened to 3.12/3.13 for compatible simulator wheels. '
                 'Inspect SOURCE_CELLS[index] for the exact implementation; the source snapshot hash '
                 'above identifies its provenance. Source cells are executed only by the ordered stages.')
                 + 'SOURCE_CELLS = ' + repr({i: sources[i] for i in (7,8,10,12,14,16,17,19,21,23,25,27,28,29,30,32,33)}) + '\n'),
@@ -369,6 +371,7 @@ reference_route = SourceStage('Unmodified v7c routing oracle', [(33, SOURCE_CELL
             metadata={'kernelspec':original['metadata']['kernelspec'], 'kaggle':dict(original['metadata']['kaggle'], isGpuEnabled=True),
                 'casmi_experiment':dict(source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
                     user_reported_source_score=.441, measured_score=None, group_fragment_fallback=experiment,
+                    compatibility_fix='Both Python guards allow 3.12/3.13; runtime-tagged simulator RDKit selector preserved',
                     validation='Synthetic source-parity and group-slot tests; full Kaggle run pending')})
         validate(nb)
         notebooks.append(nb)

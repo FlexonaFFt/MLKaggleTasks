@@ -17,24 +17,24 @@ original = json.loads(SOURCE.read_text())
 source = ''.join(original['cells'][33]['source'])
 env = {'__name__': '__main__'}
 exec(FRAMEWORK + router_method(source) + REPORTING + METRIC_HELPER, env)
-# Reproduce the reported cp313 failure before any model setup or package install.
+# Both supported runtimes reach setup; unrelated runtimes remain rejected.
 registry = env['InputRegistry']('runtime test', [(0, 'setup_ran = True')])
+for version in ((3,12,0),(3,13,15)):
+    runtime_scope = {}
+    with patch('sys.version_info', version):
+        registry.run(runtime_scope)
+    assert runtime_scope['setup_ran'] is True
+class Version(tuple):
+    major, minor = 3, 14
 runtime_scope = {}
-with patch('sys.version_info', SimpleNamespace(major=3, minor=13)):
-    # A tuple-like version object matches the actual sys.version_info interface.
-    class Version(tuple):
-        major, minor = 3, 13
-    with patch('sys.version_info', Version((3,13,0))):
-        try:
-            registry.run(runtime_scope)
-        except RuntimeError as error:
-            assert 'Pin to original environment' in str(error)
-        else:
-            raise AssertionError('Reject cp313 before upstream setup')
+with patch('sys.version_info', Version((3,14,0))):
+    try:
+        registry.run(runtime_scope)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError('Reject unsupported runtime before setup')
 assert 'setup_ran' not in runtime_scope
-with patch('sys.version_info', (3,12,0)):
-    registry.run(runtime_scope)
-assert runtime_scope['setup_ran'] is True
 nodes = [n for n in ast.parse(source).body[0].body if isinstance(n, ast.FunctionDef) and n.name in ('_finite_coverage', 'rerank_row')]
 oracle = dict(env)
 exec(ast.unparse(ast.Module(body=nodes, type_ignores=[])), oracle)
@@ -101,7 +101,16 @@ for nb in build():
     assert all(c['cell_type']=='code' and not c['outputs'] and c['execution_count'] is None for c in nb['cells'])
     pack = ast.literal_eval(ast.parse(''.join(nb['cells'][5]['source'])).body[1].value)
     for index, code in pack.items():
-        assert code == ''.join(original['cells'][index]['source'])
+        expected = ''.join(original['cells'][index]['source'])
+        if index == 8:
+            expected = expected.replace("assert platform.python_version_tuple()[:2] == ('3', '12')",
+                "assert platform.python_version_tuple()[:2] in (('3', '12'), ('3', '13')), 'Python 3.12/3.13 required'")
+            guard = next(n for n in ast.walk(ast.parse(code)) if isinstance(n, ast.Assert)
+                and 'python_version_tuple' in ast.unparse(n.test))
+            for version in (('3','12'),('3','13')):
+                assert eval(compile(ast.Expression(guard.test), '<preflight-runtime>', 'eval'),
+                    {'platform':SimpleNamespace(python_version_tuple=lambda v=version:v)})
+        assert code == expected
         ast.parse(code)
     frag_tree = ast.parse(pack[32])
     embedded = next(ast.literal_eval(n.value) for n in ast.walk(frag_tree) if isinstance(n,ast.Assign)

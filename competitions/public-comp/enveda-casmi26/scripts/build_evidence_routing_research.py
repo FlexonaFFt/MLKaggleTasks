@@ -36,7 +36,17 @@ class SourceStage:
         return dict(stage=self.label, seconds=round(time.time() - started, 2))
 
 class InputRegistry(SourceStage):
-    pass
+    def run(self, scope):
+        import sys
+        if sys.version_info[:2] != (3, 12):
+            raise RuntimeError(
+                f'Expected the source Python 3.12 runtime; got {sys.version_info.major}.{sys.version_info.minor}. '
+                'Kaggle may ignore dockerImageVersionId when importing an ipynb. '
+                'Copy & Edit a successful Python 3.12 version of the 0.440/v7c notebook, '
+                'select Pin to original environment in its Environment preferences, '
+                'then import this notebook code and restart the session. '
+                'Do not install a cp312 wheel into Python 3.13 or replace simulator RDKit with 2026.')
+        return super().run(scope)
 
 class CandidateRetriever(SourceStage):
     pass
@@ -298,6 +308,10 @@ reference_route = SourceStage('Unmodified v7c routing oracle', [(33, SOURCE_CELL
             '@canqiang (E006), @flexonafft (metric fusion), @samanyu1808 (ICE fallback), '
             'Huseyin Emre Aksoy (fragment-rescorer), and the upstream contributors credited below.\n'
             'Python 3.12, GPU T4, Internet OFF. Retain the uploaded source inputs. '
+            'Importing an ipynb may not apply its dockerImageVersionId=31430. '
+            'Start from Copy & Edit of a successful Python 3.12 version and select Pin to original '
+            'environment before importing this code. A fresh Python 3.13 notebook is incompatible '
+            'with the bundled simulator cp312 wheel. The runtime guard stops before model setup. '
             'Source numerical kernels and subprocess modules are preserved. Our author-written orchestration, '
             'routing, group fallback, submission checks and reporting are object-oriented. '
             'Credited source stages remain procedural adapters, not a claim that upstream code was rewritten.')),

@@ -11,11 +11,30 @@ from build_evidence_routing_research import SOURCE, FRAMEWORK, REPORTING, router
 from build_aggressive_fusion_experiments import METRIC_HELPER
 from build_flow_experiments import ROOT
 import pandas as pd
+from unittest.mock import patch
 
 original = json.loads(SOURCE.read_text())
 source = ''.join(original['cells'][33]['source'])
 env = {'__name__': '__main__'}
 exec(FRAMEWORK + router_method(source) + REPORTING + METRIC_HELPER, env)
+# Reproduce the reported cp313 failure before any model setup or package install.
+registry = env['InputRegistry']('runtime test', [(0, 'setup_ran = True')])
+runtime_scope = {}
+with patch('sys.version_info', SimpleNamespace(major=3, minor=13)):
+    # A tuple-like version object matches the actual sys.version_info interface.
+    class Version(tuple):
+        major, minor = 3, 13
+    with patch('sys.version_info', Version((3,13,0))):
+        try:
+            registry.run(runtime_scope)
+        except RuntimeError as error:
+            assert 'Pin to original environment' in str(error)
+        else:
+            raise AssertionError('Reject cp313 before upstream setup')
+assert 'setup_ran' not in runtime_scope
+with patch('sys.version_info', (3,12,0)):
+    registry.run(runtime_scope)
+assert runtime_scope['setup_ran'] is True
 nodes = [n for n in ast.parse(source).body[0].body if isinstance(n, ast.FunctionDef) and n.name in ('_finite_coverage', 'rerank_row')]
 oracle = dict(env)
 exec(ast.unparse(ast.Module(body=nodes, type_ignores=[])), oracle)
@@ -78,6 +97,7 @@ assert audit['branch'] == 'frag_gap' and audit['group_fragment_groups'] == 0
 
 for nb in build():
     assert nb['metadata']['kaggle'] == dict(original['metadata']['kaggle'], isGpuEnabled=True)
+    assert nb['metadata']['kaggle']['dockerImageVersionId'] == 31430
     assert all(c['cell_type']=='code' and not c['outputs'] and c['execution_count'] is None for c in nb['cells'])
     pack = ast.literal_eval(ast.parse(''.join(nb['cells'][5]['source'])).body[1].value)
     for index, code in pack.items():

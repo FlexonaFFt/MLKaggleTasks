@@ -1,0 +1,120 @@
+{
+  "source_file": "0-557-lora-smollm3-tabpfn.ipynb",
+  "source_file_sha256": "14d998ea9914ae36733ddd854d58528eedadce41dae1e408eb4cee54e3f9e411",
+  "upstream_url": "https://www.kaggle.com/code/lightningv08/0-557-lora-smollm3-tabpfn",
+  "reference_url": "https://www.kaggle.com/code/obstacledeveloper/local-candidate-adaptive-centered-stylegram?scriptVersionId=359313348",
+  "payload_digests": {
+    "ntl_reference.py": "b856e736d5cb47d8fa309ce2acd5ce0588a4f91478bdeae99c491f31b7c26a4c",
+    "capture_runtime.py": "172aa2b5c336d6b277cdcf19d4d54e63749dc2b076f6b17a4cc56b71386275d6",
+    "claude_gate.py": "3fd1971a10eb15df21dd2c25acf6516d22e7fb07708b4cc0d4a872681fb37ae4",
+    "masked_features.py": "ce6313975b0f8eb8a3b7c8ce9cd0d1656d0e16bd1f7340d50dbc42ec1ac991b2",
+    "tabular_worker.py": "71fa6fda5562f012a2d4b96bb8dcd862378f26fc39ece6068b97fce5e43af067",
+    "run_baseline.py": "28e4e8f93a14615532e07a0a141b06dd6630437c4cc1ed330b515436b2b8826a",
+    "protected_operator.py": "9d9f8a89b92935075131d1e3a26a7948cbbe6eb1495d5ca808329a5ecda3184a",
+    "QWEN35_LICENSE": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+    "QWEN35_NOTICE.md": "5ce58b5e8ad74b3d9bf751e66b84721a0663311bd001ecc0d7a57d0c4c348c61",
+    "component.py": "ab1df94cea1358d95125ed99f4fbe9606f7e0690ca6b6938ead419f884343f46",
+    "owned_path.py": "20dabafd3f423196863ce3d1fbd4caa8b196bd517a88422561615db003d1e620",
+    "run_component.py": "8d6ee8631ffa99baaf3f9fdb49e3d8a4dbd6dbe2284e2ea1617ea5965902052b",
+    "center_readout.py": "499b99f6ca94b6b4b8eb1fca15a4ef0519079194406441e70f8d0e2443068072",
+    "source_balance.py": "da8682bc8298aed63c89607ceb08498a47a20ba7ab74752dddbdda996eab2351",
+    "compute_center.py": "3dbf7ca0c3769fbd4ade05346e4daeb791d589d7a7361e967f08d44c46999bbd",
+    "finish_center_protected.py": "aa4e54e2fdc8ea4f209ae42138d6b808ac07c45bf232c68db0318c5df8da0a47",
+    "admission_preflight.py": "59de3c41b2a1146a11797008b80e77859a0282b0d8b14c6a152fafc9dba19eeb",
+    "run_parallel.py": "3ff30d27d811decbe0a19628a9933ae9a797f5191d303f7cd3257883ba66599f",
+    "run_candidate_optional.py": "ab170cfa87abbfebcffb877a4b9db6b4cfa25944531b320e2e35da20822e013b",
+    "actual-diagnostic-audit.json": "8e76708fb1cca9239ffabfe7e8cd029b954d3957577f034156c3cfda4a9ba525",
+    "selection-evidence.json": "33c8a8a9e822ff608924e37007cfe93f40f9fd80f9386927097ca86cd95dbe67",
+    "runtime_config.json": "b960e2660242c8b4419fe8f71bf1f3ee3ab3956384af61a84f716ed10b475290",
+    "optional-config.json": "06573fd83a350bf60cbf302bab73dc4c89c57fc11621d558d1518e4e8342abbe",
+    "smol-spec.json": "a37480c78e4c53f1fed653482370a9c1867b34e775eac01a3d837a85d4fe9529"
+  },
+  "original_kaggle_metadata": {
+    "accelerator": "nvidiaTeslaT4",
+    "dataSources": [
+      {
+        "sourceType": "competition",
+        "sourceId": 170484
+      },
+      {
+        "sourceType": "datasetVersion",
+        "sourceId": 18975315
+      },
+      {
+        "sourceType": "datasetVersion",
+        "sourceId": 20736096
+      },
+      {
+        "sourceType": "datasetVersion",
+        "sourceId": 20819121
+      },
+      {
+        "sourceType": "datasetVersion",
+        "sourceId": 20830585
+      },
+      {
+        "sourceType": "datasetVersion",
+        "sourceId": 20831302
+      },
+      {
+        "sourceType": "datasetVersion",
+        "sourceId": 20890492
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358683059
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358745836
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358758062
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358770408
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358831649
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358911769
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358928013
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 358948428
+      },
+      {
+        "sourceType": "kernelVersion",
+        "sourceId": 359551650
+      },
+      {
+        "sourceType": "modelInstanceVersion",
+        "sourceId": 166254
+      },
+      {
+        "sourceType": "modelInstanceVersion",
+        "sourceId": 363135
+      },
+      {
+        "sourceType": "modelInstanceVersion",
+        "sourceId": 363140
+      }
+    ],
+    "dockerImageVersionId": 31481,
+    "isInternetEnabled": false,
+    "language": "python",
+    "sourceType": "notebook",
+    "isGpuEnabled": false
+  },
+  "original_description": "# LoRA + SmolLM3 + Protected TabPFN\n\nThis ensemble extends [Obstacle Developer's adaptive centered-stylegram method](https://www.kaggle.com/code/obstacledeveloper/local-candidate-adaptive-centered-stylegram?scriptVersionId=359313348), built on Lucas Boesen's LoRA ensemble and Zbigniew Kirchner's Claude experts. The original component weights, centered twins, stylegram replacement, marginal balancing with alpha = 0.5 and Claude expert rule are retained.\n\nAn independently trained SmolLM3-3B LoRA supplies a complementary centered readout. One forward pass extracts six trained normalized masked-mean representations. For each adaptive group recovered by the original method, features are centered within that same group and test pool before applying the trained centered head. Nonadaptive rows contribute zero. Its log probabilities enter the original unbalanced ensemble with coefficient 0.03; the original balancing and Claude expert rule follow.\n\nThe protected TabPFN residual then mixes only the conditional probabilities of the 13 non-Claude classes, with weight 0.10, while preserving their total mass. The five Claude columns remain bit-for-bit unchanged. Whole rows and expert labels already assigned to Claude are retained; any update that would enter the Claude family is reverted. No further normalization or decoding is applied. The TabPFN 3.5 component uses the unchanged 128-estimator, 184-feature pipeline and reuses the reference language-model features.\n\nOn one reused 539-row, 30-prompt conditional readout, mean Balanced Accuracy across three query-context constructions was 0.549979 for the reference, 0.554917 with the protected PFN residual alone and 0.556811 with the centered Smol addition followed by the protected residual. The joint differences from the reference were +0.009259, +0.009323 and +0.001916; its mean increment over the protected residual alone was +0.001894. Two fixed additional-model combinations were compared after the component results. The Smol combination was selected; no further weight search was performed for that comparison.\n\nThose contexts share passages; they are not independent folds or fresh validation data. This is one reused conditional readout, not full five-fold out-of-fold validation. Claude LoRA/API fit exclusion remains author-reported rather than independently certified. These descriptive checks do not establish a hidden-test score.\n\nCredits: Lucas Boesen for the reference ensemble and readouts; Zbigniew Kirchner for Claude experts; Obstacle Developer for centered stylegram; Vladislav Lavrentev for the original LoRA contribution, SmolLM3 fine-tuning and centered extension, tabular complement and protected residual; Hugging Face for SmolLM3; Prior Labs for TabPFN 3.5; the upstream asset authors cited by the reference. SmolLM3 retains Apache 2.0; TabPFN weights retain the Prior Labs Non-Commercial License. Other component licenses and notices apply separately.\n",
+  "api_metadata_note": "The live upstream notebook has changed. Scientific code is frozen from the user-provided file; API metadata is used only for resource slugs and Docker image."
+}

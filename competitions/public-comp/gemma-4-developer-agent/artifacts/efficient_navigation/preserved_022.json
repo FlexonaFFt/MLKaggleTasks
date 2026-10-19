@@ -1,0 +1,9 @@
+{
+  "recorded_on": "2026-10-19",
+  "notebook": "gemma4_budget_aware_022_preserved.ipynb",
+  "notebook_sha256": "7bb30ebc90e351220d0e2e0b7ddcf1dcee06fa2d7d1375c26d068ccee91dc797",
+  "submission_archive": "artifacts/efficient_navigation/submission.zip",
+  "submission_sha256": "6ff73d104725cc31deadd18787f3f55e5ce534889cec82387e3b280637d34887",
+  "observed_public_score": 0.22,
+  "note": "One reported public result; repeatability and future runtime are not established. Copied unchanged from the downloaded public notebook."
+}

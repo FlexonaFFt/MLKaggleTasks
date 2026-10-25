@@ -1,0 +1,17 @@
+{
+  "id": "flexonafft/gemma4-compact-12b-extended-compute",
+  "title": "Gemma 4 Compact 12B Extended Compute",
+  "code_file": "gemma4_compact_12b_extended_compute.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "false",
+  "machine_shape": "",
+  "dataset_sources": [],
+  "competition_sources": [
+    "gemma-4-developer-agent"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

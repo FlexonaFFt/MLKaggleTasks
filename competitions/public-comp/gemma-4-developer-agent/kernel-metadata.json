@@ -1,0 +1,22 @@
+{
+  "id": "flexonafft/gemma4-compact-31b-vs-12b-dev-eval",
+  "title": "Gemma 4 Compact 31B vs 12B Dev Eval",
+  "code_file": "gemma4_compact_31b_vs_12b_dev_eval.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "false",
+  "machine_shape": "NvidiaL4",
+  "dataset_sources": [
+    "metric/gemma-4-developer-agent-wheelhouse"
+  ],
+  "competition_sources": [
+    "gemma-4-developer-agent"
+  ],
+  "kernel_sources": [],
+  "model_sources": [
+    "google/gemma-4/other/gemma-4-31b-it-qat-w4a16-ct/2",
+    "google/gemma-4/other/gemma-4-12b-it-qat-w4a16-ct/2"
+  ]
+}

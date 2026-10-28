@@ -1,0 +1,17 @@
+{
+  "id": "flexonafft/gemma4-budget-aware-no-thought-replay",
+  "title": "Gemma 4 Budget Aware No Thought Replay",
+  "code_file": "gemma4_budget_aware_no_thought_replay.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "false",
+  "machine_shape": "",
+  "dataset_sources": [],
+  "competition_sources": [
+    "gemma-4-developer-agent"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

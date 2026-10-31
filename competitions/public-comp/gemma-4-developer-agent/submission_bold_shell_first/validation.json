@@ -1,0 +1,42 @@
+{
+  "base_git": "115dc0e",
+  "zip_sha256": "a7b8727b94dfbe6fc3f9fb17c00a8f371466a60d0f22a2ef7796c0c95fca9175",
+  "prompt_words": 330,
+  "base_prompt_bytes": 7363,
+  "candidate_prompt_bytes": 2061,
+  "members": {
+    "agent.yaml": {
+      "sha256": "60fd9cb269d734d48d3f8f2b3a4114d3415048f8397b59231b387c80d2bff33d",
+      "bytes": 216,
+      "changed_vs_base": true
+    },
+    "configs/sampling.yaml": {
+      "sha256": "630056889710d27dbf17c8fde62e033b7329616b7db435987cb4607b66a7c3f6",
+      "bytes": 129,
+      "changed_vs_base": true
+    },
+    "eval_config.yaml": {
+      "sha256": "ee16ece28df80637e7c02a59e71cc9d4c2a070f155f6432066e6596ececef1f5",
+      "bytes": 96,
+      "changed_vs_base": false
+    },
+    "prompts/system.md": {
+      "sha256": "6f4ba13d1a2ce2d8c119961d2fa0b64816addd279c666a70abfe1fd94b981f5d",
+      "bytes": 2061,
+      "changed_vs_base": true
+    }
+  },
+  "validation": {
+    "nbformat": "PASS",
+    "all_code_cells": "PASS",
+    "zip_crc_and_member_bytes": "PASS",
+    "yaml_includes_and_exact_parameters": "PASS",
+    "official_adk_compile": "NOT RUN",
+    "gpu_inference": "NOT RUN",
+    "kaggle_submit": "NOT RUN",
+    "stdlib_packaging": "PASS",
+    "repeat_build_identical": "PASS",
+    "saved_executed_notebook": "PASS",
+    "kernel_metadata": "PASS"
+  }
+}

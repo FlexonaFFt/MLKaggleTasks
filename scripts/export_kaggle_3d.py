@@ -311,6 +311,16 @@ def self_check() -> None:
     assert leaderboard_percent("12", [(1, 10), (2, 5), (3, 0)]) == (100.0, 1)
 
 
+def keep_missing_competitions(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Keep history of competitions the API no longer returns."""
+    if not CSV_PATH.exists():
+        return rows
+    fetched = {row["competition_slug"] for row in rows}
+    with CSV_PATH.open(newline="", encoding="utf-8") as file:
+        old = [r for r in csv.DictReader(file) if r["competition_slug"] not in fetched]
+    return rows + old
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Export Kaggle submissions and a 3D chart.")
     parser.add_argument("--self-check", action="store_true")
@@ -319,6 +329,7 @@ def main() -> int:
         self_check()
         return 0
     rows = build_rows()
+    rows = keep_missing_competitions(rows)
     write_csv(rows)
     write_chart(rows)
     write_readme_chart(rows)

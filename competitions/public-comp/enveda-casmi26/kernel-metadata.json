@@ -24,8 +24,7 @@
     "metric/rdkit-2026-3-3-wheel"
   ],
   "kernel_sources": [
-    "popwenman/casmi26-scorer-train-v80",
-    "flexonafft/casmi26-isomer-ranker-train"
+    "popwenman/casmi26-scorer-train-v80"
   ],
   "competition_sources": [
     "enveda-CASMI26-molecule-id-mass-spectra"

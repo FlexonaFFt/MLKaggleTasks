@@ -1,0 +1,26 @@
+{
+  "id": "flexonafft/casmi26-fpnet-np-data-audit",
+  "title": "CASMI26: FPNet-NP Data Audit",
+  "code_file": "casmi26-fpnet-np-data.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "nakhun/casmi26-extlib2",
+    "aryanawasthiteykik/casmi26-gnps-community-cc0",
+    "aryanawasthiteykik/casmi26-e180-not-in-train",
+    "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
+    "dmitriigluzdov/casmi26-natural-product-knowledge-table",
+    "metric/rdkit-2026-3-3-wheel"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "enveda-CASMI26-molecule-id-mass-spectra"
+  ],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:de153e6d303881930c51286216393d56f56b26458d0661350305a1e8144eea01"
+}

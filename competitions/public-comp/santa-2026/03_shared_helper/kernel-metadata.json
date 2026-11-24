@@ -1,0 +1,19 @@
+{
+  "id": "flexonafft/santa-2026-shared-helper-search",
+  "title": "Santa 2026 | Shared Helper Search",
+  "code_file": "03_shared_helper.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "ozertuu/santa-2026-verified-programs/506"
+  ],
+  "competition_sources": [
+    "santa-2026"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -1,0 +1,19 @@
+{
+  "id": "flexonafft/santa-2026-verified-public-portfolio",
+  "title": "Santa 2026 | Verified Public Portfolio",
+  "code_file": "02_verified_portfolio.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "ozertuu/santa-2026-verified-programs/506"
+  ],
+  "competition_sources": [
+    "santa-2026"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

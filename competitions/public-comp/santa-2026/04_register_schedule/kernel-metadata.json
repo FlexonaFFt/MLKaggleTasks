@@ -1,0 +1,19 @@
+{
+  "id": "flexonafft/santa-2026-register-aware-rewrites",
+  "title": "Santa 2026 | Register-Aware Rewrites",
+  "code_file": "04_register_schedule.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": [
+    "ozertuu/santa-2026-verified-programs/506"
+  ],
+  "competition_sources": [
+    "santa-2026"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}

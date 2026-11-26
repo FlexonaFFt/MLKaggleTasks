@@ -1,0 +1,28 @@
+{
+  "title": "The Arcade Playbook | Baseline",
+  "code_file": "gga_finish_action_blocks_75ms.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [
+    "gpu"
+  ],
+  "dataset_sources": [
+    "dfranzen/pennyroyal-v253"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "generalist-gaming-agent"
+  ],
+  "model_sources": [
+    "dfranzen/albucino-qwen3-8-flash-next-drafter/Transformers/default/1",
+    "google/gemma-4/Other/gemma-4-31b-it-qat-w4a16-ct/2",
+    "dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/Transformers/default/1"
+  ],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435",
+  "machine_shape": "NvidiaRtxPro6000",
+  "id": "flexonafft/the-arcade-playbook-baseline"
+}

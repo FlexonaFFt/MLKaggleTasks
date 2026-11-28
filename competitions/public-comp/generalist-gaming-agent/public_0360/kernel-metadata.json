@@ -1,0 +1,27 @@
+{
+  "id": "flexonafft/the-arcade-playbook-public-0360",
+  "title": "The Arcade Playbook | Public 0360",
+  "code_file": "agent.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [
+    "gpu"
+  ],
+  "dataset_sources": [
+    "dfranzen/pennyroyal-v253"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "generalist-gaming-agent"
+  ],
+  "model_sources": [
+    "dfranzen/albucino-qwen3-8-flash-next-drafter/Transformers/default/1",
+    "dfranzen/intel-qwen3.8-flash-next-w4a16-autoround/Transformers/default/1"
+  ],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:fc720c15545eb096a510e1f085b17fc118387a007599424d953a4f327b71cacf",
+  "machine_shape": "NvidiaRtxPro6000"
+}
